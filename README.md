@@ -181,6 +181,7 @@ These tests start Spring Boot on a random port, launch Vite against that API, an
 - Task 3: location display, valid/invalid movement, refresh persistence, and nearby characters
 - Task 4: inventory / equipment
 - Task 5: encounter search, fight actions, and combat resolution UI
+- Task 6: expeditions and activity feed (API coverage in backend integration tests)
 
 ### Combat API (Task 5)
 
@@ -203,6 +204,22 @@ Combat rules worth knowing:
   killing round is rejected with `INVENTORY_FULL` and the same reward plan is retained.
   Inventory and character-build changes are unavailable during active combat.
 - Defeat costs the fight and its rewards; the character is restored to 50% of max HP/stamina.
+
+### Expeditions & Activity (Task 6)
+
+Authenticated session + CSRF required:
+
+- `POST /api/v1/expeditions` body `{ "strategy": "BALANCED" }` (CAUTIOUS / BALANCED / AGGRESSIVE)
+- `GET /api/v1/expeditions/current` (ACTIVE or unclaimed COMPLETED; 204 when none)
+- `POST /api/v1/expeditions/{id}/claim`
+- `GET /api/v1/activity`
+
+Forest Patrol lasts 20 minutes by server timestamps (no sleeping workers). The outcome is rolled
+and persisted when the patrol starts, and stays hidden until the server clock passes `completesAt`,
+so repeated inspect or claim requests can never reroll rewards — including a claim that fails
+because the inventory is full. An active patrol does not block travel, encounters or any other
+action; only one patrol may run at a time. Activity feed records combat victories, level-ups, item
+finds, and expedition completed/claimed events.
 
 ## Frontend
 

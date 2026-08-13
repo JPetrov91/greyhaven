@@ -106,6 +106,25 @@ public class CharacterVitalsService {
 		return toView(character);
 	}
 
+	/**
+	 * Applies minor expedition injury while keeping the character playable (at least 1 HP).
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView applyInjury(UUID characterId, int damage) {
+		if (damage < 0) {
+			throw new IllegalArgumentException("damage must be non-negative");
+		}
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		if (damage == 0) {
+			return toView(character);
+		}
+		int remaining = Math.max(1, character.getCurrentHealth() - damage);
+		character.applyHealth(remaining, Instant.now(clock));
+		characterRepository.saveAndFlush(character);
+		return toView(character);
+	}
+
 	private static CharacterVitalsView toView(CharacterEntity character) {
 		return new CharacterVitalsView(
 				character.getId(),

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 import com.example.game.character.application.CharacterAtLocationView;
 import com.example.game.character.application.CharacterLocationService;
@@ -59,7 +61,7 @@ class WorldApplicationServiceTest {
 				characterLocationService,
 				locationRepository,
 				locationConnectionRepository,
-				characterTravelGuard);
+				List.of(characterTravelGuard));
 	}
 
 	@Test
@@ -88,6 +90,20 @@ class WorldApplicationServiceTest {
 		assertThatThrownBy(() -> worldApplicationService.move(ACCOUNT_ID, FOREST_ID))
 				.isInstanceOf(ApiException.class)
 				.hasFieldOrPropertyWithValue("code", "INVALID_MOVEMENT");
+
+		verify(characterLocationService, never()).relocate(any(), any());
+	}
+
+	@Test
+	void aVetoingTravelGuardStopsRelocation() {
+		when(characterLocationService.lockLocationOf(ACCOUNT_ID))
+				.thenReturn(new CharacterLocationView(CHARACTER_ID, CITY_SQUARE_ID));
+		doThrow(new ApiException("COMBAT_IN_PROGRESS", "You cannot travel now.", HttpStatus.CONFLICT))
+				.when(characterTravelGuard).assertCanTravel(CHARACTER_ID);
+
+		assertThatThrownBy(() -> worldApplicationService.move(ACCOUNT_ID, FOREST_ID))
+				.isInstanceOf(ApiException.class)
+				.hasFieldOrPropertyWithValue("code", "COMBAT_IN_PROGRESS");
 
 		verify(characterLocationService, never()).relocate(any(), any());
 	}

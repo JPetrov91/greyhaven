@@ -477,6 +477,79 @@ h2,
   border-top: 1px solid rgba(31, 42, 36, 0.12);
 }
 
+.expedition-panel {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(31, 42, 36, 0.12);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.expedition-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.expedition-header h2 {
+  margin: 0;
+}
+
+.strategy-list {
+  list-style: none;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.strategy-list label {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.expedition-rewards {
+  margin: 0.85rem 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(31, 42, 36, 0.12);
+}
+
+.expedition-rewards ul {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  max-height: calc(100vh - 10rem);
+  overflow: auto;
+}
+
+.activity-list li {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+}
+
+.activity-list p {
+  margin: 0 0 0.2rem;
+  color: var(--ink);
+}
+
+.activity-list time {
+  font-size: 0.85rem;
+}
+
 @media (max-width: 900px) {
   .game-layout {
     grid-template-columns: 1fr;

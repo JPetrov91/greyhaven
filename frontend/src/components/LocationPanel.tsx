@@ -29,8 +29,6 @@ const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY
 /** Actions that require later tasks and are shown as unavailable. */
 const UNAVAILABLE_ACTIONS = new Set<LocationAction>([
   'VIEW_CHAT',
-  'START_EXPEDITION',
-  'INSPECT_EXPEDITIONS',
   'BROWSE_MARKET',
   'CREATE_LISTING',
   'BUY_ITEM',
@@ -41,9 +39,15 @@ type Props = {
   onSearchEncounter?: () => void
   searchBusy?: boolean
   searchError?: string | null
+  onOpenExpedition?: () => void
 }
 
-export function LocationPanel({ onSearchEncounter, searchBusy = false, searchError = null }: Props) {
+export function LocationPanel({
+  onSearchEncounter,
+  searchBusy = false,
+  searchError = null,
+  onOpenExpedition,
+}: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
   const [movingToId, setMovingToId] = useState<string | null>(null)
@@ -192,6 +196,18 @@ export function LocationPanel({ onSearchEncounter, searchBusy = false, searchErr
                   onClick={() => onSearchEncounter?.()}
                 >
                   {searchBusy ? 'Searching…' : 'Search'}
+                </button>
+              ) : action === 'START_EXPEDITION' || action === 'INSPECT_EXPEDITIONS' ? (
+                <button
+                  type="button"
+                  className="travel-button"
+                  data-testid={
+                    action === 'START_EXPEDITION' ? 'start-expedition-action' : 'inspect-expedition-action'
+                  }
+                  disabled={!onOpenExpedition}
+                  onClick={() => onOpenExpedition?.()}
+                >
+                  Open
                 </button>
               ) : (
                 <span className={`action-status ${UNAVAILABLE_ACTIONS.has(action) ? 'unavailable' : 'available'}`}>

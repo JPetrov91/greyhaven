@@ -189,3 +189,48 @@ export type NearbyCharactersResponse = {
   characters: NearbyCharacterResponse[]
   truncated: boolean
 }
+
+export type ExpeditionStrategy = 'CAUTIOUS' | 'BALANCED' | 'AGGRESSIVE'
+export type ExpeditionStatus = 'ACTIVE' | 'COMPLETED' | 'CLAIMED'
+export type ExpeditionType = 'FOREST_PATROL'
+
+export type ExpeditionRewardItemResponse = {
+  itemCode: string
+  itemName: string
+  quantity: number
+}
+
+export type ExpeditionRewardsResponse = {
+  xp: number
+  gold: number
+  injuryDamage: number
+  items: ExpeditionRewardItemResponse[]
+}
+
+export type ExpeditionResponse = {
+  id: string
+  expeditionType: ExpeditionType
+  expeditionName: string
+  strategy: ExpeditionStrategy
+  status: ExpeditionStatus
+  startedAt: string
+  completesAt: string
+  claimedAt: string | null
+  resultReady: boolean
+  rewards: ExpeditionRewardsResponse | null
+}
+
+export type ActivityType =
+  | 'COMBAT_VICTORY'
+  | 'LEVEL_UP'
+  | 'ITEM_FOUND'
+  | 'EXPEDITION_COMPLETED'
+  | 'EXPEDITION_CLAIMED'
+
+export type ActivityEntryResponse = {
+  id: string
+  type: ActivityType
+  message: string
+  createdAt: string
+  readAt: string | null
+}

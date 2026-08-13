@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.activity.application.ActivityApplicationService;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.character.application.EquippedBonusProvider;
@@ -53,6 +54,7 @@ public class CombatApplicationService {
 	private final CharacterVitalsService characterVitalsService;
 	private final EquippedBonusProvider equippedBonusProvider;
 	private final InventoryApplicationService inventoryApplicationService;
+	private final ActivityApplicationService activityApplicationService;
 	private final EncounterRepository encounterRepository;
 	private final CombatSessionRepository combatSessionRepository;
 	private final CombatEventRepository combatEventRepository;
@@ -67,6 +69,7 @@ public class CombatApplicationService {
 			CharacterVitalsService characterVitalsService,
 			EquippedBonusProvider equippedBonusProvider,
 			InventoryApplicationService inventoryApplicationService,
+			ActivityApplicationService activityApplicationService,
 			EncounterRepository encounterRepository,
 			CombatSessionRepository combatSessionRepository,
 			CombatEventRepository combatEventRepository,
@@ -79,6 +82,7 @@ public class CombatApplicationService {
 		this.characterVitalsService = characterVitalsService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.inventoryApplicationService = inventoryApplicationService;
+		this.activityApplicationService = activityApplicationService;
 		this.encounterRepository = encounterRepository;
 		this.combatSessionRepository = combatSessionRepository;
 		this.combatEventRepository = combatEventRepository;
@@ -310,6 +314,9 @@ public class CombatApplicationService {
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
 				rewardRows.stream().map(CombatRewardItemEntity::getItemDefinitionId).toList());
 
+		CharacterVitalsView before = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
+		int previousLevel = before.level();
+
 		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
 
 		for (CombatRewardItemEntity reward : rewardRows) {
@@ -323,7 +330,15 @@ public class CombatApplicationService {
 			catch (InventoryFullException exception) {
 				throw CombatErrors.rewardsNeedInventorySpace();
 			}
+			activityApplicationService.recordItemFound(
+					session.getCharacterId(),
+					item.name(),
+					reward.getQuantity());
 		}
+
+		CharacterVitalsView after = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
+		activityApplicationService.recordCombatVictory(session.getCharacterId(), monster.getName());
+		activityApplicationService.recordLevelUps(session.getCharacterId(), previousLevel, after.level());
 
 		session.markRewards(xp, gold, now);
 		combatSessionRepository.saveAndFlush(session);

@@ -29,17 +29,17 @@ public class WorldApplicationService {
 	private final CharacterLocationService characterLocationService;
 	private final LocationRepository locationRepository;
 	private final LocationConnectionRepository locationConnectionRepository;
-	private final CharacterTravelGuard characterTravelGuard;
+	private final List<CharacterTravelGuard> characterTravelGuards;
 
 	public WorldApplicationService(
 			CharacterLocationService characterLocationService,
 			LocationRepository locationRepository,
 			LocationConnectionRepository locationConnectionRepository,
-			CharacterTravelGuard characterTravelGuard) {
+			List<CharacterTravelGuard> characterTravelGuards) {
 		this.characterLocationService = characterLocationService;
 		this.locationRepository = locationRepository;
 		this.locationConnectionRepository = locationConnectionRepository;
-		this.characterTravelGuard = characterTravelGuard;
+		this.characterTravelGuards = List.copyOf(characterTravelGuards);
 	}
 
 	@Transactional(readOnly = true)
@@ -76,7 +76,9 @@ public class WorldApplicationService {
 	@Transactional
 	public LocationView move(UUID accountId, UUID destinationLocationId) {
 		CharacterLocationView character = characterLocationService.lockLocationOf(accountId);
-		characterTravelGuard.assertCanTravel(character.characterId());
+		for (CharacterTravelGuard guard : characterTravelGuards) {
+			guard.assertCanTravel(character.characterId());
+		}
 		LocationEntity destination = requireLocation(destinationLocationId);
 
 		UUID fromLocationId = character.currentLocationId();

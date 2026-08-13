@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -499,6 +501,17 @@ class CombatIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.level").value(2))
 				.andExpect(jsonPath("$.unspentAttributePoints").value(2));
+
+		MvcResult activity = mockMvc.perform(get("/api/v1/activity").session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		List<Map<String, Object>> entries = JsonPath.read(activity.getResponse().getContentAsString(), "$");
+		assertThat(entries.stream().map(entry -> entry.get("type")).toList())
+				.contains("COMBAT_VICTORY", "LEVEL_UP");
+		assertThat(entries.stream()
+				.filter(entry -> "LEVEL_UP".equals(entry.get("type")))
+				.map(entry -> entry.get("message")))
+				.containsExactly("You reached level 2.");
 
 		mockMvc.perform(withCsrf(post("/api/v1/character/attributes"))
 						.session(session)

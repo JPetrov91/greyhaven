@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
+import { fetchCurrentExpedition } from '../api/expedition'
+import { ActivityPanel } from './ActivityPanel'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 import { CombatPanel } from './CombatPanel'
 import { EncounterPrompt } from './EncounterPrompt'
+import { ExpeditionPanel } from './ExpeditionPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 
@@ -13,6 +16,7 @@ export function GameLayout() {
   const queryClient = useQueryClient()
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [showExpedition, setShowExpedition] = useState(false)
 
   const combatQuery = useQuery({
     queryKey: ['combat'],
@@ -29,6 +33,19 @@ export function GameLayout() {
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
   })
+
+  const expeditionQuery = useQuery({
+    queryKey: ['expedition'],
+    queryFn: fetchCurrentExpedition,
+    retry: false,
+    refetchOnWindowFocus: true,
+  })
+
+  useEffect(() => {
+    if (expeditionQuery.data && expeditionQuery.data.status !== 'CLAIMED') {
+      setShowExpedition(true)
+    }
+  }, [expeditionQuery.data])
 
   const combat = combatQuery.data ?? null
   const encounter = encounterQuery.data ?? null
@@ -89,7 +106,10 @@ export function GameLayout() {
         ) : showCombat ? (
           <CombatPanel
             combat={combat}
-            onCombatUpdate={(updated) => queryClient.setQueryData(['combat'], updated)}
+            onCombatUpdate={(updated) => {
+              queryClient.setQueryData(['combat'], updated)
+              void queryClient.invalidateQueries({ queryKey: ['activity'] })
+            }}
           />
         ) : (
           <>
@@ -97,7 +117,9 @@ export function GameLayout() {
               onSearchEncounter={() => void handleSearchEncounter()}
               searchBusy={searching}
               searchError={searchError}
+              onOpenExpedition={() => setShowExpedition(true)}
             />
+            {showExpedition ? <ExpeditionPanel onClose={() => setShowExpedition(false)} /> : null}
             {showEncounter ? (
               <EncounterPrompt
                 encounter={encounter}
@@ -116,10 +138,7 @@ export function GameLayout() {
         />
       </div>
 
-      <aside className="game-column game-column-right">
-        <h2>Activity</h2>
-        <p>Feed and chat will appear here.</p>
-      </aside>
+      <ActivityPanel />
     </section>
   )
 }
