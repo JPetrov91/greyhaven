@@ -23,7 +23,9 @@ public final class CombatEngine {
 			ActionContext actionContext,
 			RandomProvider random) {
 		if (state.status() != CombatSessionStatus.ACTIVE) {
-			throw new IllegalStateException("combat is not active");
+			throw new CombatRuleViolation(
+					CombatRuleViolation.Reason.COMBAT_NOT_ACTIVE,
+					"combat is not active");
 		}
 
 		validateAction(state, action, actionContext);
@@ -127,24 +129,17 @@ public final class CombatEngine {
 			CombatSessionState state,
 			CombatAction action,
 			ActionContext actionContext) {
-		if (ActionCombatBalance.isAttack(action)
-				|| action == CombatAction.DEFEND
-				|| action == CombatAction.USE_POTION
-				|| action == CombatAction.RETREAT) {
-			// all known actions
-		}
-		else {
-			throw new IllegalArgumentException("unsupported action");
-		}
-
 		int cost = ActionCombatBalance.staminaCost(action);
 		if (state.playerStamina() < cost) {
-			throw new IllegalArgumentException("insufficient stamina");
+			throw new CombatRuleViolation(
+					CombatRuleViolation.Reason.INSUFFICIENT_STAMINA,
+					"insufficient stamina for " + action);
 		}
-		if (action == CombatAction.USE_POTION) {
-			if (!actionContext.potionAvailable() || actionContext.potionHealAmount() < 1) {
-				throw new IllegalArgumentException("no potion available");
-			}
+		if (action == CombatAction.USE_POTION
+				&& (!actionContext.potionAvailable() || actionContext.potionHealAmount() < 1)) {
+			throw new CombatRuleViolation(
+					CombatRuleViolation.Reason.NO_POTION,
+					"no potion available");
 		}
 	}
 

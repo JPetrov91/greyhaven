@@ -24,9 +24,9 @@ import com.example.game.combat.infrastructure.LocationEncounterWeightRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
 import com.example.game.shared.domain.RandomProvider;
+import com.example.game.world.application.LocationView;
+import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationSafety;
-import com.example.game.world.infrastructure.LocationEntity;
-import com.example.game.world.infrastructure.LocationRepository;
 
 @Service
 public class EncounterApplicationService {
@@ -37,7 +37,7 @@ public class EncounterApplicationService {
 
 	private final CharacterLocationService characterLocationService;
 	private final CharacterVitalsService characterVitalsService;
-	private final LocationRepository locationRepository;
+	private final WorldApplicationService worldApplicationService;
 	private final LocationEncounterWeightRepository locationEncounterWeightRepository;
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final EncounterRepository encounterRepository;
@@ -49,7 +49,7 @@ public class EncounterApplicationService {
 	public EncounterApplicationService(
 			CharacterLocationService characterLocationService,
 			CharacterVitalsService characterVitalsService,
-			LocationRepository locationRepository,
+			WorldApplicationService worldApplicationService,
 			LocationEncounterWeightRepository locationEncounterWeightRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			EncounterRepository encounterRepository,
@@ -59,7 +59,7 @@ public class EncounterApplicationService {
 			Clock clock) {
 		this.characterLocationService = characterLocationService;
 		this.characterVitalsService = characterVitalsService;
-		this.locationRepository = locationRepository;
+		this.worldApplicationService = worldApplicationService;
 		this.locationEncounterWeightRepository = locationEncounterWeightRepository;
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.encounterRepository = encounterRepository;
@@ -81,14 +81,13 @@ public class EncounterApplicationService {
 			throw CombatErrors.unresolvedEncounter();
 		}
 
-		LocationEntity location = locationRepository.findById(locationView.currentLocationId())
-				.orElseThrow(CombatErrors::locationNotDangerous);
-		if (location.getSafety() != LocationSafety.DANGEROUS) {
+		LocationView location = worldApplicationService.currentLocation(accountId);
+		if (location.safety() != LocationSafety.DANGEROUS) {
 			throw CombatErrors.locationNotDangerous();
 		}
 
 		List<LocationEncounterWeightEntity> weights = locationEncounterWeightRepository
-				.findByLocationId(location.getId());
+				.findByLocationId(location.id());
 		if (weights.isEmpty()) {
 			return EncounterSearchView.nothing();
 		}
@@ -107,7 +106,7 @@ public class EncounterApplicationService {
 		EncounterEntity encounter = new EncounterEntity(
 				UUID.randomUUID(),
 				vitals.characterId(),
-				location.getId(),
+				location.id(),
 				monster.getId(),
 				EncounterStatus.AVAILABLE,
 				now,

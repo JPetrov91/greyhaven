@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.character.domain.CharacterBalance;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 
@@ -79,14 +80,17 @@ public class CharacterVitalsService {
 	}
 
 	/**
-	 * Office-first defeat: leave the character at 1 HP so they are not soft-locked at 0.
+	 * Office-first defeat: the character recovers instead of being stranded at low vitals, so the
+	 * explore/fight loop can always continue. The cost of losing is the forfeited rewards.
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
-	public CharacterVitalsView applyDefeatRecovery(UUID characterId, int currentStamina) {
+	public CharacterVitalsView applyDefeatRecovery(UUID characterId) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
-		int stamina = Math.max(0, Math.min(currentStamina, character.getMaxStamina()));
-		character.syncCombatVitals(1, stamina, Instant.now(clock));
+		character.syncCombatVitals(
+				CharacterBalance.defeatRecovery(character.getMaxHealth()),
+				CharacterBalance.defeatRecovery(character.getMaxStamina()),
+				Instant.now(clock));
 		characterRepository.saveAndFlush(character);
 		return toView(character);
 	}

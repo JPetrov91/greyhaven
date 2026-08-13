@@ -126,7 +126,6 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
               {combat.rewards.items.map((item) => (
                 <li key={`${item.itemCode}-${item.quantity}`}>
                   {item.itemName} ×{item.quantity}
-                  {!item.granted ? ' (inventory full — not granted)' : ''}
                 </li>
               ))}
             </ul>

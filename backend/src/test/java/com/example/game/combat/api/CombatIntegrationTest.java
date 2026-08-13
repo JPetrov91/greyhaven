@@ -180,9 +180,8 @@ class CombatIntegrationTest {
 				.andExpect(jsonPath("$.rewards.xp").value(xpAwarded))
 				.andExpect(jsonPath("$.rewards.gold").value(goldAwarded));
 
-		mockMvc.perform(get("/api/v1/combat/" + combatId).session(session))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.rewards.xp").value(xpAwarded));
+		mockMvc.perform(get("/api/v1/combat/current").session(session))
+				.andExpect(status().isNoContent());
 
 		assertThat(jdbcTemplate.queryForObject(
 				"select experience from characters where id = ?",
@@ -419,6 +418,200 @@ class CombatIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(combatId.toString()))
 				.andExpect(jsonPath("$.status").value("ACTIVE"));
+	}
+
+	@Test
+	void defeatForfeitsRewardsAndRestoresTheCharacter() throws Exception {
+		String email = "combat-defeat-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		int xpBefore = intColumn("select experience from characters where id = ?", characterId);
+		int goldBefore = intColumn("select gold from characters where id = ?", characterId);
+		jdbcTemplate.update("update combat_sessions set player_health = 1 where id = ?", combatId);
+
+		// Enemy always hits for its maximum roll, which outdamages the remaining hit point.
+		mutableRandomProvider.queue(0, 8);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"DEFEND\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_LOST"))
+				.andExpect(jsonPath("$.rewards").isEmpty());
+
+		assertThat(intColumn("select experience from characters where id = ?", characterId)).isEqualTo(xpBefore);
+		assertThat(intColumn("select gold from characters where id = ?", characterId)).isEqualTo(goldBefore);
+		assertThat(intColumn("select count(*) from combat_reward_items where session_id = ?", combatId)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"select rewards_applied from combat_sessions where id = ?",
+				Boolean.class,
+				combatId)).isFalse();
+		assertThat(jdbcTemplate.queryForObject(
+				"select status from encounters where id = ?",
+				String.class,
+				encounterId)).isEqualTo("RESOLVED");
+
+		// Office-first: a defeated character is playable again instead of stranded at 0 health.
+		assertThat(intColumn("select current_health from characters where id = ?", characterId))
+				.isEqualTo(intColumn("select max_health from characters where id = ?", characterId));
+		assertThat(intColumn("select current_stamina from characters where id = ?", characterId))
+				.isEqualTo(intColumn("select max_stamina from characters where id = ?", characterId));
+	}
+
+	@Test
+	void retreatEndsCombatWithoutRewards() throws Exception {
+		String email = "combat-retreat-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		int xpBefore = intColumn("select experience from characters where id = ?", characterId);
+
+		// Escape roll below the agility-derived chance.
+		mutableRandomProvider.queue(0);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"RETREAT\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_ESCAPED"))
+				.andExpect(jsonPath("$.rewards").isEmpty());
+
+		assertThat(intColumn("select experience from characters where id = ?", characterId)).isEqualTo(xpBefore);
+		assertThat(intColumn("select count(*) from combat_reward_items where session_id = ?", combatId)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"select status from encounters where id = ?",
+				String.class,
+				encounterId)).isEqualTo("RESOLVED");
+	}
+
+	@Test
+	void secondSearchRejectedWhileAnEncounterIsUnresolved() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat-unresolved-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true));
+
+		mutableRandomProvider.queue(1);
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("UNRESOLVED_ENCOUNTER"));
+	}
+
+	@Test
+	void ignoringAnEncounterResolvesItAndAllowsSearchingAgain() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat-ignore-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/ignore")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("RESOLVED"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/ignore")).session(session))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("ENCOUNTER_NOT_AVAILABLE"));
+
+		mutableRandomProvider.queue(1);
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true));
+	}
+
+	@Test
+	void fullInventoryAbortsVictoryInsteadOfDiscardingLoot() throws Exception {
+		String email = "combat-full-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		fillInventoryWithNonStackableItems(characterId);
+		int xpBefore = intColumn("select experience from characters where id = ?", characterId);
+		int goldBefore = intColumn("select gold from characters where id = ?", characterId);
+		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
+
+		// Killing blow, then a gold roll and both Street Thug loot entries dropping.
+		mutableRandomProvider.queue(5, 90, 5, 0, 1, 0, 1);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"QUICK_ATTACK\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("INVENTORY_FULL"));
+
+		// The whole round rolled back: no partial rewards, and the fight can still be finished.
+		assertThat(intColumn("select experience from characters where id = ?", characterId)).isEqualTo(xpBefore);
+		assertThat(intColumn("select gold from characters where id = ?", characterId)).isEqualTo(goldBefore);
+		assertThat(intColumn("select count(*) from combat_reward_items where session_id = ?", combatId)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"select status from combat_sessions where id = ?",
+				String.class,
+				combatId)).isEqualTo("ACTIVE");
+		assertThat(jdbcTemplate.queryForObject(
+				"select rewards_applied from combat_sessions where id = ?",
+				Boolean.class,
+				combatId)).isFalse();
+	}
+
+	private void fillInventoryWithNonStackableItems(UUID characterId) {
+		UUID ironSword = jdbcTemplate.queryForObject(
+				"select id from item_definitions where code = 'IRON_SWORD'",
+				UUID.class);
+		for (int i = 0; i < 40; i++) {
+			jdbcTemplate.update(
+					"""
+							insert into item_instances
+							(id, item_definition_id, owner_character_id, quantity, stackable, created_at)
+							values (?, ?, ?, 1, false, now())
+							""",
+					UUID.randomUUID(),
+					ironSword,
+					characterId);
+		}
+	}
+
+	private int intColumn(String sql, Object argument) {
+		return jdbcTemplate.queryForObject(sql, Integer.class, argument);
 	}
 
 	private void moveTo(MockHttpSession session, String locationCode) throws Exception {

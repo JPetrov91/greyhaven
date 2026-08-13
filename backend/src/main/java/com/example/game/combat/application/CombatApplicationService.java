@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import com.example.game.combat.domain.CombatAction;
 import com.example.game.combat.domain.CombatEngine;
 import com.example.game.combat.domain.CombatEvent;
 import com.example.game.combat.domain.CombatRoundResult;
+import com.example.game.combat.domain.CombatRuleViolation;
 import com.example.game.combat.domain.CombatSessionState;
 import com.example.game.combat.domain.CombatSessionStatus;
 import com.example.game.combat.domain.CombatantStats;
@@ -40,8 +42,9 @@ import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
 import com.example.game.combat.infrastructure.MonsterLootEntryEntity;
 import com.example.game.combat.infrastructure.MonsterLootEntryRepository;
 import com.example.game.inventory.application.InventoryApplicationService;
-import com.example.game.item.infrastructure.ItemDefinitionEntity;
-import com.example.game.item.infrastructure.ItemDefinitionRepository;
+import com.example.game.inventory.application.InventoryFullException;
+import com.example.game.item.application.ItemCatalogService;
+import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -56,7 +59,7 @@ public class CombatApplicationService {
 	private final CombatRewardItemRepository combatRewardItemRepository;
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final MonsterLootEntryRepository monsterLootEntryRepository;
-	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final ItemCatalogService itemCatalogService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 
@@ -70,7 +73,7 @@ public class CombatApplicationService {
 			CombatRewardItemRepository combatRewardItemRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			MonsterLootEntryRepository monsterLootEntryRepository,
-			ItemDefinitionRepository itemDefinitionRepository,
+			ItemCatalogService itemCatalogService,
 			RandomProvider randomProvider,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
@@ -82,7 +85,7 @@ public class CombatApplicationService {
 		this.combatRewardItemRepository = combatRewardItemRepository;
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.monsterLootEntryRepository = monsterLootEntryRepository;
-		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.itemCatalogService = itemCatalogService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 	}
@@ -135,23 +138,6 @@ public class CombatApplicationService {
 					return toView(active, monster, vitals, loadEvents(active.getId()), null);
 				})
 				.orElse(null);
-	}
-
-	/**
-	 * Returns a terminal combat snapshot when present. Used by idempotent reward re-fetch tests and
-	 * clients that still hold a finished session id.
-	 */
-	@Transactional(readOnly = true)
-	public CombatView getById(UUID accountId, UUID combatId) {
-		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
-		CombatSessionEntity session = combatSessionRepository.findById(combatId)
-				.orElseThrow(CombatErrors::combatNotFound);
-		if (!session.getCharacterId().equals(vitals.characterId())) {
-			throw CombatErrors.combatNotFound();
-		}
-		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
-		CombatRewardsView rewards = session.isRewardsApplied() ? loadRewards(session) : null;
-		return toView(session, monster, vitals, loadEvents(session.getId()), rewards);
 	}
 
 	@Transactional
@@ -218,14 +204,12 @@ public class CombatApplicationService {
 					new CombatEngine.ActionContext(potionAvailable || action == CombatAction.USE_POTION, potionHeal),
 					randomProvider);
 		}
-		catch (IllegalArgumentException exception) {
-			if ("insufficient stamina".equals(exception.getMessage())) {
-				throw CombatErrors.insufficientStamina();
-			}
-			if ("no potion available".equals(exception.getMessage())) {
-				throw CombatErrors.noPotion();
-			}
-			throw CombatErrors.invalidCombatAction(exception.getMessage());
+		catch (CombatRuleViolation violation) {
+			throw switch (violation.getReason()) {
+				case INSUFFICIENT_STAMINA -> CombatErrors.insufficientStamina();
+				case NO_POTION -> CombatErrors.noPotion();
+				case COMBAT_NOT_ACTIVE -> CombatErrors.combatNotActive();
+			};
 		}
 
 		Instant now = Instant.now(clock);
@@ -241,7 +225,7 @@ public class CombatApplicationService {
 
 		CharacterVitalsView synced;
 		if (result.status() == CombatSessionStatus.PLAYER_LOST) {
-			synced = characterVitalsService.applyDefeatRecovery(vitals.characterId(), result.playerStamina());
+			synced = characterVitalsService.applyDefeatRecovery(vitals.characterId());
 			resolveEncounter(session.getEncounterId(), now);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_ESCAPED) {
@@ -274,6 +258,8 @@ public class CombatApplicationService {
 	/**
 	 * Idempotent reward application. Safe under concurrent completion attempts because the session
 	 * row is locked and {@code rewards_applied} flips in the same transaction.
+	 *
+	 * <p>Rewards are all-or-nothing: a full inventory aborts the round instead of destroying loot.
 	 */
 	void applyRewardsExactlyOnce(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
 		if (session.isRewardsApplied()) {
@@ -289,16 +275,20 @@ public class CombatApplicationService {
 
 		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
 		for (LootDrop drop : drops) {
-			boolean granted = inventoryApplicationService.tryGrantItems(
-					session.getCharacterId(),
-					drop.itemCode(),
-					drop.quantity());
+			try {
+				inventoryApplicationService.grantItems(
+						session.getCharacterId(),
+						drop.itemCode(),
+						drop.quantity());
+			}
+			catch (InventoryFullException exception) {
+				throw CombatErrors.rewardsNeedInventorySpace();
+			}
 			rewardRows.add(new CombatRewardItemEntity(
 					UUID.randomUUID(),
 					session.getId(),
 					drop.itemDefinitionId(),
-					drop.quantity(),
-					granted));
+					drop.quantity()));
 		}
 		if (!rewardRows.isEmpty()) {
 			combatRewardItemRepository.saveAll(rewardRows);
@@ -320,13 +310,14 @@ public class CombatApplicationService {
 
 	private List<LootTableEntry> buildLootTable(UUID monsterDefinitionId) {
 		List<MonsterLootEntryEntity> rows = monsterLootEntryRepository.findByMonsterDefinitionId(monsterDefinitionId);
+		Map<UUID, ItemDefinitionView> items = itemCatalogService.findByIds(
+				rows.stream().map(MonsterLootEntryEntity::getItemDefinitionId).toList());
 		List<LootTableEntry> table = new ArrayList<>(rows.size());
 		for (MonsterLootEntryEntity row : rows) {
-			ItemDefinitionEntity item = itemDefinitionRepository.findById(row.getItemDefinitionId())
-					.orElseThrow(() -> new IllegalStateException("loot item missing"));
+			ItemDefinitionView item = requireItem(items, row.getItemDefinitionId());
 			table.add(new LootTableEntry(
-					item.getId(),
-					item.getCode(),
+					item.id(),
+					item.code(),
 					row.getDropChancePercent(),
 					row.getQuantityMin(),
 					row.getQuantityMax()));
@@ -362,21 +353,27 @@ public class CombatApplicationService {
 	}
 
 	private CombatRewardsView loadRewards(CombatSessionEntity session) {
-		List<CombatRewardItemView> items = combatRewardItemRepository.findBySessionId(session.getId()).stream()
+		List<CombatRewardItemEntity> rows = combatRewardItemRepository.findBySessionId(session.getId());
+		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
+				rows.stream().map(CombatRewardItemEntity::getItemDefinitionId).toList());
+		List<CombatRewardItemView> items = rows.stream()
 				.map(row -> {
-					ItemDefinitionEntity item = itemDefinitionRepository.findById(row.getItemDefinitionId())
-							.orElseThrow(() -> new IllegalStateException("reward item missing"));
-					return new CombatRewardItemView(
-							item.getCode(),
-							item.getName(),
-							row.getQuantity(),
-							row.isGranted());
+					ItemDefinitionView item = requireItem(definitions, row.getItemDefinitionId());
+					return new CombatRewardItemView(item.code(), item.name(), row.getQuantity());
 				})
 				.toList();
 		return new CombatRewardsView(
 				session.getXpAwarded() == null ? 0 : session.getXpAwarded(),
 				session.getGoldAwarded() == null ? 0 : session.getGoldAwarded(),
 				items);
+	}
+
+	private static ItemDefinitionView requireItem(Map<UUID, ItemDefinitionView> definitions, UUID itemDefinitionId) {
+		ItemDefinitionView item = definitions.get(itemDefinitionId);
+		if (item == null) {
+			throw new IllegalStateException("item definition missing: " + itemDefinitionId);
+		}
+		return item;
 	}
 
 	private MonsterDefinitionEntity requireMonster(UUID monsterDefinitionId) {

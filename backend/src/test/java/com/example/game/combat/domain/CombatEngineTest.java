@@ -199,8 +199,8 @@ class CombatEngineTest {
 				CombatAction.HEAVY_ATTACK,
 				noPotion(),
 				new ScriptedRandomProvider()))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessage("insufficient stamina");
+				.isInstanceOfSatisfying(CombatRuleViolation.class, violation -> assertThat(violation.getReason())
+						.isEqualTo(CombatRuleViolation.Reason.INSUFFICIENT_STAMINA));
 	}
 
 	@Test
@@ -212,8 +212,8 @@ class CombatEngineTest {
 				CombatAction.USE_POTION,
 				new CombatEngine.ActionContext(false, 0),
 				new ScriptedRandomProvider()))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessage("no potion available");
+				.isInstanceOfSatisfying(CombatRuleViolation.class, violation -> assertThat(violation.getReason())
+						.isEqualTo(CombatRuleViolation.Reason.NO_POTION));
 	}
 
 	@Test
@@ -226,7 +226,8 @@ class CombatEngineTest {
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
 				new ScriptedRandomProvider()))
-				.isInstanceOf(IllegalStateException.class);
+				.isInstanceOfSatisfying(CombatRuleViolation.class, violation -> assertThat(violation.getReason())
+						.isEqualTo(CombatRuleViolation.Reason.COMBAT_NOT_ACTIVE));
 	}
 
 	private static CombatSessionState active(int playerHealth, int stamina, int enemyHealth) {

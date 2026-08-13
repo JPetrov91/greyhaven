@@ -28,9 +28,6 @@ public class CombatRewardItemEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int quantity;
 
-	@Column(nullable = false)
-	private boolean granted;
-
 	@Transient
 	private boolean unsaved;
 
@@ -41,13 +38,11 @@ public class CombatRewardItemEntity implements Persistable<UUID> {
 			UUID id,
 			UUID sessionId,
 			UUID itemDefinitionId,
-			int quantity,
-			boolean granted) {
+			int quantity) {
 		this.id = id;
 		this.sessionId = sessionId;
 		this.itemDefinitionId = itemDefinitionId;
 		this.quantity = quantity;
-		this.granted = granted;
 		this.unsaved = true;
 	}
 
@@ -77,17 +72,5 @@ public class CombatRewardItemEntity implements Persistable<UUID> {
 
 	public int getQuantity() {
 		return quantity;
-	}
-
-	public boolean isGranted() {
-		return granted;
-	}
-
-	public void markGranted() {
-		this.granted = true;
-	}
-
-	public void markNotGranted() {
-		this.granted = false;
 	}
 }

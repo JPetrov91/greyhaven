@@ -28,7 +28,6 @@ import com.example.game.item.infrastructure.ItemDefinitionEntity;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
-import com.example.game.shared.api.ApiException;
 
 @Service
 public class InventoryApplicationService {
@@ -350,24 +349,6 @@ public class InventoryApplicationService {
 		long used = itemInstanceRepository.countByOwnerCharacterId(characterId);
 		if (!InventoryBalance.hasRoom((int) used, slotsNeeded)) {
 			throw InventoryErrors.inventoryFull();
-		}
-	}
-
-	/**
-	 * Attempts a grant; returns false when inventory capacity is exhausted instead of failing
-	 * the surrounding reward transaction.
-	 */
-	@Transactional
-	public boolean tryGrantItems(UUID characterId, String itemCode, int quantity) {
-		try {
-			grantItems(characterId, itemCode, quantity);
-			return true;
-		}
-		catch (ApiException exception) {
-			if ("INVENTORY_FULL".equals(exception.getCode())) {
-				return false;
-			}
-			throw exception;
 		}
 	}
 

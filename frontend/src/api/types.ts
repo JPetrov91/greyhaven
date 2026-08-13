@@ -82,7 +82,6 @@ export type CombatRewardItemResponse = {
   itemCode: string
   itemName: string
   quantity: number
-  granted: boolean
 }
 
 export type CombatRewardsResponse = {

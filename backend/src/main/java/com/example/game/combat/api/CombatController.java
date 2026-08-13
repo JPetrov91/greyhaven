@@ -40,13 +40,6 @@ public class CombatController {
 		return ResponseEntity.ok(toResponse(view));
 	}
 
-	@GetMapping("/{id}")
-	public CombatResponse getById(
-			@AuthenticationPrincipal AccountPrincipal principal,
-			@PathVariable("id") UUID combatId) {
-		return toResponse(combatApplicationService.getById(principal.getAccountId(), combatId));
-	}
-
 	@PostMapping("/{id}/actions")
 	public CombatResponse submitAction(
 			@AuthenticationPrincipal AccountPrincipal principal,
@@ -107,7 +100,6 @@ public class CombatController {
 		return new CombatRewardItemResponse(
 				item.itemCode(),
 				item.itemName(),
-				item.quantity(),
-				item.granted());
+				item.quantity());
 	}
 }

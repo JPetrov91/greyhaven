@@ -195,6 +195,12 @@ Authenticated session + CSRF required:
 
 Playable loop: travel to a dangerous location → search → fight → loot/XP → equip → allocate attribute points.
 
+Combat rules worth knowing:
+
+- Victory rewards are all-or-nothing. If the loot does not fit, the round is rejected with
+  `INVENTORY_FULL` and nothing is awarded, so earned loot is never silently discarded.
+- Defeat costs the fight and its rewards; the character is then restored so the loop can continue.
+
 ## Frontend
 
 ```bash

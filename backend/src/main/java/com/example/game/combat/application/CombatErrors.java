@@ -72,10 +72,14 @@ final class CombatErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
-	static ApiException invalidCombatAction(String detail) {
+	/**
+	 * Victory rewards are all-or-nothing, so a full inventory aborts the round rather than
+	 * discarding loot the player earned.
+	 */
+	static ApiException rewardsNeedInventorySpace() {
 		return new ApiException(
-				"INVALID_COMBAT_ACTION",
-				detail,
-				HttpStatus.BAD_REQUEST);
+				"INVENTORY_FULL",
+				"Your inventory is full. Retreat and make room before finishing this fight.",
+				HttpStatus.CONFLICT);
 	}
 }

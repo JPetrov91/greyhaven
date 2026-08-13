@@ -21,6 +21,12 @@ public final class CharacterBalance {
 	public static final int STAMINA_PER_ENDURANCE = 4;
 	public static final int STAMINA_PER_AGILITY = 2;
 
+	/**
+	 * Share of a maximum vital restored after a combat defeat. Office-first: losing costs the
+	 * fight and its rewards, never leaving a character unable to play on.
+	 */
+	public static final int DEFEAT_RECOVERY_PERCENT = 100;
+
 	private CharacterBalance() {
 	}
 
@@ -30,5 +36,12 @@ public final class CharacterBalance {
 
 	public static int maxStamina(int endurance, int agility) {
 		return BASE_MAX_STAMINA + (endurance * STAMINA_PER_ENDURANCE) + (agility * STAMINA_PER_AGILITY);
+	}
+
+	/**
+	 * Health or stamina a defeated character is restored to, never below 1.
+	 */
+	public static int defeatRecovery(int maximum) {
+		return Math.max(1, maximum * DEFEAT_RECOVERY_PERCENT / 100);
 	}
 }

@@ -51,11 +51,8 @@ final class InventoryErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
-	static ApiException inventoryFull() {
-		return new ApiException(
-				"INVENTORY_FULL",
-				"Your inventory is full.",
-				HttpStatus.CONFLICT);
+	static InventoryFullException inventoryFull() {
+		return new InventoryFullException("Your inventory is full.");
 	}
 
 	static ApiException itemDefinitionMissing(String code) {
