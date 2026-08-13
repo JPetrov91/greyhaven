@@ -225,6 +225,43 @@ class ExpeditionIntegrationTest {
 	}
 
 	@Test
+	void expeditionStartIsBlockedByUnresolvedCombatState() throws Exception {
+		MockHttpSession unresolved = registerWithCharacter("exp-encounter-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(unresolved, "FOREST");
+		mutableRandomProvider.queue(1);
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(unresolved))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true));
+		assertStartRejected(unresolved, "UNRESOLVED_ENCOUNTER");
+
+		MockHttpSession activeCombat = registerWithCharacter("exp-combat-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(activeCombat, "FOREST");
+		UUID activeEncounterId = findEncounter(activeCombat);
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/" + activeEncounterId + "/fight")).session(activeCombat))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("ACTIVE"));
+		assertStartRejected(activeCombat, "COMBAT_IN_PROGRESS");
+
+		MockHttpSession pendingOutcome = registerWithCharacter("exp-outcome-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(pendingOutcome, "FOREST");
+		UUID pendingEncounterId = findEncounter(pendingOutcome);
+		MvcResult fight = mockMvc.perform(
+						withCsrf(post("/api/v1/encounters/" + pendingEncounterId + "/fight")).session(pendingOutcome))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
+		mutableRandomProvider.queue(5, 90);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(pendingOutcome)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"QUICK_ATTACK\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_WON"));
+		assertStartRejected(pendingOutcome, "COMBAT_OUTCOME_PENDING");
+	}
+
+	@Test
 	void theRestOfTheGameStaysPlayableDuringAnActiveExpedition() throws Exception {
 		MockHttpSession session = registerWithCharacter("exp-travel-" + System.nanoTime() + "@greyhaven.test");
 		moveToTavern(session);
@@ -320,6 +357,78 @@ class ExpeditionIntegrationTest {
 				.andExpect(jsonPath("$.rewards.xp").value(18))
 				.andExpect(jsonPath("$.rewards.gold").value(12))
 				.andExpect(jsonPath("$.rewards.items[0].itemCode").value("WOLF_PELT"));
+	}
+
+	@Test
+	void claimReportsTheInjuryActuallyAppliedAfterHealthFlooring() throws Exception {
+		String email = "exp-injury-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		moveToTavern(session);
+		jdbcTemplate.update("update characters set current_health = 5 where id = ?", characterId);
+
+		// Aggressive injury hit for 18 damage, followed by an empty haul.
+		mutableRandomProvider.queue(1, 18, 1);
+		MvcResult started = mockMvc.perform(withCsrf(post("/api/v1/expeditions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"strategy\":\"AGGRESSIVE\"}"))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID expeditionId = UUID.fromString(JsonPath.read(started.getResponse().getContentAsString(), "$.id"));
+		mutableClock.advanceSeconds(20 * 60);
+
+		mockMvc.perform(get("/api/v1/expeditions/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.rewards.injuryDamage").value(18));
+
+		mockMvc.perform(withCsrf(post("/api/v1/expeditions/" + expeditionId + "/claim")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CLAIMED"))
+				.andExpect(jsonPath("$.rewards.injuryDamage").value(4));
+
+		assertThat(intColumn("select current_health from characters where id = ?", characterId)).isEqualTo(1);
+		assertThat(intColumn("select injury_applied from expeditions where id = ?", expeditionId)).isEqualTo(4);
+	}
+
+	@Test
+	void concurrentCompletionChecksWriteOneActivityEntry() throws Exception {
+		String email = "exp-complete-race-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID accountId = accountIdForEmail(email);
+		UUID characterId = characterIdForEmail(email);
+		moveToTavern(session);
+		mockMvc.perform(withCsrf(post("/api/v1/expeditions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"strategy\":\"BALANCED\"}"))
+				.andExpect(status().isOk());
+		mutableClock.advanceSeconds(20 * 60);
+
+		CountDownLatch start = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			Future<?> first = pool.submit(() -> {
+				start.await();
+				assertThat(expeditionApplicationService.current(accountId).status().name()).isEqualTo("COMPLETED");
+				return null;
+			});
+			Future<?> second = pool.submit(() -> {
+				start.await();
+				assertThat(expeditionApplicationService.current(accountId).status().name()).isEqualTo("COMPLETED");
+				return null;
+			});
+			start.countDown();
+			first.get(20, TimeUnit.SECONDS);
+			second.get(20, TimeUnit.SECONDS);
+		}
+		finally {
+			pool.shutdownNow();
+		}
+
+		assertThat(intColumn(
+				"select count(*) from activity_entries where character_id = ? and type = 'EXPEDITION_COMPLETED'",
+				characterId)).isEqualTo(1);
 	}
 
 	@Test
@@ -441,6 +550,24 @@ class ExpeditionIntegrationTest {
 						.content("{\"destinationLocationId\":\"" + destinationId + "\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.code").value(locationCode));
+	}
+
+	private UUID findEncounter(MockHttpSession session) throws Exception {
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true))
+				.andReturn();
+		return UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+	}
+
+	private void assertStartRejected(MockHttpSession session, String expectedCode) throws Exception {
+		mockMvc.perform(withCsrf(post("/api/v1/expeditions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"strategy\":\"BALANCED\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value(expectedCode));
 	}
 
 	private UUID locationId(String code) {

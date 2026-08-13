@@ -16,7 +16,15 @@ public interface ExpeditionRepository extends JpaRepository<ExpeditionEntity, UU
 
 	boolean existsByCharacterIdAndStatus(UUID characterId, ExpeditionStatus status);
 
-	Optional<ExpeditionEntity> findByCharacterIdAndStatus(UUID characterId, ExpeditionStatus status);
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("""
+			select e
+			from ExpeditionEntity e
+			where e.characterId = :characterId and e.status = :status
+			""")
+	Optional<ExpeditionEntity> findWithLockByCharacterIdAndStatus(
+			@Param("characterId") UUID characterId,
+			@Param("status") ExpeditionStatus status);
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select e from ExpeditionEntity e where e.id = :id")

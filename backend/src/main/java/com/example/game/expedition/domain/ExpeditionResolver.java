@@ -44,11 +44,11 @@ public final class ExpeditionResolver {
 
 	private static List<ExpeditionLootDrop> rollLoot(ExpeditionStrategy strategy, RandomProvider random) {
 		List<ExpeditionLootDrop> drops = new ArrayList<>();
-		maybeAdd(drops, ItemCodes.WOLF_PELT, materialChance(strategy), 1, 2, random);
-		maybeAdd(drops, ItemCodes.HEALING_POTION, potionChance(strategy), 1, 1, random);
-		maybeAdd(drops, ItemCodes.OLD_DAGGER, commonGearChance(strategy), 1, 1, random);
-		maybeAdd(drops, ItemCodes.IRON_SWORD, rareGearChance(strategy), 1, 1, random);
-		maybeAdd(drops, ItemCodes.LEATHER_ARMOR, rareGearChance(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.WOLF_PELT, ExpeditionBalance.materialChancePercent(strategy), 1, 2, random);
+		maybeAdd(drops, ItemCodes.HEALING_POTION, ExpeditionBalance.potionChancePercent(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.OLD_DAGGER, ExpeditionBalance.commonGearChancePercent(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.IRON_SWORD, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.LEATHER_ARMOR, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
 		return List.copyOf(drops);
 	}
 
@@ -62,37 +62,5 @@ public final class ExpeditionResolver {
 		if (random.chancePercent(chancePercent)) {
 			drops.add(new ExpeditionLootDrop(itemCode, random.nextInt(quantityMin, quantityMax)));
 		}
-	}
-
-	private static int materialChance(ExpeditionStrategy strategy) {
-		return switch (strategy) {
-			case CAUTIOUS -> 35;
-			case BALANCED -> 50;
-			case AGGRESSIVE -> 65;
-		};
-	}
-
-	private static int potionChance(ExpeditionStrategy strategy) {
-		return switch (strategy) {
-			case CAUTIOUS -> 20;
-			case BALANCED -> 30;
-			case AGGRESSIVE -> 40;
-		};
-	}
-
-	private static int commonGearChance(ExpeditionStrategy strategy) {
-		return switch (strategy) {
-			case CAUTIOUS -> 8;
-			case BALANCED -> 15;
-			case AGGRESSIVE -> 22;
-		};
-	}
-
-	private static int rareGearChance(ExpeditionStrategy strategy) {
-		return switch (strategy) {
-			case CAUTIOUS -> 3;
-			case BALANCED -> 8;
-			case AGGRESSIVE -> 14;
-		};
 	}
 }

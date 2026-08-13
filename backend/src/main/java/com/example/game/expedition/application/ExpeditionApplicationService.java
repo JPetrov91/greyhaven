@@ -117,15 +117,12 @@ public class ExpeditionApplicationService {
 	@Transactional
 	public ExpeditionView current(UUID accountId) {
 		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
-		ExpeditionEntity expedition = findCurrentForCharacter(vitals.characterId());
+		ExpeditionEntity expedition = findCurrentForCharacterWithLock(vitals.characterId());
 		if (expedition == null) {
 			return null;
 		}
 		Instant now = Instant.now(clock);
 		if (expedition.getStatus() == ExpeditionStatus.ACTIVE && expedition.isDue(now)) {
-			// Polling stays a plain read; the row lock is only taken for the completion write.
-			expedition = expeditionRepository.findWithLockById(expedition.getId())
-					.orElseThrow(ExpeditionErrors::expeditionNotFound);
 			completeIfDue(expedition, now);
 		}
 		ExpeditionRewardsView rewards = expedition.getStatus() == ExpeditionStatus.ACTIVE
@@ -156,9 +153,9 @@ public class ExpeditionApplicationService {
 		return toView(expedition, loadRewards(expedition));
 	}
 
-	private ExpeditionEntity findCurrentForCharacter(UUID characterId) {
-		return expeditionRepository.findByCharacterIdAndStatus(characterId, ExpeditionStatus.ACTIVE)
-				.or(() -> expeditionRepository.findByCharacterIdAndStatus(
+	private ExpeditionEntity findCurrentForCharacterWithLock(UUID characterId) {
+		return expeditionRepository.findWithLockByCharacterIdAndStatus(characterId, ExpeditionStatus.ACTIVE)
+				.or(() -> expeditionRepository.findWithLockByCharacterIdAndStatus(
 						characterId,
 						ExpeditionStatus.COMPLETED))
 				.orElse(null);
@@ -237,7 +234,8 @@ public class ExpeditionApplicationService {
 				expedition.getCharacterId(),
 				xp,
 				gold);
-		characterVitalsService.applyInjury(expedition.getCharacterId(), injury);
+		CharacterVitalsView afterInjury = characterVitalsService.applyInjury(expedition.getCharacterId(), injury);
+		int injuryApplied = after.currentHealth() - afterInjury.currentHealth();
 
 		for (ExpeditionRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
@@ -262,7 +260,7 @@ public class ExpeditionApplicationService {
 				expedition.getExpeditionType().displayName());
 
 		Instant now = Instant.now(clock);
-		expedition.markClaimed(xp, gold, injury, now);
+		expedition.markClaimed(xp, gold, injuryApplied, now);
 		expeditionRepository.saveAndFlush(expedition);
 	}
 

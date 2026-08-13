@@ -53,6 +53,12 @@ export function ExpeditionPanel({ onClose }: Props) {
   }, [expeditionQuery.data?.id, expeditionQuery.data?.status])
 
   useEffect(() => {
+    if (expeditionQuery.data?.status === 'COMPLETED') {
+      void queryClient.invalidateQueries({ queryKey: ['activity'] })
+    }
+  }, [expeditionQuery.data?.id, expeditionQuery.data?.status, queryClient])
+
+  useEffect(() => {
     const expedition = expeditionQuery.data
     if (!expedition || expedition.status !== 'ACTIVE' || completionRefreshRequested) {
       return

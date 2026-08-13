@@ -302,6 +302,12 @@ class CombatIntegrationTest {
 				"select rewards_applied from combat_sessions where id = ?",
 				Boolean.class,
 				combatId)).isTrue();
+		MvcResult activity = mockMvc.perform(get("/api/v1/activity").session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		List<Map<String, Object>> entries = JsonPath.read(activity.getResponse().getContentAsString(), "$");
+		assertThat(entries.stream().map(entry -> entry.get("type")).toList())
+				.contains("ITEM_FOUND");
 	}
 
 	@Test

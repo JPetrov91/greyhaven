@@ -68,4 +68,32 @@ class ExpeditionResolverTest {
 		assertThat(result.injuryDamage()).isZero();
 		assertThat(result.items()).isEmpty();
 	}
+
+	@Test
+	void cautiousStrategyCanApplyInjuryAndRollEveryLootCategory() {
+		ScriptedRandomProvider random = new ScriptedRandomProvider(
+				5, 4,
+				99,
+				10, 5,
+				1, 2,
+				1, 1,
+				1, 1,
+				1, 1,
+				1, 1);
+
+		ExpeditionResult result = ExpeditionResolver.resolve(
+				ExpeditionType.FOREST_PATROL,
+				ExpeditionStrategy.CAUTIOUS,
+				random);
+
+		assertThat(result.injuryDamage()).isEqualTo(4);
+		assertThat(result.xp()).isEqualTo(10);
+		assertThat(result.gold()).isEqualTo(5);
+		assertThat(result.items()).containsExactly(
+				new ExpeditionLootDrop(ItemCodes.WOLF_PELT, 2),
+				new ExpeditionLootDrop(ItemCodes.HEALING_POTION, 1),
+				new ExpeditionLootDrop(ItemCodes.OLD_DAGGER, 1),
+				new ExpeditionLootDrop(ItemCodes.IRON_SWORD, 1),
+				new ExpeditionLootDrop(ItemCodes.LEATHER_ARMOR, 1));
+	}
 }

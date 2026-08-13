@@ -78,4 +78,36 @@ public final class ExpeditionBalance {
 			case AGGRESSIVE -> 8;
 		};
 	}
+
+	public static int materialChancePercent(ExpeditionStrategy strategy) {
+		return switch (strategy) {
+			case CAUTIOUS -> 35;
+			case BALANCED -> 50;
+			case AGGRESSIVE -> 65;
+		};
+	}
+
+	public static int potionChancePercent(ExpeditionStrategy strategy) {
+		return switch (strategy) {
+			case CAUTIOUS -> 20;
+			case BALANCED -> 30;
+			case AGGRESSIVE -> 40;
+		};
+	}
+
+	public static int commonGearChancePercent(ExpeditionStrategy strategy) {
+		return switch (strategy) {
+			case CAUTIOUS -> 8;
+			case BALANCED -> 15;
+			case AGGRESSIVE -> 22;
+		};
+	}
+
+	public static int rareGearChancePercent(ExpeditionStrategy strategy) {
+		return switch (strategy) {
+			case CAUTIOUS -> 3;
+			case BALANCED -> 8;
+			case AGGRESSIVE -> 14;
+		};
+	}
 }
