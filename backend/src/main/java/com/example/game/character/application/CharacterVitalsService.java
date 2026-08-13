@@ -13,7 +13,7 @@ import com.example.game.character.infrastructure.CharacterRepository;
 
 /**
  * Character health/attribute state for other gameplay modules. Callers describe intent
- * ({@code heal}) instead of mutating the entity themselves.
+ * ({@code heal}, {@code syncCombatVitals}) instead of mutating the entity themselves.
  */
 @Service
 public class CharacterVitalsService {
@@ -64,10 +64,49 @@ public class CharacterVitalsService {
 		characterRepository.saveAndFlush(character);
 	}
 
+	/**
+	 * Writes combat session vitals back onto the character row (source of truth sync).
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView syncCombatVitals(UUID characterId, int currentHealth, int currentStamina) {
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		int health = Math.max(0, Math.min(currentHealth, character.getMaxHealth()));
+		int stamina = Math.max(0, Math.min(currentStamina, character.getMaxStamina()));
+		character.syncCombatVitals(health, stamina, Instant.now(clock));
+		characterRepository.saveAndFlush(character);
+		return toView(character);
+	}
+
+	/**
+	 * Office-first defeat: leave the character at 1 HP so they are not soft-locked at 0.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView applyDefeatRecovery(UUID characterId, int currentStamina) {
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		int stamina = Math.max(0, Math.min(currentStamina, character.getMaxStamina()));
+		character.syncCombatVitals(1, stamina, Instant.now(clock));
+		characterRepository.saveAndFlush(character);
+		return toView(character);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView grantCombatRewards(UUID characterId, int xp, int gold) {
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		Instant now = Instant.now(clock);
+		character.grantExperience(xp, now);
+		character.addGold(gold, now);
+		characterRepository.saveAndFlush(character);
+		return toView(character);
+	}
+
 	private static CharacterVitalsView toView(CharacterEntity character) {
 		return new CharacterVitalsView(
 				character.getId(),
 				character.getLevel(),
+				character.getExperience(),
 				character.getStrength(),
 				character.getAgility(),
 				character.getEndurance(),
@@ -75,6 +114,8 @@ public class CharacterVitalsService {
 				character.getCurrentHealth(),
 				character.getMaxHealth(),
 				character.getCurrentStamina(),
-				character.getMaxStamina());
+				character.getMaxStamina(),
+				character.getGold(),
+				character.getUnspentAttributePoints());
 	}
 }

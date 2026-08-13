@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.game.account.infrastructure.AccountPrincipal;
 import com.example.game.character.application.CharacterApplicationService;
+import com.example.game.character.application.CharacterProgressionService;
 import com.example.game.character.application.CharacterView;
 import com.example.game.character.domain.DerivedCombatStats;
 
@@ -21,9 +22,13 @@ import jakarta.validation.Valid;
 public class CharacterController {
 
 	private final CharacterApplicationService characterApplicationService;
+	private final CharacterProgressionService characterProgressionService;
 
-	public CharacterController(CharacterApplicationService characterApplicationService) {
+	public CharacterController(
+			CharacterApplicationService characterApplicationService,
+			CharacterProgressionService characterProgressionService) {
 		this.characterApplicationService = characterApplicationService;
+		this.characterProgressionService = characterProgressionService;
 	}
 
 	@PostMapping("/characters")
@@ -37,6 +42,18 @@ public class CharacterController {
 	@GetMapping("/character")
 	public CharacterResponse current(@AuthenticationPrincipal AccountPrincipal principal) {
 		return toResponse(characterApplicationService.current(principal.getAccountId()));
+	}
+
+	@PostMapping("/character/attributes")
+	public CharacterResponse allocateAttributes(
+			@AuthenticationPrincipal AccountPrincipal principal,
+			@Valid @RequestBody AllocateAttributesRequest request) {
+		return toResponse(characterProgressionService.allocateAttributes(
+				principal.getAccountId(),
+				request.strength(),
+				request.agility(),
+				request.endurance(),
+				request.perception()));
 	}
 
 	private static CharacterResponse toResponse(CharacterView character) {
@@ -55,6 +72,7 @@ public class CharacterController {
 				character.currentStamina(),
 				character.maxStamina(),
 				character.gold(),
+				character.unspentAttributePoints(),
 				character.currentLocationId(),
 				toDerivedStats(character.derivedStats()),
 				character.createdAt(),

@@ -5,6 +5,10 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Persistable;
 
+import com.example.game.character.domain.CharacterBalance;
+import com.example.game.character.domain.CharacterProgression;
+import com.example.game.character.domain.ProgressionBalance;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -62,6 +66,9 @@ public class CharacterEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int gold;
 
+	@Column(name = "unspent_attribute_points", nullable = false)
+	private int unspentAttributePoints;
+
 	@Column(name = "current_location_id", nullable = false)
 	private UUID currentLocationId;
 
@@ -96,6 +103,7 @@ public class CharacterEntity implements Persistable<UUID> {
 			int currentStamina,
 			int maxStamina,
 			int gold,
+			int unspentAttributePoints,
 			UUID currentLocationId,
 			Instant createdAt,
 			Instant updatedAt) {
@@ -113,6 +121,7 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.currentStamina = currentStamina;
 		this.maxStamina = maxStamina;
 		this.gold = gold;
+		this.unspentAttributePoints = unspentAttributePoints;
 		this.currentLocationId = currentLocationId;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
@@ -187,6 +196,10 @@ public class CharacterEntity implements Persistable<UUID> {
 		return gold;
 	}
 
+	public int getUnspentAttributePoints() {
+		return unspentAttributePoints;
+	}
+
 	public UUID getCurrentLocationId() {
 		return currentLocationId;
 	}
@@ -209,6 +222,101 @@ public class CharacterEntity implements Persistable<UUID> {
 			throw new IllegalArgumentException("currentHealth must be between 0 and maxHealth");
 		}
 		this.currentHealth = currentHealth;
+		this.updatedAt = updatedAt;
+	}
+
+	public void applyStamina(int currentStamina, Instant updatedAt) {
+		if (currentStamina < 0 || currentStamina > maxStamina) {
+			throw new IllegalArgumentException("currentStamina must be between 0 and maxStamina");
+		}
+		this.currentStamina = currentStamina;
+		this.updatedAt = updatedAt;
+	}
+
+	public void syncCombatVitals(int currentHealth, int currentStamina, Instant updatedAt) {
+		applyHealth(Math.min(currentHealth, maxHealth), updatedAt);
+		applyStamina(Math.min(currentStamina, maxStamina), updatedAt);
+	}
+
+	public void addGold(int amount, Instant updatedAt) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("gold amount must be non-negative");
+		}
+		this.gold = Math.addExact(this.gold, amount);
+		this.updatedAt = updatedAt;
+	}
+
+	public int grantExperience(int xpGain, Instant updatedAt) {
+		CharacterProgression.ProgressionResult result = CharacterProgression.applyExperience(
+				level,
+				experience,
+				xpGain);
+		this.level = result.level();
+		this.experience = result.experience();
+		this.unspentAttributePoints = Math.addExact(
+				this.unspentAttributePoints,
+				result.unspentAttributePointsGained());
+		recomputeMaxVitalsPreservingCurrentRatios(updatedAt);
+		return result.unspentAttributePointsGained();
+	}
+
+	public void allocateAttributes(
+			int strengthDelta,
+			int agilityDelta,
+			int enduranceDelta,
+			int perceptionDelta,
+			Instant updatedAt) {
+		int total = strengthDelta + agilityDelta + enduranceDelta + perceptionDelta;
+		if (total < 1) {
+			throw new IllegalArgumentException("must allocate at least one point");
+		}
+		if (strengthDelta < 0 || agilityDelta < 0 || enduranceDelta < 0 || perceptionDelta < 0) {
+			throw new IllegalArgumentException("attribute deltas must be non-negative");
+		}
+		if (total > unspentAttributePoints) {
+			throw new IllegalArgumentException("not enough unspent attribute points");
+		}
+
+		int newStrength = strength + strengthDelta;
+		int newAgility = agility + agilityDelta;
+		int newEndurance = endurance + enduranceDelta;
+		int newPerception = perception + perceptionDelta;
+		if (newStrength > ProgressionBalance.MAX_ATTRIBUTE_VALUE
+				|| newAgility > ProgressionBalance.MAX_ATTRIBUTE_VALUE
+				|| newEndurance > ProgressionBalance.MAX_ATTRIBUTE_VALUE
+				|| newPerception > ProgressionBalance.MAX_ATTRIBUTE_VALUE) {
+			throw new IllegalArgumentException("attribute would exceed maximum");
+		}
+
+		this.strength = newStrength;
+		this.agility = newAgility;
+		this.endurance = newEndurance;
+		this.perception = newPerception;
+		this.unspentAttributePoints -= total;
+		recomputeMaxVitalsPreservingCurrentRatios(updatedAt);
+	}
+
+	private void recomputeMaxVitalsPreservingCurrentRatios(Instant updatedAt) {
+		int previousMaxHealth = this.maxHealth;
+		int previousMaxStamina = this.maxStamina;
+		this.maxHealth = CharacterBalance.maxHealth(endurance);
+		this.maxStamina = CharacterBalance.maxStamina(endurance, agility);
+		if (previousMaxHealth > 0) {
+			this.currentHealth = Math.min(
+					maxHealth,
+					Math.max(1, (int) Math.round((double) currentHealth * maxHealth / previousMaxHealth)));
+		}
+		else {
+			this.currentHealth = maxHealth;
+		}
+		if (previousMaxStamina > 0) {
+			this.currentStamina = Math.min(
+					maxStamina,
+					Math.max(0, (int) Math.round((double) currentStamina * maxStamina / previousMaxStamina)));
+		}
+		else {
+			this.currentStamina = maxStamina;
+		}
 		this.updatedAt = updatedAt;
 	}
 }

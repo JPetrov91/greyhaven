@@ -48,6 +48,9 @@ class WorldApplicationServiceTest {
 	@Mock
 	private LocationConnectionRepository locationConnectionRepository;
 
+	@Mock
+	private CharacterTravelGuard characterTravelGuard;
+
 	private WorldApplicationService worldApplicationService;
 
 	@BeforeEach
@@ -55,7 +58,8 @@ class WorldApplicationServiceTest {
 		worldApplicationService = new WorldApplicationService(
 				characterLocationService,
 				locationRepository,
-				locationConnectionRepository);
+				locationConnectionRepository,
+				characterTravelGuard);
 	}
 
 	@Test

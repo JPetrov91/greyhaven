@@ -77,6 +77,7 @@ public class CharacterApplicationService {
 				maxStamina,
 				maxStamina,
 				CharacterBalance.STARTING_GOLD,
+				0,
 				startingLocationId,
 				now,
 				now);
@@ -132,6 +133,7 @@ public class CharacterApplicationService {
 				character.getCurrentStamina(),
 				character.getMaxStamina(),
 				character.getGold(),
+				character.getUnspentAttributePoints(),
 				character.getCurrentLocationId(),
 				derivedStats,
 				character.getCreatedAt(),

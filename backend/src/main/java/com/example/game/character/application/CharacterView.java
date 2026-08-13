@@ -23,6 +23,7 @@ public record CharacterView(
 		int currentStamina,
 		int maxStamina,
 		int gold,
+		int unspentAttributePoints,
 		UUID currentLocationId,
 		DerivedCombatStats derivedStats,
 		Instant createdAt,

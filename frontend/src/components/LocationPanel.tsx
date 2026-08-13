@@ -35,10 +35,15 @@ const UNAVAILABLE_ACTIONS = new Set<LocationAction>([
   'CREATE_LISTING',
   'BUY_ITEM',
   'CANCEL_LISTING',
-  'SEARCH_ENCOUNTER',
 ])
 
-export function LocationPanel() {
+type Props = {
+  onSearchEncounter?: () => void
+  searchBusy?: boolean
+  searchError?: string | null
+}
+
+export function LocationPanel({ onSearchEncounter, searchBusy = false, searchError = null }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
   const [movingToId, setMovingToId] = useState<string | null>(null)
@@ -178,12 +183,29 @@ export function LocationPanel() {
           {listedActions.map((action) => (
             <li key={action} data-testid={`action-${action}`}>
               <span>{ACTION_LABELS[action]}</span>
-              <span className={`action-status ${UNAVAILABLE_ACTIONS.has(action) ? 'unavailable' : 'available'}`}>
-                {UNAVAILABLE_ACTIONS.has(action) ? 'Coming later' : 'Available'}
-              </span>
+              {action === 'SEARCH_ENCOUNTER' ? (
+                <button
+                  type="button"
+                  className="travel-button"
+                  data-testid="search-encounter-button"
+                  disabled={searchBusy || !onSearchEncounter}
+                  onClick={() => onSearchEncounter?.()}
+                >
+                  {searchBusy ? 'Searching…' : 'Search'}
+                </button>
+              ) : (
+                <span className={`action-status ${UNAVAILABLE_ACTIONS.has(action) ? 'unavailable' : 'available'}`}>
+                  {UNAVAILABLE_ACTIONS.has(action) ? 'Coming later' : 'Available'}
+                </span>
+              )}
             </li>
           ))}
         </ul>
+        {searchError ? (
+          <p className="form-error" role="alert" data-testid="search-encounter-error">
+            {searchError}
+          </p>
+        ) : null}
       </section>
 
       <section className="location-section" aria-labelledby="nearby-heading">

@@ -21,6 +21,10 @@ public interface ItemInstanceRepository extends JpaRepository<ItemInstanceEntity
 	@Query("select i from ItemInstanceEntity i where i.id = :id")
 	Optional<ItemInstanceEntity> findWithLockById(@Param("id") UUID id);
 
+	Optional<ItemInstanceEntity> findByOwnerCharacterIdAndItemDefinitionId(
+			UUID ownerCharacterId,
+			UUID itemDefinitionId);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("""
 			select i from ItemInstanceEntity i

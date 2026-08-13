@@ -33,10 +33,79 @@ export type CharacterResponse = {
   currentStamina: number
   maxStamina: number
   gold: number
+  unspentAttributePoints: number
   currentLocationId: string | null
   derivedStats: DerivedStatsResponse
   createdAt: string
   updatedAt: string
+}
+
+export type CombatAction =
+  | 'QUICK_ATTACK'
+  | 'HEAVY_ATTACK'
+  | 'PRECISE_ATTACK'
+  | 'DEFEND'
+  | 'USE_POTION'
+  | 'RETREAT'
+
+export type CombatSessionStatus = 'ACTIVE' | 'PLAYER_WON' | 'PLAYER_LOST' | 'PLAYER_ESCAPED'
+export type EncounterStatus = 'AVAILABLE' | 'COMBAT_STARTED' | 'RESOLVED' | 'EXPIRED'
+
+export type MonsterResponse = {
+  id: string
+  code: string
+  name: string
+  level: number
+  maxHealth: number
+}
+
+export type EncounterSearchResponse = {
+  found: boolean
+  encounterId: string | null
+  monster: MonsterResponse | null
+}
+
+export type EncounterResponse = {
+  id: string
+  status: EncounterStatus
+  monster: MonsterResponse | null
+}
+
+export type CombatEventResponse = {
+  roundNumber: number
+  sequenceNumber: number
+  type: string
+  message: string
+}
+
+export type CombatRewardItemResponse = {
+  itemCode: string
+  itemName: string
+  quantity: number
+  granted: boolean
+}
+
+export type CombatRewardsResponse = {
+  xp: number
+  gold: number
+  items: CombatRewardItemResponse[]
+}
+
+export type CombatResponse = {
+  id: string
+  encounterId: string
+  status: CombatSessionStatus
+  roundNumber: number
+  playerHealth: number
+  playerMaxHealth: number
+  playerStamina: number
+  playerMaxStamina: number
+  enemyHealth: number
+  enemyMaxHealth: number
+  monster: MonsterResponse
+  potionAvailable: boolean
+  events: CombatEventResponse[]
+  rewards: CombatRewardsResponse | null
 }
 
 export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL'

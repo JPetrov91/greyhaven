@@ -8,6 +8,7 @@ import java.util.UUID;
 public record CharacterVitalsView(
 		UUID characterId,
 		int level,
+		int experience,
 		int strength,
 		int agility,
 		int endurance,
@@ -15,6 +16,8 @@ public record CharacterVitalsView(
 		int currentHealth,
 		int maxHealth,
 		int currentStamina,
-		int maxStamina
+		int maxStamina,
+		int gold,
+		int unspentAttributePoints
 ) {
 }

@@ -22,11 +22,13 @@ import com.example.game.inventory.domain.EquipmentSlot;
 import com.example.game.inventory.domain.InventoryBalance;
 import com.example.game.inventory.infrastructure.EquipmentEntity;
 import com.example.game.inventory.infrastructure.EquipmentRepository;
+import com.example.game.item.domain.ItemCodes;
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.infrastructure.ItemDefinitionEntity;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
+import com.example.game.shared.api.ApiException;
 
 @Service
 public class InventoryApplicationService {
@@ -100,6 +102,46 @@ public class InventoryApplicationService {
 		characterVitalsService.heal(accountId, definition.getHealAmount());
 		CharacterVitalsView updatedVitals = characterVitalsService.vitalsOf(accountId);
 		return buildInventoryView(updatedVitals);
+	}
+
+	/**
+	 * Whether the character has at least one healing potion that can be consumed in combat.
+	 */
+	@Transactional(readOnly = true)
+	public boolean hasHealingPotion(UUID characterId) {
+		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+				.orElse(null);
+		if (potion == null || potion.getHealAmount() == null) {
+			return false;
+		}
+		return itemInstanceRepository
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.filter(instance -> instance.getQuantity() > 0)
+				.isPresent();
+	}
+
+	/**
+	 * Consumes one healing potion for combat. Returns heal amount. Does not apply heal itself.
+	 */
+	@Transactional
+	public int consumeOneHealingPotion(UUID characterId) {
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(ItemCodes.HEALING_POTION));
+		if (potion.getHealAmount() == null) {
+			throw InventoryErrors.itemNotUsable();
+		}
+		ItemInstanceEntity instance = itemInstanceRepository
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.orElseThrow(InventoryErrors::itemNotFound);
+		instance.decreaseQuantity(1);
+		if (instance.getQuantity() == 0) {
+			itemInstanceRepository.delete(instance);
+		}
+		else {
+			itemInstanceRepository.saveAndFlush(instance);
+		}
+		return potion.getHealAmount();
 	}
 
 	/**
@@ -308,6 +350,24 @@ public class InventoryApplicationService {
 		long used = itemInstanceRepository.countByOwnerCharacterId(characterId);
 		if (!InventoryBalance.hasRoom((int) used, slotsNeeded)) {
 			throw InventoryErrors.inventoryFull();
+		}
+	}
+
+	/**
+	 * Attempts a grant; returns false when inventory capacity is exhausted instead of failing
+	 * the surrounding reward transaction.
+	 */
+	@Transactional
+	public boolean tryGrantItems(UUID characterId, String itemCode, int quantity) {
+		try {
+			grantItems(characterId, itemCode, quantity);
+			return true;
+		}
+		catch (ApiException exception) {
+			if ("INVENTORY_FULL".equals(exception.getCode())) {
+				return false;
+			}
+			throw exception;
 		}
 	}
 

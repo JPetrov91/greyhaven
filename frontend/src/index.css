@@ -411,6 +411,72 @@ h2,
   color: #6b3f8a;
 }
 
+.attr-plus {
+  margin-left: 0.45rem;
+  font: inherit;
+  border: 1px solid var(--accent-strong);
+  background: transparent;
+  color: var(--accent-strong);
+  border-radius: 6px;
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.attr-plus:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.combat-panel,
+.encounter-prompt {
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(31, 42, 36, 0.12);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.combat-vitals {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.85rem 0;
+}
+
+.combat-vitals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  padding-bottom: 0.25rem;
+}
+
+.combat-actions,
+.encounter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.combat-log ul,
+.combat-rewards ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.combat-rewards {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(31, 42, 36, 0.12);
+}
+
 @media (max-width: 900px) {
   .game-layout {
     grid-template-columns: 1fr;

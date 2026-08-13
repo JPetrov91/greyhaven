@@ -1,0 +1,410 @@
+package com.example.game.combat.application;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.game.character.application.CharacterVitalsService;
+import com.example.game.character.application.CharacterVitalsView;
+import com.example.game.character.application.EquippedBonusProvider;
+import com.example.game.character.application.EquippedBonuses;
+import com.example.game.character.domain.CharacterStatCalculator;
+import com.example.game.character.domain.DerivedCombatStats;
+import com.example.game.combat.domain.CombatAction;
+import com.example.game.combat.domain.CombatEngine;
+import com.example.game.combat.domain.CombatEvent;
+import com.example.game.combat.domain.CombatRoundResult;
+import com.example.game.combat.domain.CombatSessionState;
+import com.example.game.combat.domain.CombatSessionStatus;
+import com.example.game.combat.domain.CombatantStats;
+import com.example.game.combat.domain.EncounterStatus;
+import com.example.game.combat.domain.LootDrop;
+import com.example.game.combat.domain.LootGenerator;
+import com.example.game.combat.domain.LootTableEntry;
+import com.example.game.combat.domain.MonsterCombatStats;
+import com.example.game.combat.infrastructure.CombatEventEntity;
+import com.example.game.combat.infrastructure.CombatEventRepository;
+import com.example.game.combat.infrastructure.CombatRewardItemEntity;
+import com.example.game.combat.infrastructure.CombatRewardItemRepository;
+import com.example.game.combat.infrastructure.CombatSessionEntity;
+import com.example.game.combat.infrastructure.CombatSessionRepository;
+import com.example.game.combat.infrastructure.EncounterEntity;
+import com.example.game.combat.infrastructure.EncounterRepository;
+import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
+import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
+import com.example.game.combat.infrastructure.MonsterLootEntryEntity;
+import com.example.game.combat.infrastructure.MonsterLootEntryRepository;
+import com.example.game.inventory.application.InventoryApplicationService;
+import com.example.game.item.infrastructure.ItemDefinitionEntity;
+import com.example.game.item.infrastructure.ItemDefinitionRepository;
+import com.example.game.shared.domain.RandomProvider;
+
+@Service
+public class CombatApplicationService {
+
+	private final CharacterVitalsService characterVitalsService;
+	private final EquippedBonusProvider equippedBonusProvider;
+	private final InventoryApplicationService inventoryApplicationService;
+	private final EncounterRepository encounterRepository;
+	private final CombatSessionRepository combatSessionRepository;
+	private final CombatEventRepository combatEventRepository;
+	private final CombatRewardItemRepository combatRewardItemRepository;
+	private final MonsterDefinitionRepository monsterDefinitionRepository;
+	private final MonsterLootEntryRepository monsterLootEntryRepository;
+	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final RandomProvider randomProvider;
+	private final Clock clock;
+
+	public CombatApplicationService(
+			CharacterVitalsService characterVitalsService,
+			EquippedBonusProvider equippedBonusProvider,
+			InventoryApplicationService inventoryApplicationService,
+			EncounterRepository encounterRepository,
+			CombatSessionRepository combatSessionRepository,
+			CombatEventRepository combatEventRepository,
+			CombatRewardItemRepository combatRewardItemRepository,
+			MonsterDefinitionRepository monsterDefinitionRepository,
+			MonsterLootEntryRepository monsterLootEntryRepository,
+			ItemDefinitionRepository itemDefinitionRepository,
+			RandomProvider randomProvider,
+			Clock clock) {
+		this.characterVitalsService = characterVitalsService;
+		this.equippedBonusProvider = equippedBonusProvider;
+		this.inventoryApplicationService = inventoryApplicationService;
+		this.encounterRepository = encounterRepository;
+		this.combatSessionRepository = combatSessionRepository;
+		this.combatEventRepository = combatEventRepository;
+		this.combatRewardItemRepository = combatRewardItemRepository;
+		this.monsterDefinitionRepository = monsterDefinitionRepository;
+		this.monsterLootEntryRepository = monsterLootEntryRepository;
+		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.randomProvider = randomProvider;
+		this.clock = clock;
+	}
+
+	@Transactional
+	public CombatView startFromEncounter(UUID accountId, UUID encounterId) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		EncounterEntity encounter = encounterRepository.findWithLockById(encounterId)
+				.orElseThrow(CombatErrors::encounterNotFound);
+		if (!encounter.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.encounterNotFound();
+		}
+		if (encounter.getStatus() != EncounterStatus.AVAILABLE) {
+			throw CombatErrors.encounterNotAvailable();
+		}
+		if (combatSessionRepository.existsByCharacterIdAndStatus(vitals.characterId(), CombatSessionStatus.ACTIVE)) {
+			throw CombatErrors.combatInProgress();
+		}
+
+		MonsterDefinitionEntity monster = monsterDefinitionRepository.findById(encounter.getMonsterDefinitionId())
+				.orElseThrow(() -> new IllegalStateException("monster missing for encounter"));
+
+		Instant now = Instant.now(clock);
+		encounter.markCombatStarted(now);
+		encounterRepository.saveAndFlush(encounter);
+
+		CombatSessionEntity session = new CombatSessionEntity(
+				UUID.randomUUID(),
+				encounter.getId(),
+				vitals.characterId(),
+				monster.getId(),
+				CombatSessionStatus.ACTIVE,
+				0,
+				vitals.currentHealth(),
+				vitals.currentStamina(),
+				monster.getMaxHealth(),
+				now,
+				now);
+		combatSessionRepository.saveAndFlush(session);
+		return toView(session, monster, vitals, loadEvents(session.getId()), null);
+	}
+
+	@Transactional(readOnly = true)
+	public CombatView current(UUID accountId) {
+		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
+		return combatSessionRepository
+				.findByCharacterIdAndStatus(vitals.characterId(), CombatSessionStatus.ACTIVE)
+				.map(active -> {
+					MonsterDefinitionEntity monster = requireMonster(active.getMonsterDefinitionId());
+					return toView(active, monster, vitals, loadEvents(active.getId()), null);
+				})
+				.orElse(null);
+	}
+
+	/**
+	 * Returns a terminal combat snapshot when present. Used by idempotent reward re-fetch tests and
+	 * clients that still hold a finished session id.
+	 */
+	@Transactional(readOnly = true)
+	public CombatView getById(UUID accountId, UUID combatId) {
+		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
+		CombatSessionEntity session = combatSessionRepository.findById(combatId)
+				.orElseThrow(CombatErrors::combatNotFound);
+		if (!session.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.combatNotFound();
+		}
+		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+		CombatRewardsView rewards = session.isRewardsApplied() ? loadRewards(session) : null;
+		return toView(session, monster, vitals, loadEvents(session.getId()), rewards);
+	}
+
+	@Transactional
+	public CombatView submitAction(UUID accountId, UUID combatId, CombatAction action) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		CombatSessionEntity session = combatSessionRepository.findWithLockById(combatId)
+				.orElseThrow(CombatErrors::combatNotFound);
+		if (!session.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.combatNotFound();
+		}
+		if (session.getStatus() != CombatSessionStatus.ACTIVE) {
+			// Idempotent reward path: repeating completion still returns the same snapshot.
+			if (session.isRewardsApplied()) {
+				MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+				return toView(session, monster, vitals, loadEvents(session.getId()), loadRewards(session));
+			}
+			throw CombatErrors.combatNotActive();
+		}
+
+		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(vitals.characterId());
+		DerivedCombatStats derived = CharacterStatCalculator.calculate(
+				vitals.strength(),
+				vitals.agility(),
+				vitals.perception(),
+				bonuses.weaponDamage(),
+				bonuses.armorValue());
+
+		boolean potionAvailable = inventoryApplicationService.hasHealingPotion(vitals.characterId());
+		int potionHeal = 0;
+		if (action == CombatAction.USE_POTION) {
+			if (!potionAvailable) {
+				throw CombatErrors.noPotion();
+			}
+			potionHeal = inventoryApplicationService.consumeOneHealingPotion(vitals.characterId());
+		}
+
+		CombatSessionState state = new CombatSessionState(
+				session.getRoundNumber(),
+				session.getPlayerHealth(),
+				vitals.maxHealth(),
+				session.getPlayerStamina(),
+				vitals.maxStamina(),
+				session.getEnemyHealth(),
+				session.getStatus(),
+				new CombatantStats(
+						derived.physicalDamage(),
+						derived.accuracy(),
+						derived.dodge(),
+						derived.criticalChance(),
+						derived.armor(),
+						vitals.agility()),
+				new MonsterCombatStats(
+						monster.getName(),
+						monster.getLevel(),
+						monster.getDamageMin(),
+						monster.getDamageMax()));
+
+		CombatRoundResult result;
+		try {
+			result = CombatEngine.resolve(
+					state,
+					action,
+					new CombatEngine.ActionContext(potionAvailable || action == CombatAction.USE_POTION, potionHeal),
+					randomProvider);
+		}
+		catch (IllegalArgumentException exception) {
+			if ("insufficient stamina".equals(exception.getMessage())) {
+				throw CombatErrors.insufficientStamina();
+			}
+			if ("no potion available".equals(exception.getMessage())) {
+				throw CombatErrors.noPotion();
+			}
+			throw CombatErrors.invalidCombatAction(exception.getMessage());
+		}
+
+		Instant now = Instant.now(clock);
+		session.applyRound(
+				result.roundNumber(),
+				result.playerHealth(),
+				result.playerStamina(),
+				result.enemyHealth(),
+				result.status(),
+				now);
+		combatSessionRepository.saveAndFlush(session);
+		persistEvents(session.getId(), result.roundNumber(), result.events(), now);
+
+		CharacterVitalsView synced;
+		if (result.status() == CombatSessionStatus.PLAYER_LOST) {
+			synced = characterVitalsService.applyDefeatRecovery(vitals.characterId(), result.playerStamina());
+			resolveEncounter(session.getEncounterId(), now);
+		}
+		else if (result.status() == CombatSessionStatus.PLAYER_ESCAPED) {
+			synced = characterVitalsService.syncCombatVitals(
+					vitals.characterId(),
+					result.playerHealth(),
+					result.playerStamina());
+			resolveEncounter(session.getEncounterId(), now);
+		}
+		else if (result.status() == CombatSessionStatus.PLAYER_WON) {
+			synced = characterVitalsService.syncCombatVitals(
+					vitals.characterId(),
+					result.playerHealth(),
+					result.playerStamina());
+			applyRewardsExactlyOnce(session, monster, now);
+			resolveEncounter(session.getEncounterId(), now);
+			synced = characterVitalsService.lockVitalsByCharacterId(vitals.characterId());
+		}
+		else {
+			synced = characterVitalsService.syncCombatVitals(
+					vitals.characterId(),
+					result.playerHealth(),
+					result.playerStamina());
+		}
+
+		CombatRewardsView rewards = session.isRewardsApplied() ? loadRewards(session) : null;
+		return toView(session, monster, synced, loadEvents(session.getId()), rewards);
+	}
+
+	/**
+	 * Idempotent reward application. Safe under concurrent completion attempts because the session
+	 * row is locked and {@code rewards_applied} flips in the same transaction.
+	 */
+	void applyRewardsExactlyOnce(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
+		if (session.isRewardsApplied()) {
+			return;
+		}
+		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
+		int xp = monster.getXpReward();
+
+		List<LootTableEntry> table = buildLootTable(monster.getId());
+		List<LootDrop> drops = LootGenerator.generate(table, randomProvider);
+
+		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
+
+		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
+		for (LootDrop drop : drops) {
+			boolean granted = inventoryApplicationService.tryGrantItems(
+					session.getCharacterId(),
+					drop.itemCode(),
+					drop.quantity());
+			rewardRows.add(new CombatRewardItemEntity(
+					UUID.randomUUID(),
+					session.getId(),
+					drop.itemDefinitionId(),
+					drop.quantity(),
+					granted));
+		}
+		if (!rewardRows.isEmpty()) {
+			combatRewardItemRepository.saveAll(rewardRows);
+			combatRewardItemRepository.flush();
+		}
+
+		session.markRewards(xp, gold, now);
+		combatSessionRepository.saveAndFlush(session);
+	}
+
+	private void resolveEncounter(UUID encounterId, Instant now) {
+		EncounterEntity encounter = encounterRepository.findWithLockById(encounterId)
+				.orElseThrow(CombatErrors::encounterNotFound);
+		if (encounter.getStatus() != EncounterStatus.RESOLVED && encounter.getStatus() != EncounterStatus.EXPIRED) {
+			encounter.resolve(now);
+			encounterRepository.saveAndFlush(encounter);
+		}
+	}
+
+	private List<LootTableEntry> buildLootTable(UUID monsterDefinitionId) {
+		List<MonsterLootEntryEntity> rows = monsterLootEntryRepository.findByMonsterDefinitionId(monsterDefinitionId);
+		List<LootTableEntry> table = new ArrayList<>(rows.size());
+		for (MonsterLootEntryEntity row : rows) {
+			ItemDefinitionEntity item = itemDefinitionRepository.findById(row.getItemDefinitionId())
+					.orElseThrow(() -> new IllegalStateException("loot item missing"));
+			table.add(new LootTableEntry(
+					item.getId(),
+					item.getCode(),
+					row.getDropChancePercent(),
+					row.getQuantityMin(),
+					row.getQuantityMax()));
+		}
+		return table;
+	}
+
+	private void persistEvents(UUID sessionId, int roundNumber, List<CombatEvent> events, Instant now) {
+		int sequence = 1;
+		List<CombatEventEntity> rows = new ArrayList<>(events.size());
+		for (CombatEvent event : events) {
+			rows.add(new CombatEventEntity(
+					UUID.randomUUID(),
+					sessionId,
+					roundNumber,
+					sequence++,
+					event.type(),
+					event.message(),
+					now));
+		}
+		combatEventRepository.saveAll(rows);
+		combatEventRepository.flush();
+	}
+
+	private List<CombatEventView> loadEvents(UUID sessionId) {
+		return combatEventRepository.findBySessionIdOrderByRoundNumberAscSequenceNumberAsc(sessionId).stream()
+				.map(event -> new CombatEventView(
+						event.getRoundNumber(),
+						event.getSequenceNumber(),
+						event.getEventType(),
+						event.getMessage()))
+				.toList();
+	}
+
+	private CombatRewardsView loadRewards(CombatSessionEntity session) {
+		List<CombatRewardItemView> items = combatRewardItemRepository.findBySessionId(session.getId()).stream()
+				.map(row -> {
+					ItemDefinitionEntity item = itemDefinitionRepository.findById(row.getItemDefinitionId())
+							.orElseThrow(() -> new IllegalStateException("reward item missing"));
+					return new CombatRewardItemView(
+							item.getCode(),
+							item.getName(),
+							row.getQuantity(),
+							row.isGranted());
+				})
+				.toList();
+		return new CombatRewardsView(
+				session.getXpAwarded() == null ? 0 : session.getXpAwarded(),
+				session.getGoldAwarded() == null ? 0 : session.getGoldAwarded(),
+				items);
+	}
+
+	private MonsterDefinitionEntity requireMonster(UUID monsterDefinitionId) {
+		return monsterDefinitionRepository.findById(monsterDefinitionId)
+				.orElseThrow(() -> new IllegalStateException("monster definition missing"));
+	}
+
+	private CombatView toView(
+			CombatSessionEntity session,
+			MonsterDefinitionEntity monster,
+			CharacterVitalsView vitals,
+			List<CombatEventView> events,
+			CombatRewardsView rewards) {
+		boolean potionAvailable = inventoryApplicationService.hasHealingPotion(session.getCharacterId());
+		return new CombatView(
+				session.getId(),
+				session.getEncounterId(),
+				session.getStatus(),
+				session.getRoundNumber(),
+				session.getPlayerHealth(),
+				vitals.maxHealth(),
+				session.getPlayerStamina(),
+				vitals.maxStamina(),
+				session.getEnemyHealth(),
+				monster.getMaxHealth(),
+				EncounterApplicationService.toMonsterView(monster),
+				potionAvailable,
+				events,
+				rewards);
+	}
+}

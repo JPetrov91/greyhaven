@@ -1,9 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
-import { fetchCharacter } from '../api/character'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { allocateAttributes, fetchCharacter } from '../api/character'
 import { fetchCurrentLocation } from '../api/world'
 import { ApiError } from '../api/client'
 
+type AttrKey = 'strength' | 'agility' | 'endurance' | 'perception'
+
 export function CharacterSummaryPanel() {
+  const queryClient = useQueryClient()
+  const [allocError, setAllocError] = useState<string | null>(null)
+  const [allocating, setAllocating] = useState<AttrKey | null>(null)
+
   const characterQuery = useQuery({
     queryKey: ['character'],
     queryFn: fetchCharacter,
@@ -16,6 +23,25 @@ export function CharacterSummaryPanel() {
     retry: false,
     enabled: !!characterQuery.data,
   })
+
+  async function spendPoint(attribute: AttrKey) {
+    setAllocError(null)
+    setAllocating(attribute)
+    try {
+      await allocateAttributes({
+        strength: attribute === 'strength' ? 1 : 0,
+        agility: attribute === 'agility' ? 1 : 0,
+        endurance: attribute === 'endurance' ? 1 : 0,
+        perception: attribute === 'perception' ? 1 : 0,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['character'] })
+      await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+    } catch (error) {
+      setAllocError(error instanceof ApiError ? error.message : 'Unable to allocate attribute.')
+    } finally {
+      setAllocating(null)
+    }
+  }
 
   if (characterQuery.isLoading) {
     return (
@@ -41,6 +67,7 @@ export function CharacterSummaryPanel() {
   }
 
   const locationName = locationQuery.data?.name ?? '…'
+  const canAllocate = character.unspentAttributePoints > 0
 
   return (
     <aside className="game-column game-column-left" data-testid="character-summary">
@@ -52,7 +79,11 @@ export function CharacterSummaryPanel() {
         </div>
         <div>
           <dt>Experience</dt>
-          <dd>{character.experience}</dd>
+          <dd data-testid="character-summary-experience">{character.experience}</dd>
+        </div>
+        <div>
+          <dt>Attribute points</dt>
+          <dd data-testid="character-summary-attribute-points">{character.unspentAttributePoints}</dd>
         </div>
         <div>
           <dt>Health</dt>
@@ -74,22 +105,32 @@ export function CharacterSummaryPanel() {
           <dt>Location</dt>
           <dd data-testid="character-summary-location">{locationName}</dd>
         </div>
-        <div>
-          <dt>Strength</dt>
-          <dd>{character.strength}</dd>
-        </div>
-        <div>
-          <dt>Agility</dt>
-          <dd>{character.agility}</dd>
-        </div>
-        <div>
-          <dt>Endurance</dt>
-          <dd>{character.endurance}</dd>
-        </div>
-        <div>
-          <dt>Perception</dt>
-          <dd>{character.perception}</dd>
-        </div>
+        {(
+          [
+            ['Strength', 'strength', character.strength],
+            ['Agility', 'agility', character.agility],
+            ['Endurance', 'endurance', character.endurance],
+            ['Perception', 'perception', character.perception],
+          ] as const
+        ).map(([label, key, value]) => (
+          <div key={key}>
+            <dt>{label}</dt>
+            <dd>
+              <span data-testid={`character-summary-${key}`}>{value}</span>
+              {canAllocate ? (
+                <button
+                  type="button"
+                  className="attr-plus"
+                  data-testid={`allocate-${key}`}
+                  disabled={allocating !== null}
+                  onClick={() => void spendPoint(key)}
+                >
+                  {allocating === key ? '…' : '+'}
+                </button>
+              ) : null}
+            </dd>
+          </div>
+        ))}
         <div>
           <dt>Damage</dt>
           <dd data-testid="character-summary-damage">{character.derivedStats.physicalDamage}</dd>
@@ -99,6 +140,11 @@ export function CharacterSummaryPanel() {
           <dd data-testid="character-summary-armor">{character.derivedStats.armor}</dd>
         </div>
       </dl>
+      {allocError ? (
+        <p className="form-error" role="alert" data-testid="allocate-error">
+          {allocError}
+        </p>
+      ) : null}
     </aside>
   )
 }

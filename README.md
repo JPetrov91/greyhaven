@@ -23,23 +23,106 @@ docker-compose.yml
 ## Quick start
 
 Starts PostgreSQL, the backend and the frontend, waits for each to become healthy, and
-pins the Vite `/api` proxy to the backend port it actually started:
+pins the Vite `/api` proxy to the backend port it actually started. Each run restarts
+backend and frontend on the configured ports so you pick up the latest compiled code.
+
+`scripts/dev-start.sh` is a Bash script. On Windows, Git Bash is the recommended way to
+run it; you can also call `bash` from Command Prompt / PowerShell. Ensure `JAVA_HOME`
+points at JDK 25 before starting.
+
+### Git Bash (Windows, recommended)
+
+1. Install [Git for Windows](https://git-scm.com/download/win) if needed.
+2. Open **Git Bash** (Start menu → “Git Bash”).
+3. Go to the repository root, for example:
+
+```bash
+cd /c/Projects/greyhaven
+```
+
+4. Confirm JDK 25 is visible (adjust the path if your install differs):
+
+```bash
+export JAVA_HOME="/c/Users/$USERNAME/.jdks/jdk-25.0.4+7"
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
+```
+
+5. Start the stack:
 
 ```bash
 scripts/dev-start.sh
 ```
 
-Then open `http://localhost:5173`. Ctrl+C stops backend and frontend; PostgreSQL keeps
-running. Backend and frontend output goes to `logs/backend.log` and `logs/frontend.log`.
-
-Ports can be overridden when 8080 or 5173 are taken by something else:
+Optional port overrides:
 
 ```bash
 BACKEND_PORT=8081 FRONTEND_PORT=5174 scripts/dev-start.sh
 ```
 
-The script refuses to start when a port is already occupied instead of leaving the
-frontend proxying to a foreign application. The steps below run the same stack manually.
+### macOS / Linux
+
+From the repository root:
+
+```bash
+scripts/dev-start.sh
+```
+
+Optional port overrides:
+
+```bash
+BACKEND_PORT=8081 FRONTEND_PORT=5174 scripts/dev-start.sh
+```
+
+### Windows Command Prompt (cmd)
+
+Git for Windows must be installed, and `bash` must be on `PATH` (typical with
+"Git Bash" / Git for Windows). From the repository root:
+
+```bat
+bash scripts/dev-start.sh
+```
+
+If `bash` is not on `PATH`, use the full path:
+
+```bat
+"C:\Program Files\Git\bin\bash.exe" scripts/dev-start.sh
+```
+
+Optional port overrides:
+
+```bat
+set BACKEND_PORT=8081
+set FRONTEND_PORT=5174
+bash scripts/dev-start.sh
+```
+
+### Windows PowerShell
+
+Same requirement: Git for Windows / `bash` available. From the repository root:
+
+```powershell
+bash scripts/dev-start.sh
+```
+
+Or with the full path:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" scripts/dev-start.sh
+```
+
+Optional port overrides:
+
+```powershell
+$env:BACKEND_PORT = "8081"
+$env:FRONTEND_PORT = "5174"
+bash scripts/dev-start.sh
+```
+
+Then open `http://localhost:5173`. Ctrl+C stops backend and frontend; PostgreSQL keeps
+running. Backend and frontend output goes to `logs/backend.log` and `logs/frontend.log`.
+
+The steps below run the same stack manually.
 
 ## Start PostgreSQL
 
@@ -80,7 +163,7 @@ cd backend
 ./mvnw test
 ```
 
-### Selenium (Task 2–3 browser automation)
+### Selenium (Task 2–5 browser automation)
 
 Requires Docker (Testcontainers PostgreSQL), Node.js deps in `frontend/`, and Google Chrome.
 
@@ -96,7 +179,21 @@ These tests start Spring Boot on a random port, launch Vite against that API, an
 
 - Task 2: registration, login, logout, character creation, and conflict/redirect cases
 - Task 3: location display, valid/invalid movement, refresh persistence, and nearby characters
+- Task 4: inventory / equipment
+- Task 5: encounter search, fight actions, and combat resolution UI
 
+### Combat API (Task 5)
+
+Authenticated session + CSRF required:
+
+- `POST /api/v1/encounters/search`
+- `POST /api/v1/encounters/{id}/fight`
+- `POST /api/v1/encounters/{id}/ignore`
+- `GET /api/v1/combat/current`
+- `POST /api/v1/combat/{id}/actions` body `{ "action": "HEAVY_ATTACK" }`
+- `POST /api/v1/character/attributes` body attribute deltas
+
+Playable loop: travel to a dangerous location → search → fight → loot/XP → equip → allocate attribute points.
 
 ## Frontend
 
