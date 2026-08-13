@@ -1,0 +1,44 @@
+# Build outputs
+**/target/
+**/dist/
+**/build/
+*.class
+
+# Dependencies
+**/node_modules/
+
+# Environment / local overrides
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Maven wrapper jar (script-only wrapper)
+.mvn/wrapper/maven-wrapper.jar
+
+# Test / coverage
+coverage/
+*.lcov
+
+# Misc
+*.swp
+*.tmp
+.turbo/
