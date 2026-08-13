@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { applyUiMode, persistUiMode, readStoredUiMode, type UiMode } from '../ui/uiMode'
 
 export function AppShell() {
   const { isAuthenticated, me, logout, isLoading } = useAuth()
   const navigate = useNavigate()
+  const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode())
 
   async function handleLogout() {
     try {
@@ -11,6 +14,13 @@ export function AppShell() {
     } finally {
       navigate('/login', { replace: true })
     }
+  }
+
+  function toggleUiMode() {
+    const next: UiMode = uiMode === 'compact' ? 'normal' : 'compact'
+    setUiMode(next)
+    persistUiMode(next)
+    applyUiMode(next)
   }
 
   return (
@@ -24,8 +34,13 @@ export function AppShell() {
             <>
               {me?.hasCharacter ? (
                 <>
-                  <NavLink to="/game">Game</NavLink>
-                  <NavLink to="/game" data-testid="nav-inventory">
+                  <NavLink to="/game#character" data-testid="nav-character">
+                    Character
+                  </NavLink>
+                  <NavLink to="/game" data-testid="nav-world" end>
+                    World
+                  </NavLink>
+                  <NavLink to="/game#inventory" data-testid="nav-inventory">
                     Inventory
                   </NavLink>
                   <NavLink to="/game?panel=market" data-testid="nav-market">
@@ -36,6 +51,15 @@ export function AppShell() {
               {!me?.hasCharacter ? (
                 <NavLink to="/create-character">Create Character</NavLink>
               ) : null}
+              <button
+                type="button"
+                className="nav-button"
+                data-testid="ui-mode-toggle"
+                aria-pressed={uiMode === 'compact'}
+                onClick={toggleUiMode}
+              >
+                {uiMode === 'compact' ? 'Normal mode' : 'Office mode'}
+              </button>
               <span className="nav-email" data-testid="nav-email">
                 {me?.email}
               </span>
@@ -52,6 +76,15 @@ export function AppShell() {
             <>
               <NavLink to="/login">Login</NavLink>
               <NavLink to="/register">Register</NavLink>
+              <button
+                type="button"
+                className="nav-button"
+                data-testid="ui-mode-toggle"
+                aria-pressed={uiMode === 'compact'}
+                onClick={toggleUiMode}
+              >
+                {uiMode === 'compact' ? 'Normal mode' : 'Office mode'}
+              </button>
             </>
           )}
         </nav>

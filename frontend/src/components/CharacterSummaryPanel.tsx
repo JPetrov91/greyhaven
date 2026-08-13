@@ -74,7 +74,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   const canAllocate = character.unspentAttributePoints > 0
 
   return (
-    <aside className="game-column game-column-left" data-testid="character-summary">
+    <aside id="character" className="game-column game-column-left" data-testid="character-summary">
       <h2 data-testid="character-summary-name">{character.name}</h2>
       <dl className="character-summary">
         <div>

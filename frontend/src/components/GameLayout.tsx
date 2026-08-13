@@ -7,6 +7,7 @@ import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
 import { fetchCurrentExpedition } from '../api/expedition'
 import { ActivityPanel } from './ActivityPanel'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
+import { ChatPanel } from './ChatPanel'
 import { CombatPanel } from './CombatPanel'
 import { EncounterPrompt } from './EncounterPrompt'
 import { ExpeditionPanel } from './ExpeditionPanel'
@@ -102,9 +103,10 @@ export function GameLayout() {
   const resumeFailed = combatQuery.isError || encounterQuery.isError
 
   return (
-    <section className="game-layout" aria-label="Game workspace" data-testid="game-layout">
-      <CharacterSummaryPanel mutationsDisabled={showCombat} />
-      <div className="game-center-stack">
+    <section className="game-workspace" aria-label="Game workspace" data-testid="game-layout">
+      <div className="game-layout">
+        <CharacterSummaryPanel mutationsDisabled={showCombat} />
+        <div className="game-center-stack">
         {resumeLoading ? (
           <section className="game-column game-column-center" data-testid="gameplay-resume-loading">
             <h2>Greyhaven</h2>
@@ -143,6 +145,7 @@ export function GameLayout() {
               searchError={searchError}
               onOpenExpedition={() => setShowExpedition(true)}
               onOpenMarket={() => toggleMarket(true)}
+              onOpenChat={() => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' })}
             />
             {showExpedition ? <ExpeditionPanel onClose={() => setShowExpedition(false)} /> : null}
             {showMarket ? <MarketPanel onClose={() => toggleMarket(false)} /> : null}
@@ -164,7 +167,11 @@ export function GameLayout() {
         />
       </div>
 
-      <ActivityPanel />
+        <ActivityPanel />
+      </div>
+      <div id="global-chat">
+        <ChatPanel />
+      </div>
     </section>
   )
 }

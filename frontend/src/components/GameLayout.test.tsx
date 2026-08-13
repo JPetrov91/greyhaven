@@ -54,6 +54,10 @@ vi.mock('./MarketPanel', () => ({
   MarketPanel: () => <section data-testid="market-panel">Marketplace</section>,
 }))
 
+vi.mock('./ChatPanel', () => ({
+  ChatPanel: () => <section data-testid="chat-panel">chat</section>,
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -78,5 +82,6 @@ describe('GameLayout', () => {
     )
 
     expect(await screen.findByTestId('market-panel')).toBeTruthy()
+    expect(screen.getByTestId('chat-panel')).toBeTruthy()
   })
 })

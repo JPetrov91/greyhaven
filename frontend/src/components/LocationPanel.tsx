@@ -26,15 +26,13 @@ const ACTION_LABELS: Record<LocationAction, string> = {
 /** Actions already represented by dedicated UI sections on this screen. */
 const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY'])
 
-/** Actions that require later tasks and are shown as unavailable. */
-const UNAVAILABLE_ACTIONS = new Set<LocationAction>(['VIEW_CHAT'])
-
 type Props = {
   onSearchEncounter?: () => void
   searchBusy?: boolean
   searchError?: string | null
   onOpenExpedition?: () => void
   onOpenMarket?: () => void
+  onOpenChat?: () => void
 }
 
 export function LocationPanel({
@@ -43,6 +41,7 @@ export function LocationPanel({
   searchError = null,
   onOpenExpedition,
   onOpenMarket,
+  onOpenChat,
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
@@ -130,7 +129,9 @@ export function LocationPanel({
           {location.code}
         </span>
       </p>
-      <p data-testid="location-description">{location.description}</p>
+      <p className="location-description" data-testid="location-description">
+        {location.description}
+      </p>
 
       <section className="location-section" aria-labelledby="destinations-heading">
         <h3 id="destinations-heading">Travel</h3>
@@ -218,10 +219,18 @@ export function LocationPanel({
                 >
                   Open
                 </button>
+              ) : action === 'VIEW_CHAT' ? (
+                <button
+                  type="button"
+                  className="travel-button"
+                  data-testid="open-chat-action"
+                  disabled={!onOpenChat}
+                  onClick={() => onOpenChat?.()}
+                >
+                  Show
+                </button>
               ) : (
-                <span className={`action-status ${UNAVAILABLE_ACTIONS.has(action) ? 'unavailable' : 'available'}`}>
-                  {UNAVAILABLE_ACTIONS.has(action) ? 'Coming later' : 'Available'}
-                </span>
+                <span className="action-status available">Available</span>
               )}
             </li>
           ))}

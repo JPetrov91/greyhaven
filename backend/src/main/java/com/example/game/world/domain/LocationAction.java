@@ -1,8 +1,7 @@
 package com.example.game.world.domain;
 
 /**
- * Declared actions available at a location. Chat is not yet wired to gameplay endpoints
- * and is returned for UI display only.
+ * Declared actions available at a location.
  */
 public enum LocationAction {
 	INSPECT,

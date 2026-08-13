@@ -63,6 +63,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
       <section
         className="game-column inventory-panel"
         aria-label="Inventory"
+        id="inventory"
         data-testid="inventory-panel"
       >
         <h2>Inventory</h2>
@@ -76,10 +77,16 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
       <section
         className="game-column inventory-panel"
         aria-label="Inventory"
+        id="inventory"
         data-testid="inventory-panel"
       >
         <h2>Inventory</h2>
-        <p className="form-error">{inventoryQuery.error.message}</p>
+        <p className="form-error" role="alert">
+          {inventoryQuery.error.message}
+        </p>
+        <button type="button" className="travel-button" onClick={() => void inventoryQuery.refetch()}>
+          Retry
+        </button>
       </section>
     )
   }
@@ -101,6 +108,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     <section
       className="game-column inventory-panel"
       aria-label="Inventory"
+      id="inventory"
       data-testid="inventory-panel"
     >
       <h2>Inventory</h2>

@@ -262,3 +262,11 @@ export type ActivityEntryResponse = {
   createdAt: string
   readAt: string | null
 }
+
+export type ChatMessageResponse = {
+  id: string
+  characterId: string
+  characterName: string
+  body: string
+  createdAt: string
+}

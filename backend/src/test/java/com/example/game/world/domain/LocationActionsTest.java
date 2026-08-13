@@ -17,6 +17,15 @@ class LocationActionsTest {
 	}
 
 	@Test
+	void tavernIncludesGlobalChatAndExpeditions() {
+		assertThat(LocationActions.forCode(LocationCodes.TAVERN))
+				.contains(
+						LocationAction.VIEW_CHAT,
+						LocationAction.START_EXPEDITION,
+						LocationAction.INSPECT_EXPEDITIONS);
+	}
+
+	@Test
 	void forestIncludesEncounterAndExpeditionActions() {
 		assertThat(LocationActions.forCode(LocationCodes.FOREST))
 				.contains(

@@ -7,6 +7,8 @@ const apiProxy = {
   '/api': {
     target: apiTarget,
     changeOrigin: true,
+    timeout: 0,
+    proxyTimeout: 0,
   },
   '/actuator': {
     target: apiTarget,
