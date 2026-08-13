@@ -17,14 +17,17 @@ public class CharacterProgressionService {
 
 	private final CharacterRepository characterRepository;
 	private final CharacterApplicationService characterApplicationService;
+	private final CharacterCombatGuard characterCombatGuard;
 	private final Clock clock;
 
 	public CharacterProgressionService(
 			CharacterRepository characterRepository,
 			CharacterApplicationService characterApplicationService,
+			CharacterCombatGuard characterCombatGuard,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.characterApplicationService = characterApplicationService;
+		this.characterCombatGuard = characterCombatGuard;
 		this.clock = clock;
 	}
 
@@ -37,6 +40,7 @@ public class CharacterProgressionService {
 			int perceptionDelta) {
 		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterCombatGuard.assertNotInActiveCombat(character.getId());
 		try {
 			character.allocateAttributes(
 					strengthDelta,

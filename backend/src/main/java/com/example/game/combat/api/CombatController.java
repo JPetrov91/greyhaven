@@ -48,7 +48,8 @@ public class CombatController {
 		return toResponse(combatApplicationService.submitAction(
 				principal.getAccountId(),
 				combatId,
-				request.action()));
+				request.action(),
+				request.expectedRoundNumber()));
 	}
 
 	@PostMapping("/{id}/acknowledge")

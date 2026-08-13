@@ -108,8 +108,10 @@ public class CombatApplicationService {
 		MonsterDefinitionEntity monster = monsterDefinitionRepository.findById(encounter.getMonsterDefinitionId())
 				.orElseThrow(() -> new IllegalStateException("monster missing for encounter"));
 
+		if (combatSessionRepository.existsByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())) {
+			throw CombatErrors.outcomePending();
+		}
 		Instant now = Instant.now(clock);
-		acknowledgePendingOutcomes(vitals.characterId(), now);
 		encounter.markCombatStarted(now);
 		encounterRepository.saveAndFlush(encounter);
 
@@ -126,6 +128,7 @@ public class CombatApplicationService {
 				now,
 				now);
 		combatSessionRepository.saveAndFlush(session);
+		createRewardPlan(session, monster, now);
 		return toView(session, monster, vitals, loadEvents(session.getId()), null);
 	}
 
@@ -166,19 +169,12 @@ public class CombatApplicationService {
 		combatSessionRepository.saveAndFlush(session);
 	}
 
-	/**
-	 * Clears a prior result screen so a new encounter/combat can end without unique-index conflicts.
-	 */
-	void acknowledgePendingOutcomes(UUID characterId, Instant now) {
-		combatSessionRepository.findByCharacterIdAndOutcomeAcknowledgedFalse(characterId)
-				.ifPresent(session -> {
-					session.acknowledgeOutcome(now);
-					combatSessionRepository.saveAndFlush(session);
-				});
-	}
-
 	@Transactional
-	public CombatView submitAction(UUID accountId, UUID combatId, CombatAction action) {
+	public CombatView submitAction(
+			UUID accountId,
+			UUID combatId,
+			CombatAction action,
+			int expectedRoundNumber) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
 		CombatSessionEntity session = combatSessionRepository.findWithLockById(combatId)
 				.orElseThrow(CombatErrors::combatNotFound);
@@ -193,8 +189,14 @@ public class CombatApplicationService {
 			}
 			throw CombatErrors.combatNotActive();
 		}
+		if (session.getRoundNumber() != expectedRoundNumber) {
+			throw CombatErrors.staleCombatState();
+		}
 
 		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+		if (!session.isRewardPlanCreated()) {
+			createRewardPlan(session, monster, Instant.now(clock));
+		}
 		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(vitals.characterId());
 		DerivedCombatStats derived = CharacterStatCalculator.calculate(
 				vitals.strength(),
@@ -302,37 +304,52 @@ public class CombatApplicationService {
 		if (session.isRewardsApplied()) {
 			return;
 		}
-		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
-		int xp = monster.getXpReward();
-
-		List<LootTableEntry> table = buildLootTable(monster.getId());
-		List<LootDrop> drops = LootGenerator.generate(table, randomProvider);
+		int gold = session.getPlannedGold();
+		int xp = session.getPlannedXp();
+		List<CombatRewardItemEntity> rewardRows = combatRewardItemRepository.findBySessionId(session.getId());
+		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
+				rewardRows.stream().map(CombatRewardItemEntity::getItemDefinitionId).toList());
 
 		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
 
-		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
-		for (LootDrop drop : drops) {
+		for (CombatRewardItemEntity reward : rewardRows) {
+			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
 			try {
 				inventoryApplicationService.grantItems(
 						session.getCharacterId(),
-						drop.itemCode(),
-						drop.quantity());
+						item.code(),
+						reward.getQuantity());
 			}
 			catch (InventoryFullException exception) {
 				throw CombatErrors.rewardsNeedInventorySpace();
 			}
-			rewardRows.add(new CombatRewardItemEntity(
-					UUID.randomUUID(),
-					session.getId(),
-					drop.itemDefinitionId(),
-					drop.quantity()));
 		}
+
+		session.markRewards(xp, gold, now);
+		combatSessionRepository.saveAndFlush(session);
+	}
+
+	private void createRewardPlan(
+			CombatSessionEntity session,
+			MonsterDefinitionEntity monster,
+			Instant now) {
+		if (session.isRewardPlanCreated()) {
+			return;
+		}
+		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
+		List<LootDrop> drops = LootGenerator.generate(buildLootTable(monster.getId()), randomProvider);
+		List<CombatRewardItemEntity> rewardRows = drops.stream()
+				.map(drop -> new CombatRewardItemEntity(
+						UUID.randomUUID(),
+						session.getId(),
+						drop.itemDefinitionId(),
+						drop.quantity()))
+				.toList();
 		if (!rewardRows.isEmpty()) {
 			combatRewardItemRepository.saveAll(rewardRows);
 			combatRewardItemRepository.flush();
 		}
-
-		session.markRewards(xp, gold, now);
+		session.markRewardPlan(monster.getXpReward(), gold, now);
 		combatSessionRepository.saveAndFlush(session);
 	}
 

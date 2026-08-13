@@ -96,7 +96,9 @@ public class EncounterApplicationService {
 			throw CombatErrors.unresolvedEncounter();
 		}
 
-		combatApplicationService.acknowledgePendingOutcomes(vitals.characterId(), Instant.now(clock));
+		if (combatSessionRepository.existsByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())) {
+			throw CombatErrors.outcomePending();
+		}
 
 		LocationView location = worldApplicationService.currentLocation(accountId);
 		if (location.safety() != LocationSafety.DANGEROUS) {

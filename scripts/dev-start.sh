@@ -139,7 +139,9 @@ wait_until_ready "PostgreSQL" postgres_healthy "docker compose logs postgres"
 log "Starting backend on port $BACKEND_PORT (log: logs/backend.log)."
 (
 	cd "$repo_root/backend"
-	./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=$BACKEND_PORT"
+	./mvnw spring-boot:run \
+		-Dspring-boot.run.profiles=local \
+		-Dspring-boot.run.arguments="--server.port=$BACKEND_PORT"
 ) >"$log_dir/backend.log" 2>&1 &
 backend_job=$!
 wait_until_ready "Backend" backend_healthy "logs/backend.log"

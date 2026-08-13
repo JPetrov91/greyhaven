@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
-import type { CombatResponse, EncounterSearchResponse } from '../api/types'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 import { CombatPanel } from './CombatPanel'
 import { EncounterPrompt } from './EncounterPrompt'
@@ -12,41 +11,34 @@ import { LocationPanel } from './LocationPanel'
 
 export function GameLayout() {
   const queryClient = useQueryClient()
-  const [combat, setCombat] = useState<CombatResponse | null>(null)
-  const [encounter, setEncounter] = useState<EncounterSearchResponse | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-    void Promise.all([fetchCurrentCombat(), fetchCurrentEncounter()])
-      .then(([currentCombat, currentEncounter]) => {
-        if (cancelled) {
-          return
-        }
-        if (currentCombat) {
-          setCombat(currentCombat)
-          setEncounter(null)
-          return
-        }
-        if (currentEncounter?.found) {
-          setEncounter(currentEncounter)
-        }
-      })
-      .catch(() => {
-        /* no resumable combat/encounter */
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const combatQuery = useQuery({
+    queryKey: ['combat'],
+    queryFn: fetchCurrentCombat,
+    retry: 2,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  })
+
+  const encounterQuery = useQuery({
+    queryKey: ['encounter'],
+    queryFn: fetchCurrentEncounter,
+    retry: 2,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  })
+
+  const combat = combatQuery.data ?? null
+  const encounter = encounterQuery.data ?? null
 
   async function handleSearchEncounter() {
     setSearchError(null)
     setSearching(true)
     try {
       const result = await searchEncounter()
-      setEncounter(result)
+      queryClient.setQueryData(['encounter'], result)
       await queryClient.invalidateQueries({ queryKey: ['character'] })
     } catch (error) {
       if (error instanceof ApiError) {
@@ -60,23 +52,45 @@ export function GameLayout() {
   }
 
   async function refreshCombatFromServer() {
-    try {
-      const current = await fetchCurrentCombat()
-      setCombat(current)
-    } catch {
-      /* keep existing combat snapshot */
-    }
+    await queryClient.invalidateQueries({ queryKey: ['combat'] })
   }
 
   const showCombat = combat !== null
   const showEncounter = !showCombat && encounter !== null
+  const resumeLoading = combatQuery.isPending || encounterQuery.isPending
+  const resumeFailed = combatQuery.isError || encounterQuery.isError
 
   return (
     <section className="game-layout" aria-label="Game workspace" data-testid="game-layout">
-      <CharacterSummaryPanel />
+      <CharacterSummaryPanel mutationsDisabled={showCombat} />
       <div className="game-center-stack">
-        {showCombat ? (
-          <CombatPanel combat={combat} onCombatUpdate={setCombat} />
+        {resumeLoading ? (
+          <section className="game-column game-column-center" data-testid="gameplay-resume-loading">
+            <h2>Greyhaven</h2>
+            <p className="muted">Restoring combat and encounter state…</p>
+          </section>
+        ) : resumeFailed ? (
+          <section className="game-column game-column-center" role="alert" data-testid="gameplay-resume-error">
+            <h2>Unable to restore gameplay</h2>
+            <p className="form-error">
+              Combat or encounter state could not be loaded. Reconnect and retry before continuing.
+            </p>
+            <button
+              type="button"
+              className="travel-button"
+              onClick={() => {
+                void combatQuery.refetch()
+                void encounterQuery.refetch()
+              }}
+            >
+              Retry
+            </button>
+          </section>
+        ) : showCombat ? (
+          <CombatPanel
+            combat={combat}
+            onCombatUpdate={(updated) => queryClient.setQueryData(['combat'], updated)}
+          />
         ) : (
           <>
             <LocationPanel
@@ -87,16 +101,19 @@ export function GameLayout() {
             {showEncounter ? (
               <EncounterPrompt
                 encounter={encounter}
-                onCleared={() => setEncounter(null)}
+                onCleared={() => queryClient.setQueryData(['encounter'], null)}
                 onCombatStarted={(started) => {
-                  setEncounter(null)
-                  setCombat(started)
+                  queryClient.setQueryData(['encounter'], null)
+                  queryClient.setQueryData(['combat'], started)
                 }}
               />
             ) : null}
           </>
         )}
-        <InventoryPanel onMutated={showCombat ? () => void refreshCombatFromServer() : undefined} />
+        <InventoryPanel
+          mutationsDisabled={showCombat}
+          onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
+        />
       </div>
 
       <aside className="game-column game-column-right">

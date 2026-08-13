@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.character.application.CharacterCombatGuard;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.character.domain.CharacterStatCalculator;
@@ -37,7 +37,7 @@ public class InventoryApplicationService {
 	private final ItemInstanceRepository itemInstanceRepository;
 	private final EquipmentRepository equipmentRepository;
 	private final CharacterVitalsService characterVitalsService;
-	private final ObjectProvider<ActiveCombatInventoryBridge> activeCombatInventoryBridge;
+	private final CharacterCombatGuard characterCombatGuard;
 	private final Clock clock;
 
 	public InventoryApplicationService(
@@ -45,13 +45,13 @@ public class InventoryApplicationService {
 			ItemInstanceRepository itemInstanceRepository,
 			EquipmentRepository equipmentRepository,
 			CharacterVitalsService characterVitalsService,
-			ObjectProvider<ActiveCombatInventoryBridge> activeCombatInventoryBridge,
+			CharacterCombatGuard characterCombatGuard,
 			Clock clock) {
 		this.itemDefinitionRepository = itemDefinitionRepository;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.equipmentRepository = equipmentRepository;
 		this.characterVitalsService = characterVitalsService;
-		this.activeCombatInventoryBridge = activeCombatInventoryBridge;
+		this.characterCombatGuard = characterCombatGuard;
 		this.clock = clock;
 	}
 
@@ -64,6 +64,7 @@ public class InventoryApplicationService {
 	@Transactional
 	public InventoryView equip(UUID accountId, UUID itemInstanceId) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
 		equipForCharacter(vitals, itemInstanceId);
 		return buildInventoryView(vitals);
 	}
@@ -71,6 +72,7 @@ public class InventoryApplicationService {
 	@Transactional
 	public InventoryView unequip(UUID accountId, UUID itemInstanceId) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
 		requireOwnedInstance(vitals.characterId(), itemInstanceId);
 
 		EquipmentEntity equipped = equipmentRepository.findWithLockByItemInstanceId(itemInstanceId)
@@ -87,6 +89,7 @@ public class InventoryApplicationService {
 	@Transactional
 	public InventoryView use(UUID accountId, UUID itemInstanceId) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
 		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
 		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
 
@@ -104,9 +107,6 @@ public class InventoryApplicationService {
 
 		characterVitalsService.heal(accountId, definition.getHealAmount());
 		CharacterVitalsView updatedVitals = characterVitalsService.vitalsOf(accountId);
-		activeCombatInventoryBridge.ifAvailable(bridge -> bridge.syncPlayerHealthIfInCombat(
-				updatedVitals.characterId(),
-				updatedVitals.currentHealth()));
 		return buildInventoryView(updatedVitals);
 	}
 

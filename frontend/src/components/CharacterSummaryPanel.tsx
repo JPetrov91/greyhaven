@@ -6,7 +6,11 @@ import { ApiError } from '../api/client'
 
 type AttrKey = 'strength' | 'agility' | 'endurance' | 'perception'
 
-export function CharacterSummaryPanel() {
+type Props = {
+  mutationsDisabled?: boolean
+}
+
+export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   const queryClient = useQueryClient()
   const [allocError, setAllocError] = useState<string | null>(null)
   const [allocating, setAllocating] = useState<AttrKey | null>(null)
@@ -122,7 +126,7 @@ export function CharacterSummaryPanel() {
                   type="button"
                   className="attr-plus"
                   data-testid={`allocate-${key}`}
-                  disabled={allocating !== null}
+                  disabled={mutationsDisabled || allocating !== null}
                   onClick={() => void spendPoint(key)}
                 >
                   {allocating === key ? '…' : '+'}

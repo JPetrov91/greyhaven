@@ -29,7 +29,7 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
     setError(null)
     setPendingAction(action)
     try {
-      const updated = await submitCombatAction(combat.id, action)
+      const updated = await submitCombatAction(combat.id, action, combat.roundNumber)
       onCombatUpdate(updated)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['character'] }),
@@ -38,6 +38,9 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)
+        if (err.code === 'STALE_COMBAT_STATE') {
+          await queryClient.invalidateQueries({ queryKey: ['combat'] })
+        }
       } else {
         setError('Unable to perform that combat action.')
       }

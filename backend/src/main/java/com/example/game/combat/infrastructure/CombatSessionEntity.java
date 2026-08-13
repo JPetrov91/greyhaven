@@ -53,6 +53,15 @@ public class CombatSessionEntity implements Persistable<UUID> {
 	@Column(name = "rewards_applied", nullable = false)
 	private boolean rewardsApplied;
 
+	@Column(name = "reward_plan_created", nullable = false)
+	private boolean rewardPlanCreated;
+
+	@Column(name = "planned_xp")
+	private Integer plannedXp;
+
+	@Column(name = "planned_gold")
+	private Integer plannedGold;
+
 	@Column(name = "outcome_acknowledged", nullable = false)
 	private boolean outcomeAcknowledged;
 
@@ -100,6 +109,9 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.playerStamina = playerStamina;
 		this.enemyHealth = enemyHealth;
 		this.rewardsApplied = false;
+		this.rewardPlanCreated = false;
+		this.plannedXp = null;
+		this.plannedGold = null;
 		this.outcomeAcknowledged = true;
 		this.xpAwarded = null;
 		this.goldAwarded = null;
@@ -158,6 +170,18 @@ public class CombatSessionEntity implements Persistable<UUID> {
 
 	public boolean isRewardsApplied() {
 		return rewardsApplied;
+	}
+
+	public boolean isRewardPlanCreated() {
+		return rewardPlanCreated;
+	}
+
+	public Integer getPlannedXp() {
+		return plannedXp;
+	}
+
+	public Integer getPlannedGold() {
+		return plannedGold;
 	}
 
 	public boolean isOutcomeAcknowledged() {
@@ -246,6 +270,19 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.rewardsApplied = true;
 		this.xpAwarded = xp;
 		this.goldAwarded = gold;
+		this.updatedAt = updatedAt;
+	}
+
+	public void markRewardPlan(int xp, int gold, Instant updatedAt) {
+		if (rewardPlanCreated) {
+			throw new IllegalStateException("reward plan already created");
+		}
+		if (xp < 0 || gold < 0) {
+			throw new IllegalArgumentException("planned rewards must be non-negative");
+		}
+		this.rewardPlanCreated = true;
+		this.plannedXp = xp;
+		this.plannedGold = gold;
 		this.updatedAt = updatedAt;
 	}
 }

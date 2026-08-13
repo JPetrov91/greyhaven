@@ -141,14 +141,14 @@ Database defaults (local profile):
 
 ```bash
 cd backend
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 On Windows (Git Bash / PowerShell):
 
 ```bash
 cd backend
-./mvnw.cmd spring-boot:run
+./mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Useful endpoints:
@@ -191,7 +191,7 @@ Authenticated session + CSRF required:
 - `POST /api/v1/encounters/{id}/fight`
 - `POST /api/v1/encounters/{id}/ignore`
 - `GET /api/v1/combat/current` (ACTIVE fight, or unacknowledged result/reward screen)
-- `POST /api/v1/combat/{id}/actions` body `{ "action": "HEAVY_ATTACK" }`
+- `POST /api/v1/combat/{id}/actions` body `{ "action": "HEAVY_ATTACK", "expectedRoundNumber": 3 }`
 - `POST /api/v1/combat/{id}/acknowledge` (dismiss result/reward screen after combat ends)
 - `POST /api/v1/character/attributes` body attribute deltas
 
@@ -199,9 +199,9 @@ Playable loop: travel to a dangerous location → search → fight → loot/XP �
 
 Combat rules worth knowing:
 
-- Victory rewards are all-or-nothing. If the loot does not fit, the round is rejected with
-  `INVENTORY_FULL` and nothing is awarded, so earned loot is never silently discarded.
-  Inventory stays available during combat so you can free space (for example by using potions).
+- Victory rewards are rolled and persisted when combat starts. If the loot does not fit, the
+  killing round is rejected with `INVENTORY_FULL` and the same reward plan is retained.
+  Inventory and character-build changes are unavailable during active combat.
 - Defeat costs the fight and its rewards; the character is restored to 50% of max HP/stamina.
 
 ## Frontend

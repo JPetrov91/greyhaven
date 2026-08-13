@@ -24,7 +24,7 @@ class CombatApplicationServiceBoundaryTest {
 				.getReturnType())
 				.isEqualTo(CombatView.class);
 		assertThat(CombatApplicationService.class
-				.getMethod("submitAction", UUID.class, UUID.class, CombatAction.class)
+				.getMethod("submitAction", UUID.class, UUID.class, CombatAction.class, int.class)
 				.getReturnType())
 				.isEqualTo(CombatView.class);
 		assertThat(EncounterApplicationService.class

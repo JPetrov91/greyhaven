@@ -6,10 +6,14 @@ export async function fetchCurrentCombat(): Promise<CombatResponse | null> {
   return body ?? null
 }
 
-export function submitCombatAction(combatId: string, action: CombatAction): Promise<CombatResponse> {
+export function submitCombatAction(
+  combatId: string,
+  action: CombatAction,
+  expectedRoundNumber: number,
+): Promise<CombatResponse> {
   return apiRequest<CombatResponse>(`/api/v1/combat/${combatId}/actions`, {
     method: 'POST',
-    body: JSON.stringify({ action }),
+    body: JSON.stringify({ action, expectedRoundNumber }),
   })
 }
 

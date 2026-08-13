@@ -37,6 +37,20 @@ final class CombatErrors {
 				HttpStatus.CONFLICT);
 	}
 
+	static ApiException staleCombatState() {
+		return new ApiException(
+				"STALE_COMBAT_STATE",
+				"Combat has advanced. Refresh the current combat state before acting again.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException outcomePending() {
+		return new ApiException(
+				"COMBAT_OUTCOME_PENDING",
+				"Acknowledge the previous combat outcome before continuing.",
+				HttpStatus.CONFLICT);
+	}
+
 	static ApiException unresolvedEncounter() {
 		return new ApiException(
 				"UNRESOLVED_ENCOUNTER",

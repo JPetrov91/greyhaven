@@ -21,11 +21,12 @@ function itemStats(item: InventoryItemResponse): string {
 }
 
 type Props = {
-  /** Called after equip/unequip/use so combat UI can refresh synced vitals. */
+  /** Called after equip/unequip/use so surrounding gameplay views can refresh. */
   onMutated?: () => void
+  mutationsDisabled?: boolean
 }
 
-export function InventoryPanel({ onMutated }: Props) {
+export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) {
   const queryClient = useQueryClient()
 
   const inventoryQuery = useQuery({
@@ -106,6 +107,7 @@ export function InventoryPanel({ onMutated }: Props) {
       <p className="muted" data-testid="inventory-capacity">
         {inventory.usedSlots} / {inventory.capacity} slots
       </p>
+      {mutationsDisabled ? <p className="muted">Inventory changes are unavailable during combat.</p> : null}
 
       <div className="inventory-section">
         <h3>Equipment</h3>
@@ -168,7 +170,7 @@ export function InventoryPanel({ onMutated }: Props) {
                         type="button"
                         className="travel-button"
                         data-testid={`unequip-${item.code}`}
-                        disabled={unequipMutation.isPending}
+                        disabled={mutationsDisabled || unequipMutation.isPending}
                         onClick={() => unequipMutation.mutate(item.id)}
                       >
                         Unequip
@@ -178,7 +180,7 @@ export function InventoryPanel({ onMutated }: Props) {
                         type="button"
                         className="travel-button"
                         data-testid={`equip-${item.code}`}
-                        disabled={equipMutation.isPending}
+                        disabled={mutationsDisabled || equipMutation.isPending}
                         onClick={() => equipMutation.mutate(item.id)}
                       >
                         Equip
@@ -190,7 +192,7 @@ export function InventoryPanel({ onMutated }: Props) {
                       type="button"
                       className="travel-button"
                       data-testid={`use-${item.code}`}
-                      disabled={useMutationHook.isPending}
+                      disabled={mutationsDisabled || useMutationHook.isPending}
                       onClick={() => useMutationHook.mutate(item.id)}
                     >
                       Use
