@@ -47,9 +47,10 @@ class HealthAndBootstrapIntegrationTest {
 	}
 
 	@Test
-	void unknownApiPathsAreDenied() throws Exception {
+	void unknownApiPathsRequireAuthentication() throws Exception {
 		mockMvc.perform(get("/api/v1/unknown"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("UNAUTHENTICATED"));
 	}
 
 	@Test

@@ -7,6 +7,12 @@ spring:
   jpa:
     show-sql: false
 
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
 logging:
   level:
     org.hibernate.SQL: WARN

@@ -20,6 +20,13 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        # Default to Secure for non-local deployments; local/test profiles override.
+        secure: true
 
 management:
   endpoints:

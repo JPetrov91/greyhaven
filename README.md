@@ -59,6 +59,20 @@ cd backend
 ./mvnw test
 ```
 
+### Selenium (Task 2 browser automation)
+
+Requires Docker (Testcontainers PostgreSQL), Node.js deps in `frontend/`, and Google Chrome.
+
+```bash
+cd frontend
+npm install
+
+cd ../backend
+./mvnw verify -Pselenium
+```
+
+These tests start Spring Boot on a random port, launch Vite against that API, and drive Chrome headless through registration, login, logout, character creation, and the Task 2 conflict/redirect cases.
+
 ## Frontend
 
 ```bash
