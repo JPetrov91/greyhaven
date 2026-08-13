@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.game.character.domain.CharacterBalance;
+import com.example.game.character.domain.CharacterStatCalculator;
+import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.shared.api.ApiException;
@@ -23,14 +25,20 @@ public class CharacterApplicationService {
 
 	private final CharacterRepository characterRepository;
 	private final StartingLocationProvider startingLocationProvider;
+	private final StarterLoadoutGranter starterLoadoutGranter;
+	private final EquippedBonusProvider equippedBonusProvider;
 	private final Clock clock;
 
 	public CharacterApplicationService(
 			CharacterRepository characterRepository,
 			StartingLocationProvider startingLocationProvider,
+			StarterLoadoutGranter starterLoadoutGranter,
+			EquippedBonusProvider equippedBonusProvider,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.startingLocationProvider = startingLocationProvider;
+		this.starterLoadoutGranter = starterLoadoutGranter;
+		this.equippedBonusProvider = equippedBonusProvider;
 		this.clock = clock;
 	}
 
@@ -74,7 +82,9 @@ public class CharacterApplicationService {
 				now);
 
 		try {
-			return toView(characterRepository.saveAndFlush(character));
+			CharacterEntity saved = characterRepository.saveAndFlush(character);
+			starterLoadoutGranter.grantStarterLoadout(saved.getId());
+			return toView(saved);
 		}
 		catch (DataIntegrityViolationException exception) {
 			if (ConstraintViolations.caused(exception, ONE_CHARACTER_PER_ACCOUNT_CONSTRAINT)) {
@@ -99,21 +109,15 @@ public class CharacterApplicationService {
 		return characterRepository.existsByAccountId(accountId);
 	}
 
-	private static ApiException characterAlreadyExists() {
-		return new ApiException(
-				"CHARACTER_ALREADY_EXISTS",
-				"This account already has a character.",
-				HttpStatus.CONFLICT);
-	}
-
-	private static ApiException characterNameTaken() {
-		return new ApiException(
-				"CHARACTER_NAME_TAKEN",
-				"A character with this name already exists.",
-				HttpStatus.CONFLICT);
-	}
-
-	private static CharacterView toView(CharacterEntity character) {
+	private CharacterView toView(CharacterEntity character) {
+		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(character.getId());
+		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
+				character.getStrength(),
+				character.getAgility(),
+				character.getEndurance(),
+				character.getPerception(),
+				bonuses.weaponDamage(),
+				bonuses.armorValue());
 		return new CharacterView(
 				character.getId(),
 				character.getAccountId(),
@@ -130,7 +134,22 @@ public class CharacterApplicationService {
 				character.getMaxStamina(),
 				character.getGold(),
 				character.getCurrentLocationId(),
+				derivedStats,
 				character.getCreatedAt(),
 				character.getUpdatedAt());
+	}
+
+	private static ApiException characterAlreadyExists() {
+		return new ApiException(
+				"CHARACTER_ALREADY_EXISTS",
+				"This account already has a character.",
+				HttpStatus.CONFLICT);
+	}
+
+	private static ApiException characterNameTaken() {
+		return new ApiException(
+				"CHARACTER_NAME_TAKEN",
+				"A character with this name already exists.",
+				HttpStatus.CONFLICT);
 	}
 }

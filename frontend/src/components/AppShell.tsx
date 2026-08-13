@@ -22,7 +22,14 @@ export function AppShell() {
         <nav className="app-nav" aria-label="Primary">
           {isLoading ? null : isAuthenticated ? (
             <>
-              {me?.hasCharacter ? <NavLink to="/game">Game</NavLink> : null}
+              {me?.hasCharacter ? (
+                <>
+                  <NavLink to="/game">Game</NavLink>
+                  <NavLink to="/game" data-testid="nav-inventory">
+                    Inventory
+                  </NavLink>
+                </>
+              ) : null}
               {!me?.hasCharacter ? (
                 <NavLink to="/create-character">Create Character</NavLink>
               ) : null}

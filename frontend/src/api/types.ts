@@ -10,6 +10,16 @@ export type MeResponse = {
   hasCharacter: boolean
 }
 
+export type DerivedStatsResponse = {
+  maxHealth: number
+  maxStamina: number
+  physicalDamage: number
+  accuracy: number
+  dodge: number
+  criticalChance: number
+  armor: number
+}
+
 export type CharacterResponse = {
   id: string
   accountId: string
@@ -26,8 +36,44 @@ export type CharacterResponse = {
   maxStamina: number
   gold: number
   currentLocationId: string | null
+  derivedStats: DerivedStatsResponse
   createdAt: string
   updatedAt: string
+}
+
+export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL'
+export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC'
+export type EquipmentSlot = 'WEAPON' | 'ARMOR'
+
+export type InventoryItemResponse = {
+  id: string
+  definitionId: string
+  code: string
+  name: string
+  description: string
+  type: ItemType
+  rarity: ItemRarity
+  quantity: number
+  requiredLevel: number
+  baseValue: number
+  equipped: boolean
+  equipmentSlot: EquipmentSlot | null
+  weaponDamage: number | null
+  armorValue: number | null
+  healAmount: number | null
+}
+
+export type EquipmentResponse = {
+  weaponItemId: string | null
+  armorItemId: string | null
+}
+
+export type InventoryResponse = {
+  capacity: number
+  usedSlots: number
+  items: InventoryItemResponse[]
+  equipment: EquipmentResponse
+  derivedStats: DerivedStatsResponse
 }
 
 export type LocationSafety = 'SAFE' | 'DANGEROUS'

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.game.account.infrastructure.AccountPrincipal;
 import com.example.game.character.application.CharacterApplicationService;
 import com.example.game.character.application.CharacterView;
+import com.example.game.character.domain.DerivedCombatStats;
 
 import jakarta.validation.Valid;
 
@@ -55,7 +56,19 @@ public class CharacterController {
 				character.maxStamina(),
 				character.gold(),
 				character.currentLocationId(),
+				toDerivedStats(character.derivedStats()),
 				character.createdAt(),
 				character.updatedAt());
+	}
+
+	private static DerivedStatsResponse toDerivedStats(DerivedCombatStats stats) {
+		return new DerivedStatsResponse(
+				stats.maxHealth(),
+				stats.maxStamina(),
+				stats.physicalDamage(),
+				stats.accuracy(),
+				stats.dodge(),
+				stats.criticalChance(),
+				stats.armor());
 	}
 }

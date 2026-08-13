@@ -19,6 +19,7 @@ public record CharacterResponse(
 		int maxStamina,
 		int gold,
 		UUID currentLocationId,
+		DerivedStatsResponse derivedStats,
 		Instant createdAt,
 		Instant updatedAt
 ) {

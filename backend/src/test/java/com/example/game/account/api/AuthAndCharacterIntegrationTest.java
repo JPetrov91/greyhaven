@@ -181,6 +181,8 @@ class AuthAndCharacterIntegrationTest {
 				.andExpect(jsonPath("$.maxStamina").value(80))
 				.andExpect(jsonPath("$.currentHealth").value(160))
 				.andExpect(jsonPath("$.currentStamina").value(80))
+				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
+				.andExpect(jsonPath("$.derivedStats.armor").value(3))
 				.andReturn();
 		refreshCsrfCookie(createResult);
 
@@ -376,9 +378,9 @@ class AuthAndCharacterIntegrationTest {
 	@Test
 	void flywayMigrationsWereApplied() {
 		Integer flywayCount = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version in ('2', '3', '4') and success = true",
+				"select count(*) from flyway_schema_history where version in ('2', '3', '4', '5', '6') and success = true",
 				Integer.class);
-		assertThat(flywayCount).isEqualTo(3);
+		assertThat(flywayCount).isEqualTo(5);
 
 		Integer emailIndexCount = jdbcTemplate.queryForObject(
 				"select count(*) from pg_indexes where tablename = 'accounts' and indexname = 'uq_accounts_email_lower'",

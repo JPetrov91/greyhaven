@@ -90,6 +90,14 @@ export function CharacterSummaryPanel() {
           <dt>Perception</dt>
           <dd>{character.perception}</dd>
         </div>
+        <div>
+          <dt>Damage</dt>
+          <dd data-testid="character-summary-damage">{character.derivedStats.physicalDamage}</dd>
+        </div>
+        <div>
+          <dt>Armor</dt>
+          <dd data-testid="character-summary-armor">{character.derivedStats.armor}</dd>
+        </div>
       </dl>
     </aside>
   )

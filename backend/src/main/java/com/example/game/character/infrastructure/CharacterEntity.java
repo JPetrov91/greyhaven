@@ -203,4 +203,12 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.currentLocationId = locationId;
 		this.updatedAt = updatedAt;
 	}
+
+	public void applyHealth(int currentHealth, Instant updatedAt) {
+		if (currentHealth < 0 || currentHealth > maxHealth) {
+			throw new IllegalArgumentException("currentHealth must be between 0 and maxHealth");
+		}
+		this.currentHealth = currentHealth;
+		this.updatedAt = updatedAt;
+	}
 }

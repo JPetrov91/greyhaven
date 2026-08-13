@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: ['location'] })
       queryClient.removeQueries({ queryKey: ['destinations'] })
       queryClient.removeQueries({ queryKey: ['nearby-characters'] })
+      queryClient.removeQueries({ queryKey: ['inventory'] })
     })
     return () => setUnauthorizedHandler(null)
   }, [queryClient])
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['location'] })
     await queryClient.invalidateQueries({ queryKey: ['destinations'] })
     await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
+    await queryClient.invalidateQueries({ queryKey: ['inventory'] })
     return response
   }
 
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['location'] })
     await queryClient.invalidateQueries({ queryKey: ['destinations'] })
     await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
+    await queryClient.invalidateQueries({ queryKey: ['inventory'] })
     return response
   }
 
@@ -74,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: ['location'] })
       queryClient.removeQueries({ queryKey: ['destinations'] })
       queryClient.removeQueries({ queryKey: ['nearby-characters'] })
+      queryClient.removeQueries({ queryKey: ['inventory'] })
     }
   }
 

@@ -3,6 +3,8 @@ package com.example.game.character.application;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.example.game.character.domain.DerivedCombatStats;
+
 /**
  * Application-layer character snapshot. Controllers map this to API DTOs.
  */
@@ -22,6 +24,7 @@ public record CharacterView(
 		int maxStamina,
 		int gold,
 		UUID currentLocationId,
+		DerivedCombatStats derivedStats,
 		Instant createdAt,
 		Instant updatedAt
 ) {
