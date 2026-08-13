@@ -25,6 +25,14 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, UUID
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	Optional<CharacterEntity> findWithLockByAccountId(UUID accountId);
 
+	/**
+	 * Same serialization as {@link #findWithLockByAccountId} for callers that already have the
+	 * character id (inventory grants, starter loadout equip).
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select c from CharacterEntity c where c.id = :id")
+	Optional<CharacterEntity> findWithLockById(@Param("id") UUID id);
+
 	@Query("select count(c) > 0 from CharacterEntity c where lower(c.name) = lower(:name)")
 	boolean existsByNameIgnoreCase(@Param("name") String name);
 

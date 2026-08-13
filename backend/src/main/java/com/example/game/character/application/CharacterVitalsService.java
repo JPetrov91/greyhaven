@@ -42,6 +42,16 @@ public class CharacterVitalsService {
 				.orElseThrow(CharacterErrors::characterNotFound));
 	}
 
+	/**
+	 * Locks by character id so inventory grants and internal equip paths serialize against the
+	 * same row as account-scoped mutations.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView lockVitalsByCharacterId(UUID characterId) {
+		return toView(characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound));
+	}
+
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void heal(UUID accountId, int amount) {
 		if (amount < 1) {

@@ -29,6 +29,9 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int quantity;
 
+	@Column(nullable = false)
+	private boolean stackable;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -43,11 +46,16 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 			UUID itemDefinitionId,
 			UUID ownerCharacterId,
 			int quantity,
+			boolean stackable,
 			Instant createdAt) {
+		if (!stackable && quantity != 1) {
+			throw new IllegalArgumentException("non-stackable items must have quantity 1");
+		}
 		this.id = id;
 		this.itemDefinitionId = itemDefinitionId;
 		this.ownerCharacterId = ownerCharacterId;
 		this.quantity = quantity;
+		this.stackable = stackable;
 		this.createdAt = createdAt;
 		this.unsaved = true;
 	}
@@ -80,11 +88,18 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 		return quantity;
 	}
 
+	public boolean isStackable() {
+		return stackable;
+	}
+
 	public Instant getCreatedAt() {
 		return createdAt;
 	}
 
 	public void increaseQuantity(int amount) {
+		if (!stackable) {
+			throw new IllegalStateException("cannot increase quantity on a non-stackable item");
+		}
 		if (amount < 1) {
 			throw new IllegalArgumentException("amount must be positive");
 		}

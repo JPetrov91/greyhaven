@@ -65,12 +65,16 @@ class InventoryIntegrationTest {
 		Integer definitionCount = jdbcTemplate.queryForObject(
 				"select count(*) from item_definitions",
 				Integer.class);
-		Integer flywayCount = jdbcTemplate.queryForObject(
+		Integer flywayV6 = jdbcTemplate.queryForObject(
 				"select count(*) from flyway_schema_history where version = '6' and success = true",
+				Integer.class);
+		Integer flywayV8 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '8' and success = true",
 				Integer.class);
 
 		assertThat(definitionCount).isEqualTo(7);
-		assertThat(flywayCount).isEqualTo(1);
+		assertThat(flywayV6).isEqualTo(1);
+		assertThat(flywayV8).isEqualTo(1);
 	}
 
 	@Test
@@ -297,6 +301,59 @@ class InventoryIntegrationTest {
 	}
 
 	@Test
+	void grantingStackableItemsMergesIntoOneSlot() throws Exception {
+		String email = "inv-stack-" + System.nanoTime() + "@greyhaven.test";
+		registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+
+		assertThat(slotCount(characterId)).isEqualTo(3);
+		assertThat(itemQuantity(characterId, ItemCodes.HEALING_POTION)).isEqualTo(2);
+
+		inventoryApplicationService.grantItems(characterId, ItemCodes.HEALING_POTION, 3);
+
+		assertThat(slotCount(characterId)).isEqualTo(3);
+		assertThat(itemQuantity(characterId, ItemCodes.HEALING_POTION)).isEqualTo(5);
+		assertThat(stackRowCount(characterId, ItemCodes.HEALING_POTION)).isEqualTo(1);
+	}
+
+	@Test
+	void databaseRejectsDuplicateStackableStacksForSameOwner() throws Exception {
+		String email = "inv-stack-uq-" + System.nanoTime() + "@greyhaven.test";
+		registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		UUID potionDefinitionId = jdbcTemplate.queryForObject(
+				"select id from item_definitions where code = ?",
+				UUID.class,
+				ItemCodes.HEALING_POTION);
+
+		assertThatThrownBy(() -> jdbcTemplate.update(
+				"""
+						insert into item_instances
+						    (id, item_definition_id, owner_character_id, quantity, stackable, created_at)
+						values (?, ?, ?, 1, true, timestamptz '2026-01-01 00:00:00+00')
+						""",
+				UUID.randomUUID(),
+				potionDefinitionId,
+				characterId))
+				.isInstanceOf(DataIntegrityViolationException.class)
+				.hasMessageContaining("uq_item_instances_owner_stackable_definition");
+	}
+
+	@Test
+	void equipOwnedItemEnforcesLevelRequirements() throws Exception {
+		String email = "inv-owned-equip-" + System.nanoTime() + "@greyhaven.test";
+		registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+
+		inventoryApplicationService.grantItems(characterId, ItemCodes.IRON_SWORD, 1);
+		UUID ironSwordId = itemInstanceId(characterId, ItemCodes.IRON_SWORD);
+
+		assertThatThrownBy(() -> inventoryApplicationService.equipOwnedItem(characterId, ironSwordId))
+				.isInstanceOf(ApiException.class)
+				.hasFieldOrPropertyWithValue("code", "EQUIP_REQUIREMENTS_NOT_MET");
+	}
+
+	@Test
 	void inventoryRequiresAuthentication() throws Exception {
 		mockMvc.perform(get("/api/v1/inventory"))
 				.andExpect(status().isUnauthorized())
@@ -308,6 +365,32 @@ class InventoryIntegrationTest {
 				"select count(*) from item_instances where owner_character_id = ?",
 				Integer.class,
 				characterId);
+		return count == null ? 0 : count;
+	}
+
+	private int itemQuantity(UUID characterId, String code) {
+		Integer quantity = jdbcTemplate.queryForObject(
+				"""
+						select coalesce(sum(i.quantity), 0) from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = ?
+						""",
+				Integer.class,
+				characterId,
+				code);
+		return quantity == null ? 0 : quantity;
+	}
+
+	private int stackRowCount(UUID characterId, String code) {
+		Integer count = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = ?
+						""",
+				Integer.class,
+				characterId,
+				code);
 		return count == null ? 0 : count;
 	}
 

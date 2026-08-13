@@ -2,8 +2,12 @@
 #
 # Starts the full Greyhaven development stack: Compose PostgreSQL, the Spring Boot
 # backend and the Vite dev server, with the frontend proxy pinned to the backend port
-# this script actually started. Ctrl+C stops backend and frontend; PostgreSQL is left
-# running so the database survives between sessions.
+# this script actually started.
+#
+# Each run restarts backend and frontend: anything already listening on the configured
+# ports is stopped first so a re-run always picks up the latest compiled code. Ctrl+C
+# stops backend and frontend; PostgreSQL is left running so the database survives
+# between sessions.
 #
 # Usage:
 #   scripts/dev-start.sh
@@ -14,6 +18,7 @@ set -euo pipefail
 BACKEND_PORT="${BACKEND_PORT:-8080}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 READY_TIMEOUT_SECONDS="${READY_TIMEOUT_SECONDS:-180}"
+PORT_STOP_TIMEOUT_SECONDS="${PORT_STOP_TIMEOUT_SECONDS:-30}"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 log_dir="$repo_root/logs"
@@ -40,11 +45,35 @@ kill_tree() {
 	fi
 }
 
-require_free_port() {
-	local port="$1" label="$2" override="$3"
+# Stop whatever currently owns a port (previous stack, leftover java/node, etc.).
+stop_listening_on() {
+	local port="$1" label="$2"
 	local pid
 	pid="$(listening_pid "$port")"
-	[[ -z "$pid" ]] || fail "$label port $port is already in use by PID $pid. Stop that process, or rerun with $override=<free port>."
+	[[ -n "$pid" ]] || return 0
+	log "Stopping existing $label on port $port (PID $pid)."
+	kill_tree "$pid"
+}
+
+wait_until_port_free() {
+	local port="$1" label="$2"
+	local deadline=$((SECONDS + PORT_STOP_TIMEOUT_SECONDS))
+	local pid
+	while ((SECONDS < deadline)); do
+		pid="$(listening_pid "$port")"
+		[[ -z "$pid" ]] && return 0
+		kill_tree "$pid"
+		sleep 1
+	done
+	fail "$label port $port is still in use by PID $(listening_pid "$port") after stop attempt."
+}
+
+restart_app_ports() {
+	log "Restarting app processes on ports $BACKEND_PORT and $FRONTEND_PORT."
+	stop_listening_on "$BACKEND_PORT" "backend"
+	stop_listening_on "$FRONTEND_PORT" "frontend"
+	wait_until_port_free "$BACKEND_PORT" "Backend"
+	wait_until_port_free "$FRONTEND_PORT" "Frontend"
 }
 
 wait_until_ready() {
@@ -95,14 +124,17 @@ cleanup() {
 
 require_java_25
 command -v docker >/dev/null 2>&1 || fail "docker not found. Start Docker Desktop first."
-require_free_port "$BACKEND_PORT" Backend BACKEND_PORT
-require_free_port "$FRONTEND_PORT" Frontend FRONTEND_PORT
+restart_app_ports
 mkdir -p "$log_dir"
 trap cleanup EXIT INT TERM
 
 log "Starting PostgreSQL via Compose."
 docker compose -f "$repo_root/docker-compose.yml" up -d
 wait_until_ready "PostgreSQL" postgres_healthy "docker compose logs postgres"
+
+# Truncate before launch so logs/backend.log only reflects this run.
+: >"$log_dir/backend.log"
+: >"$log_dir/frontend.log"
 
 log "Starting backend on port $BACKEND_PORT (log: logs/backend.log)."
 (

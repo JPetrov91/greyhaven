@@ -59,26 +59,7 @@ public class InventoryApplicationService {
 	@Transactional
 	public InventoryView equip(UUID accountId, UUID itemInstanceId) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
-		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
-		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
-
-		if (!definition.getType().isEquippable()) {
-			throw InventoryErrors.itemNotEquippable();
-		}
-		if (vitals.level() < definition.getRequiredLevel()) {
-			throw InventoryErrors.equipRequirementsNotMet();
-		}
-
-		EquipmentSlot slot = EquipmentSlot.forItemType(definition.getType());
-		equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), slot)
-				.ifPresentOrElse(
-						existing -> existing.equip(instance.getId()),
-						() -> equipmentRepository.saveAndFlush(new EquipmentEntity(
-								UUID.randomUUID(),
-								vitals.characterId(),
-								slot,
-								instance.getId())));
-
+		equipForCharacter(vitals, itemInstanceId);
 		return buildInventoryView(vitals);
 	}
 
@@ -123,17 +104,21 @@ public class InventoryApplicationService {
 
 	/**
 	 * Grants items to a character, merging stackable definitions and enforcing capacity.
-	 * Used by starter loadout and (later) loot systems.
+	 * Used by starter loadout and other server-side grants.
 	 */
 	@Transactional
 	public void grantItems(UUID characterId, String itemCode, int quantity) {
 		if (quantity < 1) {
 			throw new IllegalArgumentException("quantity must be positive");
 		}
+		// Serialize capacity and stack merges against the character row.
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+
 		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		boolean stackable = definition.getType().isStackable();
 
-		if (definition.getType().isStackable()) {
+		if (stackable) {
 			ItemInstanceEntity existing = itemInstanceRepository
 					.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
 					.orElse(null);
@@ -148,6 +133,7 @@ public class InventoryApplicationService {
 					definition.getId(),
 					characterId,
 					quantity,
+					true,
 					Instant.now(clock)));
 			return;
 		}
@@ -161,26 +147,40 @@ public class InventoryApplicationService {
 					definition.getId(),
 					characterId,
 					1,
+					false,
 					now));
 		}
 		itemInstanceRepository.saveAll(created);
 		itemInstanceRepository.flush();
 	}
 
+	/**
+	 * Equips an owned item using the same rules as the player-facing equip path (type + level).
+	 */
 	@Transactional
 	public void equipOwnedItem(UUID characterId, UUID itemInstanceId) {
-		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsByCharacterId(characterId);
+		equipForCharacter(vitals, itemInstanceId);
+	}
+
+	private void equipForCharacter(CharacterVitalsView vitals, UUID itemInstanceId) {
+		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
 		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+
 		if (!definition.getType().isEquippable()) {
 			throw InventoryErrors.itemNotEquippable();
 		}
+		if (vitals.level() < definition.getRequiredLevel()) {
+			throw InventoryErrors.equipRequirementsNotMet();
+		}
+
 		EquipmentSlot slot = EquipmentSlot.forItemType(definition.getType());
-		equipmentRepository.findWithLockByCharacterIdAndSlot(characterId, slot)
+		equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), slot)
 				.ifPresentOrElse(
 						existing -> existing.equip(instance.getId()),
 						() -> equipmentRepository.saveAndFlush(new EquipmentEntity(
 								UUID.randomUUID(),
-								characterId,
+								vitals.characterId(),
 								slot,
 								instance.getId())));
 	}
