@@ -1,7 +1,5 @@
 package com.example.game.world.application;
 
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,8 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.game.character.infrastructure.CharacterEntity;
-import com.example.game.character.infrastructure.CharacterRepository;
+import com.example.game.character.application.CharacterAtLocationView;
+import com.example.game.character.application.CharacterLocationService;
+import com.example.game.character.application.CharacterLocationView;
 import com.example.game.shared.api.ApiException;
 import com.example.game.world.domain.LocationActions;
 import com.example.game.world.domain.LocationConnectivity;
@@ -21,53 +20,62 @@ import com.example.game.world.infrastructure.LocationRepository;
 @Service
 public class WorldApplicationService {
 
-	private final CharacterRepository characterRepository;
+	/**
+	 * Every account starts in City Square, so an uncapped nearby list would grow with total
+	 * registrations. Clients are told when the list was cut short.
+	 */
+	static final int NEARBY_CHARACTER_LIMIT = 50;
+
+	private final CharacterLocationService characterLocationService;
 	private final LocationRepository locationRepository;
 	private final LocationConnectionRepository locationConnectionRepository;
-	private final Clock clock;
 
 	public WorldApplicationService(
-			CharacterRepository characterRepository,
+			CharacterLocationService characterLocationService,
 			LocationRepository locationRepository,
-			LocationConnectionRepository locationConnectionRepository,
-			Clock clock) {
-		this.characterRepository = characterRepository;
+			LocationConnectionRepository locationConnectionRepository) {
+		this.characterLocationService = characterLocationService;
 		this.locationRepository = locationRepository;
 		this.locationConnectionRepository = locationConnectionRepository;
-		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
 	public LocationView currentLocation(UUID accountId) {
-		CharacterEntity character = requireCharacter(accountId);
-		LocationEntity location = requireLocation(character.getCurrentLocationId());
-		return toLocationView(location);
+		CharacterLocationView character = characterLocationService.locationOf(accountId);
+		return toLocationView(requireLocation(character.currentLocationId()));
 	}
 
 	@Transactional(readOnly = true)
 	public List<DestinationView> destinations(UUID accountId) {
-		CharacterEntity character = requireCharacter(accountId);
-		return locationConnectionRepository.findDestinationsFrom(character.getCurrentLocationId()).stream()
-				.map(this::toDestinationView)
+		CharacterLocationView character = characterLocationService.locationOf(accountId);
+		return locationConnectionRepository.findDestinationsFrom(character.currentLocationId()).stream()
+				.map(WorldApplicationService::toDestinationView)
 				.toList();
 	}
 
 	@Transactional(readOnly = true)
-	public List<NearbyCharacterView> nearbyCharacters(UUID accountId) {
-		CharacterEntity character = requireCharacter(accountId);
-		return characterRepository
-				.findByCurrentLocationIdAndIdNotOrderByNameAsc(character.getCurrentLocationId(), character.getId())
-				.stream()
-				.map(other -> new NearbyCharacterView(other.getId(), other.getName(), other.getLevel()))
+	public NearbyCharactersView nearbyCharacters(UUID accountId) {
+		CharacterLocationView character = characterLocationService.locationOf(accountId);
+
+		// One extra row distinguishes "exactly at the cap" from "more remain".
+		List<CharacterAtLocationView> found = characterLocationService.othersAt(
+				character.currentLocationId(),
+				character.characterId(),
+				NEARBY_CHARACTER_LIMIT + 1);
+
+		List<NearbyCharacterView> characters = found.stream()
+				.limit(NEARBY_CHARACTER_LIMIT)
+				.map(other -> new NearbyCharacterView(other.characterId(), other.name(), other.level()))
 				.toList();
+		return new NearbyCharactersView(characters, found.size() > NEARBY_CHARACTER_LIMIT);
 	}
 
 	@Transactional
 	public LocationView move(UUID accountId, UUID destinationLocationId) {
-		CharacterEntity character = requireCharacter(accountId);
+		CharacterLocationView character = characterLocationService.lockLocationOf(accountId);
 		LocationEntity destination = requireLocation(destinationLocationId);
 
-		UUID fromLocationId = character.getCurrentLocationId();
+		UUID fromLocationId = character.currentLocationId();
 		boolean connected = locationConnectionRepository.existsByFromLocationIdAndToLocationId(
 				fromLocationId,
 				destination.getId());
@@ -79,17 +87,8 @@ public class WorldApplicationService {
 					HttpStatus.BAD_REQUEST);
 		}
 
-		character.moveTo(destination.getId(), Instant.now(clock));
-		characterRepository.saveAndFlush(character);
+		characterLocationService.relocate(accountId, destination.getId());
 		return toLocationView(destination);
-	}
-
-	private CharacterEntity requireCharacter(UUID accountId) {
-		return characterRepository.findByAccountId(accountId)
-				.orElseThrow(() -> new ApiException(
-						"CHARACTER_NOT_FOUND",
-						"No character exists for this account.",
-						HttpStatus.NOT_FOUND));
 	}
 
 	private LocationEntity requireLocation(UUID locationId) {
@@ -100,7 +99,7 @@ public class WorldApplicationService {
 						HttpStatus.NOT_FOUND));
 	}
 
-	private LocationView toLocationView(LocationEntity location) {
+	private static LocationView toLocationView(LocationEntity location) {
 		return new LocationView(
 				location.getId(),
 				location.getCode(),
@@ -111,7 +110,7 @@ public class WorldApplicationService {
 				LocationActions.forCode(location.getCode()));
 	}
 
-	private DestinationView toDestinationView(LocationEntity location) {
+	private static DestinationView toDestinationView(LocationEntity location) {
 		return new DestinationView(
 				location.getId(),
 				location.getCode(),

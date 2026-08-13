@@ -74,4 +74,5 @@ export type NearbyCharacterResponse = {
 
 export type NearbyCharactersResponse = {
   characters: NearbyCharacterResponse[]
+  truncated: boolean
 }

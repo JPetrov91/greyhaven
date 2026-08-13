@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.example.game.TestcontainersConfiguration;
+import com.example.game.character.application.CharacterLocationService;
 import com.example.game.world.domain.LocationCodes;
 
 import jakarta.servlet.http.Cookie;
@@ -43,6 +44,9 @@ class WorldLocationIntegrationTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private CharacterLocationService characterLocationService;
 
 	private Cookie csrfCookie;
 
@@ -70,6 +74,18 @@ class WorldLocationIntegrationTest {
 		assertThat(locationCount).isEqualTo(6);
 		assertThat(connectionCount).isEqualTo(10);
 		assertThat(flywayCount).isEqualTo(1);
+	}
+
+	@Test
+	void nearbyCharacterLookupIsIndexed() {
+		Integer indexCount = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from pg_indexes
+						where tablename = 'characters' and indexname = 'idx_characters_current_location'
+						""",
+				Integer.class);
+
+		assertThat(indexCount).isEqualTo(1);
 	}
 
 	@Test
@@ -171,6 +187,34 @@ class WorldLocationIntegrationTest {
 	}
 
 	@Test
+	void malformedDestinationIdIsRejectedAsBadRequest() throws Exception {
+		MockHttpSession session = registerWithCharacter("world-malformed-" + System.nanoTime() + "@greyhaven.test");
+
+		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"destinationLocationId":"not-a-uuid"}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+	}
+
+	@Test
 	void unknownDestinationIsNotFound() throws Exception {
 		MockHttpSession session = registerWithCharacter("world-missing-" + System.nanoTime() + "@greyhaven.test");
 
@@ -228,7 +272,8 @@ class WorldLocationIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.characters.length()").value(1))
 				.andExpect(jsonPath("$.characters[0].name").value(nameC))
-				.andExpect(jsonPath("$.characters[0].level").value(1));
+				.andExpect(jsonPath("$.characters[0].level").value(1))
+				.andExpect(jsonPath("$.truncated").value(false));
 
 		mockMvc.perform(get("/api/v1/world/nearby").session(sessionC))
 				.andExpect(status().isOk())
@@ -239,6 +284,19 @@ class WorldLocationIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.characters[?(@.name=='%s')]".formatted(nameA)).isEmpty())
 				.andExpect(jsonPath("$.characters[?(@.name=='%s')]".formatted(nameC)).isEmpty());
+	}
+
+	/**
+	 * The cap has to be a database limit, not a trim after loading every character at the location.
+	 */
+	@Test
+	void nearbyLookupAppliesTheLimitInTheQuery() throws Exception {
+		registerWithCharacter("nearby-cap-a-" + System.nanoTime() + "@greyhaven.test");
+		registerWithCharacter("nearby-cap-b-" + System.nanoTime() + "@greyhaven.test");
+		UUID noSuchCharacter = UUID.randomUUID();
+
+		assertThat(characterLocationService.othersAt(CITY_SQUARE_ID, noSuchCharacter, 1)).hasSize(1);
+		assertThat(characterLocationService.othersAt(CITY_SQUARE_ID, noSuchCharacter, 100)).hasSizeGreaterThan(1);
 	}
 
 	@Test

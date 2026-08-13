@@ -111,6 +111,7 @@ export function LocationPanel() {
   const listedActions = location.actions.filter((action) => !IMPLIED_ACTIONS.has(action))
   const destinations = destinationsQuery.data?.destinations ?? []
   const nearby = nearbyQuery.data?.characters ?? []
+  const nearbyTruncated = nearbyQuery.data?.truncated ?? false
 
   return (
     <div className="game-column game-column-center" data-testid="location-panel">
@@ -194,14 +195,21 @@ export function LocationPanel() {
             No other characters are here.
           </p>
         ) : (
-          <ul className="nearby-list" data-testid="nearby-characters">
-            {nearby.map((character) => (
-              <li key={character.id} data-testid={`nearby-${character.name}`}>
-                <strong>{character.name}</strong>
-                <span className="muted">Level {character.level}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="nearby-list" data-testid="nearby-characters">
+              {nearby.map((character) => (
+                <li key={character.id} data-testid={`nearby-${character.name}`}>
+                  <strong>{character.name}</strong>
+                  <span className="muted">Level {character.level}</span>
+                </li>
+              ))}
+            </ul>
+            {nearbyTruncated ? (
+              <p className="muted" data-testid="nearby-truncated">
+                Showing the first {nearby.length} characters here.
+              </p>
+            ) : null}
+          </>
         )}
       </section>
     </div>

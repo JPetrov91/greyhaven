@@ -29,6 +29,6 @@ class WorldApplicationServiceBoundaryTest {
 		assertThat(WorldApplicationService.class
 				.getMethod("nearbyCharacters", UUID.class)
 				.getReturnType())
-				.isEqualTo(List.class);
+				.isEqualTo(NearbyCharactersView.class);
 	}
 }

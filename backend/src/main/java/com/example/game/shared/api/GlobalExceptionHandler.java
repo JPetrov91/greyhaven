@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -46,6 +47,19 @@ public class GlobalExceptionHandler {
 				? fieldError.getField() + ": " + fieldError.getDefaultMessage()
 				: "Validation failed";
 		return ResponseEntity.badRequest().body(error("VALIDATION_ERROR", message));
+	}
+
+	/**
+	 * A body Jackson cannot parse — malformed JSON, or a value of the wrong type such as a
+	 * non-UUID identifier — is a client error. Without this handler the catch-all below would
+	 * answer 500, because {@code ExceptionHandlerExceptionResolver} runs before Spring MVC's
+	 * own default resolver. The cause is logged but never returned.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiError> handleUnreadableRequest(HttpMessageNotReadableException exception) {
+		log.debug("Rejected unreadable request body", exception);
+		return ResponseEntity.badRequest()
+				.body(error("MALFORMED_REQUEST", "The request body could not be read."));
 	}
 
 	/**

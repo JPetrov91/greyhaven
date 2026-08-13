@@ -20,6 +20,27 @@ docs/        Product and task specifications
 docker-compose.yml
 ```
 
+## Quick start
+
+Starts PostgreSQL, the backend and the frontend, waits for each to become healthy, and
+pins the Vite `/api` proxy to the backend port it actually started:
+
+```bash
+scripts/dev-start.sh
+```
+
+Then open `http://localhost:5173`. Ctrl+C stops backend and frontend; PostgreSQL keeps
+running. Backend and frontend output goes to `logs/backend.log` and `logs/frontend.log`.
+
+Ports can be overridden when 8080 or 5173 are taken by something else:
+
+```bash
+BACKEND_PORT=8081 FRONTEND_PORT=5174 scripts/dev-start.sh
+```
+
+The script refuses to start when a port is already occupied instead of leaving the
+frontend proxying to a foreign application. The steps below run the same stack manually.
+
 ## Start PostgreSQL
 
 ```bash

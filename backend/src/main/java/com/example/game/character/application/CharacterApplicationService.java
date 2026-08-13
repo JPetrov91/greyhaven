@@ -14,9 +14,6 @@ import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.infrastructure.ConstraintViolations;
-import com.example.game.world.domain.LocationCodes;
-import com.example.game.world.infrastructure.LocationEntity;
-import com.example.game.world.infrastructure.LocationRepository;
 
 @Service
 public class CharacterApplicationService {
@@ -25,15 +22,15 @@ public class CharacterApplicationService {
 	private static final String UNIQUE_NAME_CONSTRAINT = "uq_characters_name_lower";
 
 	private final CharacterRepository characterRepository;
-	private final LocationRepository locationRepository;
+	private final StartingLocationProvider startingLocationProvider;
 	private final Clock clock;
 
 	public CharacterApplicationService(
 			CharacterRepository characterRepository,
-			LocationRepository locationRepository,
+			StartingLocationProvider startingLocationProvider,
 			Clock clock) {
 		this.characterRepository = characterRepository;
-		this.locationRepository = locationRepository;
+		this.startingLocationProvider = startingLocationProvider;
 		this.clock = clock;
 	}
 
@@ -47,11 +44,7 @@ public class CharacterApplicationService {
 			throw characterNameTaken();
 		}
 
-		LocationEntity startingLocation = locationRepository.findByCode(LocationCodes.CITY_SQUARE)
-				.orElseThrow(() -> new ApiException(
-						"STARTING_LOCATION_MISSING",
-						"Greyhaven starting location is not seeded.",
-						HttpStatus.INTERNAL_SERVER_ERROR));
+		UUID startingLocationId = startingLocationProvider.startingLocationId();
 
 		int strength = CharacterBalance.STARTING_STRENGTH;
 		int agility = CharacterBalance.STARTING_AGILITY;
@@ -76,7 +69,7 @@ public class CharacterApplicationService {
 				maxStamina,
 				maxStamina,
 				CharacterBalance.STARTING_GOLD,
-				startingLocation.getId(),
+				startingLocationId,
 				now,
 				now);
 
@@ -97,10 +90,7 @@ public class CharacterApplicationService {
 	@Transactional(readOnly = true)
 	public CharacterView current(UUID accountId) {
 		CharacterEntity character = characterRepository.findByAccountId(accountId)
-				.orElseThrow(() -> new ApiException(
-						"CHARACTER_NOT_FOUND",
-						"No character exists for this account.",
-						HttpStatus.NOT_FOUND));
+				.orElseThrow(CharacterErrors::characterNotFound);
 		return toView(character);
 	}
 

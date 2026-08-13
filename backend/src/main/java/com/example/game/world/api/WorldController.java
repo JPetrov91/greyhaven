@@ -11,6 +11,7 @@ import com.example.game.account.infrastructure.AccountPrincipal;
 import com.example.game.world.application.DestinationView;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.NearbyCharacterView;
+import com.example.game.world.application.NearbyCharactersView;
 import com.example.game.world.application.WorldApplicationService;
 
 import jakarta.validation.Valid;
@@ -40,10 +41,12 @@ public class WorldController {
 
 	@GetMapping("/nearby")
 	public NearbyCharactersResponse nearby(@AuthenticationPrincipal AccountPrincipal principal) {
+		NearbyCharactersView nearby = worldApplicationService.nearbyCharacters(principal.getAccountId());
 		return new NearbyCharactersResponse(
-				worldApplicationService.nearbyCharacters(principal.getAccountId()).stream()
+				nearby.characters().stream()
 						.map(WorldController::toNearbyResponse)
-						.toList());
+						.toList(),
+				nearby.truncated());
 	}
 
 	@PostMapping("/move")
