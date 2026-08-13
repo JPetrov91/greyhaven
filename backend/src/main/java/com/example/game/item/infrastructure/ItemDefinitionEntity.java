@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Persistable;
 
+import com.example.game.inventory.domain.EquipmentSlot;
 import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.ItemType;
 
@@ -57,6 +58,34 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 	@Column(name = "heal_amount")
 	private Integer healAmount;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "equipment_slot", length = 16)
+	private EquipmentSlot equipmentSlot;
+
+	@Column(name = "two_handed", nullable = false)
+	private boolean twoHanded;
+
+	@Column(name = "weapon_family", length = 32)
+	private String weaponFamily;
+
+	@Column(name = "armor_category", length = 32)
+	private String armorCategory;
+
+	@Column(name = "required_strength", nullable = false)
+	private int requiredStrength;
+
+	@Column(name = "required_agility", nullable = false)
+	private int requiredAgility;
+
+	@Column(name = "required_endurance", nullable = false)
+	private int requiredEndurance;
+
+	@Column(name = "required_perception", nullable = false)
+	private int requiredPerception;
+
+	@Column(nullable = false)
+	private boolean legacy;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -90,6 +119,9 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 		this.weaponDamage = weaponDamage;
 		this.armorValue = armorValue;
 		this.healAmount = healAmount;
+		this.twoHanded = false;
+		this.legacy = false;
+		this.equipmentSlot = type.isEquippable() ? EquipmentSlot.forItemType(type) : null;
 		this.createdAt = createdAt;
 		this.unsaved = true;
 	}
@@ -148,6 +180,42 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 
 	public Integer getHealAmount() {
 		return healAmount;
+	}
+
+	public EquipmentSlot getEquipmentSlot() {
+		return equipmentSlot;
+	}
+
+	public boolean isTwoHanded() {
+		return twoHanded;
+	}
+
+	public String getWeaponFamily() {
+		return weaponFamily;
+	}
+
+	public String getArmorCategory() {
+		return armorCategory;
+	}
+
+	public int getRequiredStrength() {
+		return requiredStrength;
+	}
+
+	public int getRequiredAgility() {
+		return requiredAgility;
+	}
+
+	public int getRequiredEndurance() {
+		return requiredEndurance;
+	}
+
+	public int getRequiredPerception() {
+		return requiredPerception;
+	}
+
+	public boolean isLegacy() {
+		return legacy;
 	}
 
 	public Instant getCreatedAt() {

@@ -109,7 +109,16 @@ export type CombatResponse = {
 
 export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL'
 export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC'
-export type EquipmentSlot = 'WEAPON' | 'ARMOR'
+export type EquipmentSlot =
+  | 'HEAD'
+  | 'CHEST'
+  | 'HANDS'
+  | 'LEGS'
+  | 'FEET'
+  | 'MAIN_HAND'
+  | 'OFF_HAND'
+  | 'AMULET'
+  | 'RING'
 
 export type InventoryItemResponse = {
   id: string

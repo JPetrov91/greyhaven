@@ -1,0 +1,25 @@
+# Phase 1 gameplay values. Task 2 may replace the XP table; do not put the Phase 2 1–30 curve here yet.
+character:
+  startingLevel: 1
+  startingExperience: 0
+  startingStrength: 5
+  startingAgility: 5
+  startingEndurance: 5
+  startingPerception: 5
+  startingGold: 100
+  maxLevel: 10
+  baseMaxHealth: 100
+  healthPerEndurance: 12
+  baseMaxStamina: 50
+  staminaPerEndurance: 4
+  staminaPerAgility: 2
+  defeatRecoveryPercent: 50
+
+progression:
+  attributePointsPerLevel: 2
+  maxAttributeValue: 40
+  # Index 0 unused. Index n is total XP required to reach level n.
+  cumulativeXpToReachLevel: [0, 0, 100, 350, 800, 1500, 2500, 3700, 5100, 6700, 8500]
+
+inventory:
+  defaultCapacity: 40

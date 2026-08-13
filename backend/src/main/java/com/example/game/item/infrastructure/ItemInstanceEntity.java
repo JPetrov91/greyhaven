@@ -32,6 +32,9 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private boolean stackable;
 
+	@Column(nullable = false)
+	private boolean legacy;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -56,6 +59,7 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 		this.ownerCharacterId = ownerCharacterId;
 		this.quantity = quantity;
 		this.stackable = stackable;
+		this.legacy = false;
 		this.createdAt = createdAt;
 		this.unsaved = true;
 	}
@@ -90,6 +94,10 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 
 	public boolean isStackable() {
 		return stackable;
+	}
+
+	public boolean isLegacy() {
+		return legacy;
 	}
 
 	public Instant getCreatedAt() {

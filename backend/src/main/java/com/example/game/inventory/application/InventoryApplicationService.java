@@ -311,7 +311,7 @@ public class InventoryApplicationService {
 			throw InventoryErrors.equipRequirementsNotMet();
 		}
 
-		EquipmentSlot slot = EquipmentSlot.forItemType(definition.getType());
+		EquipmentSlot slot = EquipmentSlot.forDefinition(definition.getEquipmentSlot(), definition.getType());
 		equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), slot)
 				.ifPresentOrElse(
 						existing -> existing.equip(instance.getId()),
@@ -327,7 +327,7 @@ public class InventoryApplicationService {
 		int weaponDamage = 0;
 		int armorValue = 0;
 
-		UUID weaponId = equipped.get(EquipmentSlot.WEAPON);
+		UUID weaponId = equipped.get(EquipmentSlot.MAIN_HAND);
 		if (weaponId != null) {
 			ItemInstanceEntity weapon = itemInstanceRepository.findById(weaponId).orElse(null);
 			if (weapon != null) {
@@ -336,7 +336,7 @@ public class InventoryApplicationService {
 			}
 		}
 
-		UUID armorId = equipped.get(EquipmentSlot.ARMOR);
+		UUID armorId = equipped.get(EquipmentSlot.CHEST);
 		if (armorId != null) {
 			ItemInstanceEntity armor = itemInstanceRepository.findById(armorId).orElse(null);
 			if (armor != null) {
@@ -361,7 +361,7 @@ public class InventoryApplicationService {
 				.map(instance -> {
 					ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
 					EquipmentSlot slot = definition.getType().isEquippable()
-							? EquipmentSlot.forItemType(definition.getType())
+							? EquipmentSlot.forDefinition(definition.getEquipmentSlot(), definition.getType())
 							: null;
 					int listedQuantity = reservedQuantities.getOrDefault(instance.getId(), 0);
 					int available = instance.getQuantity() - listedQuantity;
@@ -399,8 +399,8 @@ public class InventoryApplicationService {
 				instances.size(),
 				items,
 				new EquipmentView(
-						equippedBySlot.get(EquipmentSlot.WEAPON),
-						equippedBySlot.get(EquipmentSlot.ARMOR)),
+						equippedBySlot.get(EquipmentSlot.MAIN_HAND),
+						equippedBySlot.get(EquipmentSlot.CHEST)),
 				derivedStats);
 	}
 

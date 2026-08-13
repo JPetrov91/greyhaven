@@ -11,8 +11,16 @@ class EquipmentSlotTest {
 
 	@Test
 	void mapsEquippableItemTypesToSlots() {
-		assertThat(EquipmentSlot.forItemType(ItemType.WEAPON)).isEqualTo(EquipmentSlot.WEAPON);
-		assertThat(EquipmentSlot.forItemType(ItemType.ARMOR)).isEqualTo(EquipmentSlot.ARMOR);
+		assertThat(EquipmentSlot.forItemType(ItemType.WEAPON)).isEqualTo(EquipmentSlot.MAIN_HAND);
+		assertThat(EquipmentSlot.forItemType(ItemType.ARMOR)).isEqualTo(EquipmentSlot.CHEST);
+	}
+
+	@Test
+	void prefersStoredSlotOverItemTypeFallback() {
+		assertThat(EquipmentSlot.forDefinition(EquipmentSlot.HEAD, ItemType.ARMOR))
+				.isEqualTo(EquipmentSlot.HEAD);
+		assertThat(EquipmentSlot.forDefinition(null, ItemType.WEAPON)).isEqualTo(EquipmentSlot.MAIN_HAND);
+		assertThat(EquipmentSlot.forDefinition(null, ItemType.ARMOR)).isEqualTo(EquipmentSlot.CHEST);
 	}
 
 	@Test

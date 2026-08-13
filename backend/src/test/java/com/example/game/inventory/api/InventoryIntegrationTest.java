@@ -71,10 +71,14 @@ class InventoryIntegrationTest {
 		Integer flywayV8 = jdbcTemplate.queryForObject(
 				"select count(*) from flyway_schema_history where version = '8' and success = true",
 				Integer.class);
+		Integer flywayV18 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '18' and success = true",
+				Integer.class);
 
 		assertThat(definitionCount).isEqualTo(7);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
+		assertThat(flywayV18).isEqualTo(1);
 	}
 
 	@Test
@@ -215,7 +219,7 @@ class InventoryIntegrationTest {
 		jdbcTemplate.update("delete from equipment where character_id = ?", otherCharacterId);
 
 		assertThatThrownBy(() -> jdbcTemplate.update(
-				"insert into equipment (id, character_id, slot, item_instance_id) values (?, ?, 'WEAPON', ?)",
+				"insert into equipment (id, character_id, slot, item_instance_id) values (?, ?, 'MAIN_HAND', ?)",
 				UUID.randomUUID(),
 				otherCharacterId,
 				foreignDaggerId))
@@ -229,9 +233,9 @@ class InventoryIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/inventory").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'WEAPON')].code",
+				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'MAIN_HAND')].code",
 						containsInAnyOrder(ItemCodes.RUSTY_SWORD)))
-				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'ARMOR')].code",
+				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'CHEST')].code",
 						containsInAnyOrder(ItemCodes.WORN_LEATHER_ARMOR)))
 				.andExpect(jsonPath("$.items[?(@.usable == true)].code",
 						containsInAnyOrder(ItemCodes.HEALING_POTION)));
