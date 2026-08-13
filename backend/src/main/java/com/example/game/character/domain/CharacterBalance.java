@@ -22,10 +22,10 @@ public final class CharacterBalance {
 	public static final int STAMINA_PER_AGILITY = 2;
 
 	/**
-	 * Share of a maximum vital restored after a combat defeat. Office-first: losing costs the
-	 * fight and its rewards, never leaving a character unable to play on.
+	 * Share of a maximum vital restored after a combat defeat. Office-first enough to keep the
+	 * loop playable, but not a full free refill.
 	 */
-	public static final int DEFEAT_RECOVERY_PERCENT = 100;
+	public static final int DEFEAT_RECOVERY_PERCENT = 50;
 
 	private CharacterBalance() {
 	}

@@ -109,6 +109,7 @@ public class CombatApplicationService {
 				.orElseThrow(() -> new IllegalStateException("monster missing for encounter"));
 
 		Instant now = Instant.now(clock);
+		acknowledgePendingOutcomes(vitals.characterId(), now);
 		encounter.markCombatStarted(now);
 		encounterRepository.saveAndFlush(encounter);
 
@@ -137,7 +138,43 @@ public class CombatApplicationService {
 					MonsterDefinitionEntity monster = requireMonster(active.getMonsterDefinitionId());
 					return toView(active, monster, vitals, loadEvents(active.getId()), null);
 				})
+				.or(() -> combatSessionRepository
+						.findByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())
+						.map(pending -> {
+							MonsterDefinitionEntity monster = requireMonster(pending.getMonsterDefinitionId());
+							CombatRewardsView rewards = pending.isRewardsApplied() ? loadRewards(pending) : null;
+							return toView(pending, monster, vitals, loadEvents(pending.getId()), rewards);
+						}))
 				.orElse(null);
+	}
+
+	@Transactional
+	public void acknowledgeOutcome(UUID accountId, UUID combatId) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		CombatSessionEntity session = combatSessionRepository.findWithLockById(combatId)
+				.orElseThrow(CombatErrors::combatNotFound);
+		if (!session.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.combatNotFound();
+		}
+		if (session.getStatus() == CombatSessionStatus.ACTIVE) {
+			throw CombatErrors.combatStillActive();
+		}
+		if (session.isOutcomeAcknowledged()) {
+			return;
+		}
+		session.acknowledgeOutcome(Instant.now(clock));
+		combatSessionRepository.saveAndFlush(session);
+	}
+
+	/**
+	 * Clears a prior result screen so a new encounter/combat can end without unique-index conflicts.
+	 */
+	void acknowledgePendingOutcomes(UUID characterId, Instant now) {
+		combatSessionRepository.findByCharacterIdAndOutcomeAcknowledgedFalse(characterId)
+				.ifPresent(session -> {
+					session.acknowledgeOutcome(now);
+					combatSessionRepository.saveAndFlush(session);
+				});
 	}
 
 	@Transactional

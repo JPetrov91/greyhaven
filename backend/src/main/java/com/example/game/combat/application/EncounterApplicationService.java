@@ -69,6 +69,21 @@ public class EncounterApplicationService {
 		this.clock = clock;
 	}
 
+	@Transactional(readOnly = true)
+	public EncounterSearchView current(UUID accountId) {
+		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
+		return encounterRepository
+				.findByCharacterIdAndStatusIn(vitals.characterId(), EnumSet.of(EncounterStatus.AVAILABLE))
+				.map(encounter -> {
+					MonsterDefinitionEntity monster = monsterDefinitionRepository
+							.findById(encounter.getMonsterDefinitionId())
+							.orElseThrow(() -> new IllegalStateException(
+									"monster definition missing: " + encounter.getMonsterDefinitionId()));
+					return EncounterSearchView.found(encounter.getId(), toMonsterView(monster));
+				})
+				.orElseGet(EncounterSearchView::nothing);
+	}
+
 	@Transactional
 	public EncounterSearchView search(UUID accountId) {
 		CharacterLocationView locationView = characterLocationService.lockLocationOf(accountId);
@@ -80,6 +95,8 @@ public class EncounterApplicationService {
 		if (encounterRepository.existsByCharacterIdAndStatusIn(vitals.characterId(), UNRESOLVED)) {
 			throw CombatErrors.unresolvedEncounter();
 		}
+
+		combatApplicationService.acknowledgePendingOutcomes(vitals.characterId(), Instant.now(clock));
 
 		LocationView location = worldApplicationService.currentLocation(accountId);
 		if (location.safety() != LocationSafety.DANGEROUS) {

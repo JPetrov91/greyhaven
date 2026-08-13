@@ -31,6 +31,14 @@ class CombatApplicationServiceBoundaryTest {
 				.getMethod("search", UUID.class)
 				.getReturnType())
 				.isEqualTo(EncounterSearchView.class);
+		assertThat(EncounterApplicationService.class
+				.getMethod("current", UUID.class)
+				.getReturnType())
+				.isEqualTo(EncounterSearchView.class);
+		assertThat(CombatApplicationService.class
+				.getMethod("acknowledgeOutcome", UUID.class, UUID.class)
+				.getReturnType())
+				.isEqualTo(void.class);
 	}
 
 	@Test

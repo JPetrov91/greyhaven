@@ -80,8 +80,8 @@ public class CharacterVitalsService {
 	}
 
 	/**
-	 * Office-first defeat: the character recovers instead of being stranded at low vitals, so the
-	 * explore/fight loop can always continue. The cost of losing is the forfeited rewards.
+	 * Office-first defeat: restore a share of max vitals so the explore/fight loop can continue.
+	 * The cost of losing is forfeited rewards plus the partial recovery.
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView applyDefeatRecovery(UUID characterId) {

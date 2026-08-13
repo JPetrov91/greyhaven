@@ -21,4 +21,11 @@ class CharacterBalanceTest {
 		assertThat(CharacterBalance.maxHealth(5)).isEqualTo(160);
 		assertThat(CharacterBalance.maxStamina(5, 5)).isEqualTo(80);
 	}
+
+	@Test
+	void defeatRecoveryRestoresHalfOfMaximum() {
+		assertThat(CharacterBalance.DEFEAT_RECOVERY_PERCENT).isEqualTo(50);
+		assertThat(CharacterBalance.defeatRecovery(160)).isEqualTo(80);
+		assertThat(CharacterBalance.defeatRecovery(1)).isEqualTo(1);
+	}
 }

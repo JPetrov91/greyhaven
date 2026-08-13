@@ -2,7 +2,9 @@ package com.example.game.combat.api;
 
 import java.util.UUID;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,9 +27,22 @@ public class EncounterController {
 		this.encounterApplicationService = encounterApplicationService;
 	}
 
+	@GetMapping("/current")
+	public ResponseEntity<EncounterSearchResponse> current(
+			@AuthenticationPrincipal AccountPrincipal principal) {
+		EncounterSearchView view = encounterApplicationService.current(principal.getAccountId());
+		if (!view.found()) {
+			return ResponseEntity.noContent().build();
+		}
+		return ResponseEntity.ok(toSearchResponse(view));
+	}
+
 	@PostMapping("/search")
 	public EncounterSearchResponse search(@AuthenticationPrincipal AccountPrincipal principal) {
-		EncounterSearchView view = encounterApplicationService.search(principal.getAccountId());
+		return toSearchResponse(encounterApplicationService.search(principal.getAccountId()));
+	}
+
+	private static EncounterSearchResponse toSearchResponse(EncounterSearchView view) {
 		return new EncounterSearchResponse(
 				view.found(),
 				view.encounterId(),

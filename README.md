@@ -187,10 +187,12 @@ These tests start Spring Boot on a random port, launch Vite against that API, an
 Authenticated session + CSRF required:
 
 - `POST /api/v1/encounters/search`
+- `GET /api/v1/encounters/current` (resume an unresolved Fight/Ignore prompt)
 - `POST /api/v1/encounters/{id}/fight`
 - `POST /api/v1/encounters/{id}/ignore`
-- `GET /api/v1/combat/current`
+- `GET /api/v1/combat/current` (ACTIVE fight, or unacknowledged result/reward screen)
 - `POST /api/v1/combat/{id}/actions` body `{ "action": "HEAVY_ATTACK" }`
+- `POST /api/v1/combat/{id}/acknowledge` (dismiss result/reward screen after combat ends)
 - `POST /api/v1/character/attributes` body attribute deltas
 
 Playable loop: travel to a dangerous location → search → fight → loot/XP → equip → allocate attribute points.
@@ -199,7 +201,8 @@ Combat rules worth knowing:
 
 - Victory rewards are all-or-nothing. If the loot does not fit, the round is rejected with
   `INVENTORY_FULL` and nothing is awarded, so earned loot is never silently discarded.
-- Defeat costs the fight and its rewards; the character is then restored so the loop can continue.
+  Inventory stays available during combat so you can free space (for example by using potions).
+- Defeat costs the fight and its rewards; the character is restored to 50% of max HP/stamina.
 
 ## Frontend
 

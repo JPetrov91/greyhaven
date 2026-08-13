@@ -53,6 +53,9 @@ public class CombatSessionEntity implements Persistable<UUID> {
 	@Column(name = "rewards_applied", nullable = false)
 	private boolean rewardsApplied;
 
+	@Column(name = "outcome_acknowledged", nullable = false)
+	private boolean outcomeAcknowledged;
+
 	@Column(name = "xp_awarded")
 	private Integer xpAwarded;
 
@@ -97,6 +100,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.playerStamina = playerStamina;
 		this.enemyHealth = enemyHealth;
 		this.rewardsApplied = false;
+		this.outcomeAcknowledged = true;
 		this.xpAwarded = null;
 		this.goldAwarded = null;
 		this.createdAt = createdAt;
@@ -156,6 +160,10 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		return rewardsApplied;
 	}
 
+	public boolean isOutcomeAcknowledged() {
+		return outcomeAcknowledged;
+	}
+
 	public Integer getXpAwarded() {
 		return xpAwarded;
 	}
@@ -197,6 +205,31 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.playerStamina = playerStamina;
 		this.enemyHealth = enemyHealth;
 		this.status = status;
+		this.updatedAt = updatedAt;
+		if (status != CombatSessionStatus.ACTIVE) {
+			this.outcomeAcknowledged = false;
+		}
+	}
+
+	public void acknowledgeOutcome(Instant updatedAt) {
+		if (this.status == CombatSessionStatus.ACTIVE) {
+			throw new IllegalStateException("cannot acknowledge an active combat session");
+		}
+		this.outcomeAcknowledged = true;
+		this.updatedAt = updatedAt;
+	}
+
+	/**
+	 * Keeps session HP aligned after an out-of-band heal (inventory potion) during ACTIVE combat.
+	 */
+	public void syncPlayerHealth(int playerHealth, Instant updatedAt) {
+		if (this.status != CombatSessionStatus.ACTIVE) {
+			throw new IllegalStateException("cannot sync health on a terminal combat session");
+		}
+		if (playerHealth < 0) {
+			throw new IllegalArgumentException("playerHealth must be non-negative");
+		}
+		this.playerHealth = playerHealth;
 		this.updatedAt = updatedAt;
 	}
 

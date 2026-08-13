@@ -87,11 +87,15 @@ class CombatIntegrationTest {
 		Integer flywayV10 = jdbcTemplate.queryForObject(
 				"select count(*) from flyway_schema_history where version = '10' and success = true",
 				Integer.class);
+		Integer flywayV12 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '12' and success = true",
+				Integer.class);
 
 		assertThat(monsters).isEqualTo(5);
 		assertThat(weights).isEqualTo(11);
 		assertThat(flywayV9).isEqualTo(1);
 		assertThat(flywayV10).isEqualTo(1);
+		assertThat(flywayV12).isEqualTo(1);
 	}
 
 	@Test
@@ -179,6 +183,16 @@ class CombatIntegrationTest {
 				.andExpect(jsonPath("$.status").value("PLAYER_WON"))
 				.andExpect(jsonPath("$.rewards.xp").value(xpAwarded))
 				.andExpect(jsonPath("$.rewards.gold").value(goldAwarded));
+
+		// Reward screen remains resumable until acknowledged.
+		mockMvc.perform(get("/api/v1/combat/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(combatId.toString()))
+				.andExpect(jsonPath("$.status").value("PLAYER_WON"))
+				.andExpect(jsonPath("$.rewards.xp").value(xpAwarded));
+
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/acknowledge")).session(session))
+				.andExpect(status().isNoContent());
 
 		mockMvc.perform(get("/api/v1/combat/current").session(session))
 				.andExpect(status().isNoContent());
@@ -463,11 +477,17 @@ class CombatIntegrationTest {
 				String.class,
 				encounterId)).isEqualTo("RESOLVED");
 
-		// Office-first: a defeated character is playable again instead of stranded at 0 health.
+		// Office-first: partial recovery keeps the loop playable without a full free refill.
+		int maxHealth = intColumn("select max_health from characters where id = ?", characterId);
+		int maxStamina = intColumn("select max_stamina from characters where id = ?", characterId);
 		assertThat(intColumn("select current_health from characters where id = ?", characterId))
-				.isEqualTo(intColumn("select max_health from characters where id = ?", characterId));
+				.isEqualTo(maxHealth / 2);
 		assertThat(intColumn("select current_stamina from characters where id = ?", characterId))
-				.isEqualTo(intColumn("select max_stamina from characters where id = ?", characterId));
+				.isEqualTo(maxStamina / 2);
+
+		mockMvc.perform(get("/api/v1/combat/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_LOST"));
 	}
 
 	@Test
@@ -513,14 +533,63 @@ class CombatIntegrationTest {
 		moveTo(session, "OLD_TOWN");
 
 		mutableRandomProvider.queue(1);
-		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.found").value(true));
+				.andExpect(jsonPath("$.found").value(true))
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+
+		mockMvc.perform(get("/api/v1/encounters/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true))
+				.andExpect(jsonPath("$.encounterId").value(encounterId.toString()));
 
 		mutableRandomProvider.queue(1);
 		mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.code").value("UNRESOLVED_ENCOUNTER"));
+	}
+
+	@Test
+	void availableEncounterSurvivesLogoutAndLogin() throws Exception {
+		String email = "combat-encounter-resume-" + System.nanoTime() + "@greyhaven.test";
+		String password = "password-123";
+		MockHttpSession session = registerWithCharacter(email, password);
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true))
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		String monsterCode = JsonPath.read(search.getResponse().getContentAsString(), "$.monster.code");
+
+		mockMvc.perform(withCsrf(post("/api/v1/auth/logout")).session(session))
+				.andExpect(status().isNoContent());
+
+		refreshCsrf();
+		MockHttpSession newSession = new MockHttpSession();
+		mockMvc.perform(withCsrf(post("/api/v1/auth/login"))
+						.session(newSession)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"email":"%s","password":"%s"}
+								""".formatted(email, password)))
+				.andExpect(status().isOk());
+		refreshCsrf();
+
+		mockMvc.perform(get("/api/v1/combat/current").session(newSession))
+				.andExpect(status().isNoContent());
+		mockMvc.perform(get("/api/v1/encounters/current").session(newSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true))
+				.andExpect(jsonPath("$.encounterId").value(encounterId.toString()))
+				.andExpect(jsonPath("$.monster.code").value(monsterCode));
+
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(newSession))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("ACTIVE"));
 	}
 
 	@Test

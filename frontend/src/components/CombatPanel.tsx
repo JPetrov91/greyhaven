@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
-import { submitCombatAction } from '../api/combat'
+import { acknowledgeCombat, submitCombatAction } from '../api/combat'
 import type { CombatAction, CombatResponse } from '../api/types'
 
 const ACTIONS: { action: CombatAction; label: string }[] = [
@@ -46,10 +46,22 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
     }
   }
 
-  function dismissRewards() {
-    onCombatUpdate(null)
-    void queryClient.invalidateQueries({ queryKey: ['character'] })
-    void queryClient.invalidateQueries({ queryKey: ['inventory'] })
+  async function dismissOutcome() {
+    setError(null)
+    try {
+      await acknowledgeCombat(combat.id)
+      onCombatUpdate(null)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['character'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory'] }),
+      ])
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message)
+      } else {
+        setError('Unable to continue.')
+      }
+    }
   }
 
   return (
@@ -132,7 +144,12 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
           ) : (
             <p className="muted">No items dropped.</p>
           )}
-          <button type="button" className="travel-button" data-testid="combat-dismiss" onClick={dismissRewards}>
+          <button
+            type="button"
+            className="travel-button"
+            data-testid="combat-dismiss"
+            onClick={() => void dismissOutcome()}
+          >
             Continue
           </button>
         </section>
@@ -147,7 +164,12 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
                 ? 'Escaped'
                 : 'Combat ended'}
           </h3>
-          <button type="button" className="travel-button" data-testid="combat-dismiss" onClick={dismissRewards}>
+          <button
+            type="button"
+            className="travel-button"
+            data-testid="combat-dismiss"
+            onClick={() => void dismissOutcome()}
+          >
             Continue
           </button>
         </section>

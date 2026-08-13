@@ -51,6 +51,14 @@ public class CombatController {
 				request.action()));
 	}
 
+	@PostMapping("/{id}/acknowledge")
+	public ResponseEntity<Void> acknowledge(
+			@AuthenticationPrincipal AccountPrincipal principal,
+			@PathVariable("id") UUID combatId) {
+		combatApplicationService.acknowledgeOutcome(principal.getAccountId(), combatId);
+		return ResponseEntity.noContent().build();
+	}
+
 	static CombatResponse toResponse(CombatView view) {
 		return new CombatResponse(
 				view.id(),

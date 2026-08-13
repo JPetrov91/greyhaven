@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
-import { searchEncounter } from '../api/encounter'
+import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
 import type { CombatResponse, EncounterSearchResponse } from '../api/types'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 import { CombatPanel } from './CombatPanel'
@@ -19,14 +19,22 @@ export function GameLayout() {
 
   useEffect(() => {
     let cancelled = false
-    void fetchCurrentCombat()
-      .then((current) => {
-        if (!cancelled) {
-          setCombat(current)
+    void Promise.all([fetchCurrentCombat(), fetchCurrentEncounter()])
+      .then(([currentCombat, currentEncounter]) => {
+        if (cancelled) {
+          return
+        }
+        if (currentCombat) {
+          setCombat(currentCombat)
+          setEncounter(null)
+          return
+        }
+        if (currentEncounter?.found) {
+          setEncounter(currentEncounter)
         }
       })
       .catch(() => {
-        /* no active combat */
+        /* no resumable combat/encounter */
       })
     return () => {
       cancelled = true
@@ -48,6 +56,15 @@ export function GameLayout() {
       }
     } finally {
       setSearching(false)
+    }
+  }
+
+  async function refreshCombatFromServer() {
+    try {
+      const current = await fetchCurrentCombat()
+      setCombat(current)
+    } catch {
+      /* keep existing combat snapshot */
     }
   }
 
@@ -77,9 +94,9 @@ export function GameLayout() {
                 }}
               />
             ) : null}
-            <InventoryPanel />
           </>
         )}
+        <InventoryPanel onMutated={showCombat ? () => void refreshCombatFromServer() : undefined} />
       </div>
 
       <aside className="game-column game-column-right">

@@ -32,6 +32,8 @@ public interface CombatSessionRepository extends JpaRepository<CombatSessionEnti
 
 	Optional<CombatSessionEntity> findByCharacterIdAndStatus(UUID characterId, CombatSessionStatus status);
 
+	Optional<CombatSessionEntity> findByCharacterIdAndOutcomeAcknowledgedFalse(UUID characterId);
+
 	Optional<CombatSessionEntity> findByEncounterId(UUID encounterId);
 
 	boolean existsByCharacterIdAndStatus(UUID characterId, CombatSessionStatus status);

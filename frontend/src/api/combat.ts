@@ -12,3 +12,9 @@ export function submitCombatAction(combatId: string, action: CombatAction): Prom
     body: JSON.stringify({ action }),
   })
 }
+
+export function acknowledgeCombat(combatId: string): Promise<void> {
+  return apiRequest<void>(`/api/v1/combat/${combatId}/acknowledge`, {
+    method: 'POST',
+  })
+}

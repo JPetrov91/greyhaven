@@ -30,6 +30,13 @@ final class CombatErrors {
 				HttpStatus.CONFLICT);
 	}
 
+	static ApiException combatStillActive() {
+		return new ApiException(
+				"COMBAT_STILL_ACTIVE",
+				"Combat is still in progress.",
+				HttpStatus.CONFLICT);
+	}
+
 	static ApiException unresolvedEncounter() {
 		return new ApiException(
 				"UNRESOLVED_ENCOUNTER",

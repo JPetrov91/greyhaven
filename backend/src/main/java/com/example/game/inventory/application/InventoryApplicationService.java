@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class InventoryApplicationService {
 	private final ItemInstanceRepository itemInstanceRepository;
 	private final EquipmentRepository equipmentRepository;
 	private final CharacterVitalsService characterVitalsService;
+	private final ObjectProvider<ActiveCombatInventoryBridge> activeCombatInventoryBridge;
 	private final Clock clock;
 
 	public InventoryApplicationService(
@@ -43,11 +45,13 @@ public class InventoryApplicationService {
 			ItemInstanceRepository itemInstanceRepository,
 			EquipmentRepository equipmentRepository,
 			CharacterVitalsService characterVitalsService,
+			ObjectProvider<ActiveCombatInventoryBridge> activeCombatInventoryBridge,
 			Clock clock) {
 		this.itemDefinitionRepository = itemDefinitionRepository;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.equipmentRepository = equipmentRepository;
 		this.characterVitalsService = characterVitalsService;
+		this.activeCombatInventoryBridge = activeCombatInventoryBridge;
 		this.clock = clock;
 	}
 
@@ -100,6 +104,9 @@ public class InventoryApplicationService {
 
 		characterVitalsService.heal(accountId, definition.getHealAmount());
 		CharacterVitalsView updatedVitals = characterVitalsService.vitalsOf(accountId);
+		activeCombatInventoryBridge.ifAvailable(bridge -> bridge.syncPlayerHealthIfInCombat(
+				updatedVitals.characterId(),
+				updatedVitals.currentHealth()));
 		return buildInventoryView(updatedVitals);
 	}
 

@@ -20,7 +20,12 @@ function itemStats(item: InventoryItemResponse): string {
   return parts.join(' · ')
 }
 
-export function InventoryPanel() {
+type Props = {
+  /** Called after equip/unequip/use so combat UI can refresh synced vitals. */
+  onMutated?: () => void
+}
+
+export function InventoryPanel({ onMutated }: Props) {
   const queryClient = useQueryClient()
 
   const inventoryQuery = useQuery({
@@ -34,6 +39,7 @@ export function InventoryPanel() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['character'] }),
     ])
+    onMutated?.()
   }
 
   const equipMutation = useMutation({
