@@ -1,8 +1,8 @@
 package com.example.game.world.domain;
 
 /**
- * Declared actions available at a location. Some actions are not yet wired to gameplay
- * endpoints (combat, market, expeditions, chat) and are returned for UI display only.
+ * Declared actions available at a location. Chat is not yet wired to gameplay endpoints
+ * and is returned for UI display only.
  */
 public enum LocationAction {
 	INSPECT,

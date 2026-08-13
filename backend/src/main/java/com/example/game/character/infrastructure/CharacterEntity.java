@@ -246,6 +246,17 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.updatedAt = updatedAt;
 	}
 
+	public void spendGold(int amount, Instant updatedAt) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("gold amount must be non-negative");
+		}
+		if (amount > gold) {
+			throw new IllegalArgumentException("insufficient gold");
+		}
+		this.gold -= amount;
+		this.updatedAt = updatedAt;
+	}
+
 	public int grantExperience(int xpGain, Instant updatedAt) {
 		CharacterProgression.ProgressionResult result = CharacterProgression.applyExperience(
 				level,

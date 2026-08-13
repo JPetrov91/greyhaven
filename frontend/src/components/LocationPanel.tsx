@@ -27,19 +27,14 @@ const ACTION_LABELS: Record<LocationAction, string> = {
 const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY'])
 
 /** Actions that require later tasks and are shown as unavailable. */
-const UNAVAILABLE_ACTIONS = new Set<LocationAction>([
-  'VIEW_CHAT',
-  'BROWSE_MARKET',
-  'CREATE_LISTING',
-  'BUY_ITEM',
-  'CANCEL_LISTING',
-])
+const UNAVAILABLE_ACTIONS = new Set<LocationAction>(['VIEW_CHAT'])
 
 type Props = {
   onSearchEncounter?: () => void
   searchBusy?: boolean
   searchError?: string | null
   onOpenExpedition?: () => void
+  onOpenMarket?: () => void
 }
 
 export function LocationPanel({
@@ -47,6 +42,7 @@ export function LocationPanel({
   searchBusy = false,
   searchError = null,
   onOpenExpedition,
+  onOpenMarket,
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
@@ -206,6 +202,19 @@ export function LocationPanel({
                   }
                   disabled={!onOpenExpedition}
                   onClick={() => onOpenExpedition?.()}
+                >
+                  Open
+                </button>
+              ) : action === 'BROWSE_MARKET' ||
+                action === 'CREATE_LISTING' ||
+                action === 'BUY_ITEM' ||
+                action === 'CANCEL_LISTING' ? (
+                <button
+                  type="button"
+                  className="travel-button"
+                  data-testid={`open-market-${action}`}
+                  disabled={!onOpenMarket}
+                  onClick={() => onOpenMarket?.()}
                 >
                   Open
                 </button>

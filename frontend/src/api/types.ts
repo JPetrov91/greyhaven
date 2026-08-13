@@ -125,6 +125,7 @@ export type InventoryItemResponse = {
   equipped: boolean
   equipmentSlot: EquipmentSlot | null
   usable: boolean
+  listedQuantity: number
   weaponDamage: number | null
   armorValue: number | null
   healAmount: number | null
@@ -226,6 +227,33 @@ export type ActivityType =
   | 'ITEM_FOUND'
   | 'EXPEDITION_COMPLETED'
   | 'EXPEDITION_CLAIMED'
+  | 'MARKET_SOLD'
+  | 'MARKET_BOUGHT'
+  | 'MARKET_CANCELLED'
+
+export type MarketListingStatus = 'ACTIVE' | 'SOLD' | 'CANCELLED'
+
+export type MarketListingResponse = {
+  id: string
+  sellerCharacterId: string
+  sellerName: string
+  itemInstanceId: string | null
+  itemCode: string
+  itemName: string
+  itemType: ItemType
+  rarity: ItemRarity
+  quantity: number
+  price: number
+  status: MarketListingStatus
+  createdAt: string
+  soldAt: string | null
+  ownListing: boolean
+}
+
+export type MarketListingsResponse = {
+  listings: MarketListingResponse[]
+  truncated: boolean
+}
 
 export type ActivityEntryResponse = {
   id: string

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
@@ -11,12 +12,35 @@ import { EncounterPrompt } from './EncounterPrompt'
 import { ExpeditionPanel } from './ExpeditionPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
+import { MarketPanel } from './MarketPanel'
+
+const MARKET_PANEL = 'market'
 
 export function GameLayout() {
   const queryClient = useQueryClient()
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [showExpedition, setShowExpedition] = useState(false)
+
+  // The marketplace lives in the address bar so the Market navigation entry can open it and a
+  // refresh keeps the player where they were.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const showMarket = searchParams.get('panel') === MARKET_PANEL
+
+  function toggleMarket(open: boolean) {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (open) {
+          next.set('panel', MARKET_PANEL)
+        } else {
+          next.delete('panel')
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   const combatQuery = useQuery({
     queryKey: ['combat'],
@@ -118,8 +142,10 @@ export function GameLayout() {
               searchBusy={searching}
               searchError={searchError}
               onOpenExpedition={() => setShowExpedition(true)}
+              onOpenMarket={() => toggleMarket(true)}
             />
             {showExpedition ? <ExpeditionPanel onClose={() => setShowExpedition(false)} /> : null}
+            {showMarket ? <MarketPanel onClose={() => toggleMarket(false)} /> : null}
             {showEncounter ? (
               <EncounterPrompt
                 encounter={encounter}

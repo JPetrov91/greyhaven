@@ -51,6 +51,13 @@ final class InventoryErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
+	static ApiException itemListed() {
+		return new ApiException(
+				"ITEM_LISTED",
+				"That item is listed on the marketplace.",
+				HttpStatus.CONFLICT);
+	}
+
 	static InventoryFullException inventoryFull() {
 		return new InventoryFullException("Your inventory is full.");
 	}

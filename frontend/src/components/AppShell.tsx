@@ -28,6 +28,9 @@ export function AppShell() {
                   <NavLink to="/game" data-testid="nav-inventory">
                     Inventory
                   </NavLink>
+                  <NavLink to="/game?panel=market" data-testid="nav-market">
+                    Market
+                  </NavLink>
                 </>
               ) : null}
               {!me?.hasCharacter ? (

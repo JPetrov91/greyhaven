@@ -2,13 +2,16 @@ package com.example.game.item.application;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.item.domain.ItemType;
 import com.example.game.item.infrastructure.ItemDefinitionEntity;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 
@@ -33,9 +36,18 @@ public class ItemCatalogService {
 		for (ItemDefinitionEntity definition : itemDefinitionRepository.findAllById(itemDefinitionIds)) {
 			definitions.put(
 					definition.getId(),
-					new ItemDefinitionView(definition.getId(), definition.getCode(), definition.getName()));
+					toView(definition));
 		}
 		return definitions;
+	}
+
+	/**
+	 * Definition ids of one item type, so other modules can filter their own rows by type without
+	 * joining item persistence.
+	 */
+	@Transactional(readOnly = true)
+	public Set<UUID> idsOfType(ItemType itemType) {
+		return new HashSet<>(itemDefinitionRepository.findIdsByType(itemType));
 	}
 
 	@Transactional(readOnly = true)
@@ -58,7 +70,12 @@ public class ItemCatalogService {
 	}
 
 	private static ItemDefinitionView toView(ItemDefinitionEntity definition) {
-		return new ItemDefinitionView(definition.getId(), definition.getCode(), definition.getName());
+		return new ItemDefinitionView(
+				definition.getId(),
+				definition.getCode(),
+				definition.getName(),
+				definition.getType(),
+				definition.getRarity());
 	}
 }
 

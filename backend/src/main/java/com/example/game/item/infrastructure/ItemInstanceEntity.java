@@ -115,4 +115,11 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 		}
 		this.quantity -= amount;
 	}
+
+	public void transferTo(UUID newOwnerCharacterId) {
+		if (newOwnerCharacterId == null) {
+			throw new IllegalArgumentException("newOwnerCharacterId is required");
+		}
+		this.ownerCharacterId = newOwnerCharacterId;
+	}
 }

@@ -106,6 +106,21 @@ public class ActivityApplicationService {
 		record(characterId, ActivityType.EXPEDITION_CLAIMED, "You claimed your " + expeditionName + " rewards.");
 	}
 
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void recordMarketSold(UUID characterId, int price) {
+		record(characterId, ActivityType.MARKET_SOLD, "Your marketplace listing sold for " + price + " gold.");
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void recordMarketBought(UUID characterId, String itemName) {
+		record(characterId, ActivityType.MARKET_BOUGHT, "You bought " + itemName + ".");
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void recordMarketCancelled(UUID characterId) {
+		record(characterId, ActivityType.MARKET_CANCELLED, "You cancelled your marketplace listing.");
+	}
+
 	private static ActivityEntryView toView(ActivityEntryEntity entity) {
 		return new ActivityEntryView(
 				entity.getId(),

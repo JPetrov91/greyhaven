@@ -26,6 +26,19 @@ class LocationActionsTest {
 	}
 
 	@Test
+	void marketHasBrowseCreateBuyAndCancel() {
+		assertThat(LocationActions.forCode(LocationCodes.MARKET))
+				.containsExactly(
+						LocationAction.INSPECT,
+						LocationAction.MOVE,
+						LocationAction.VIEW_NEARBY,
+						LocationAction.BROWSE_MARKET,
+						LocationAction.CREATE_LISTING,
+						LocationAction.BUY_ITEM,
+						LocationAction.CANCEL_LISTING);
+	}
+
+	@Test
 	void unknownCodeIsRejected() {
 		assertThatThrownBy(() -> LocationActions.forCode("MOON_BASE"))
 				.isInstanceOf(IllegalArgumentException.class)

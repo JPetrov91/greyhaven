@@ -96,6 +96,28 @@ public class CharacterVitalsService {
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
+	public void spendGold(UUID characterId, int amount) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("gold amount must be non-negative");
+		}
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		if (character.getGold() < amount) {
+			throw CharacterErrors.insufficientGold();
+		}
+		character.spendGold(amount, Instant.now(clock));
+		characterRepository.saveAndFlush(character);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void addGold(UUID characterId, int amount) {
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		character.addGold(amount, Instant.now(clock));
+		characterRepository.saveAndFlush(character);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView grantCombatRewards(UUID characterId, int xp, int gold) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);

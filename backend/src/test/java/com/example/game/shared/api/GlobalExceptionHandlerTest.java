@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -69,6 +70,18 @@ class GlobalExceptionHandlerTest {
 		assertThat(response.getBody().code()).isEqualTo("MALFORMED_REQUEST");
 		assertThat(response.getBody().message()).isEqualTo("'itemId' is not a valid value.");
 		assertThat(response.getBody().message()).doesNotContain("secret-payload");
+	}
+
+	@Test
+	void mapsPessimisticLockFailureToConflictWithoutLeakingDetails() {
+		ResponseEntity<ApiError> response = handler.handleLockFailure(
+				new CannotAcquireLockException("could not obtain lock on row"));
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+		assertThat(response.getBody()).isNotNull();
+		assertThat(response.getBody().code()).isEqualTo("CONCURRENT_UPDATE");
+		assertThat(response.getBody().message()).isEqualTo("That action could not be completed. Try again.");
+		assertThat(response.getBody().message()).doesNotContain("could not obtain lock");
 	}
 
 	@Test

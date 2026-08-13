@@ -15,4 +15,11 @@ final class CharacterErrors {
 				"No character exists for this account.",
 				HttpStatus.NOT_FOUND);
 	}
+
+	static ApiException insufficientGold() {
+		return new ApiException(
+				"INSUFFICIENT_GOLD",
+				"You do not have enough gold to purchase this item.",
+				HttpStatus.BAD_REQUEST);
+	}
 }

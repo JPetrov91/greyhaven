@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.game.character.application.CharacterCombatGuard;
@@ -38,6 +39,7 @@ public class InventoryApplicationService {
 	private final EquipmentRepository equipmentRepository;
 	private final CharacterVitalsService characterVitalsService;
 	private final CharacterCombatGuard characterCombatGuard;
+	private final ItemReservationQuery itemReservationQuery;
 	private final Clock clock;
 
 	public InventoryApplicationService(
@@ -46,12 +48,14 @@ public class InventoryApplicationService {
 			EquipmentRepository equipmentRepository,
 			CharacterVitalsService characterVitalsService,
 			CharacterCombatGuard characterCombatGuard,
+			ItemReservationQuery itemReservationQuery,
 			Clock clock) {
 		this.itemDefinitionRepository = itemDefinitionRepository;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.equipmentRepository = equipmentRepository;
 		this.characterVitalsService = characterVitalsService;
 		this.characterCombatGuard = characterCombatGuard;
+		this.itemReservationQuery = itemReservationQuery;
 		this.clock = clock;
 	}
 
@@ -96,6 +100,9 @@ public class InventoryApplicationService {
 		if (!isUsable(definition) || equipmentRepository.existsByItemInstanceId(instance.getId())) {
 			throw InventoryErrors.itemNotUsable();
 		}
+		if (unreservedQuantity(instance) < 1) {
+			throw InventoryErrors.itemListed();
+		}
 
 		instance.decreaseQuantity(1);
 		if (instance.getQuantity() == 0) {
@@ -122,7 +129,7 @@ public class InventoryApplicationService {
 		}
 		return itemInstanceRepository
 				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
-				.filter(instance -> instance.getQuantity() > 0)
+				.filter(instance -> unreservedQuantity(instance) > 0)
 				.isPresent();
 	}
 
@@ -140,6 +147,9 @@ public class InventoryApplicationService {
 		ItemInstanceEntity instance = itemInstanceRepository
 				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
 				.orElseThrow(InventoryErrors::itemNotFound);
+		if (unreservedQuantity(instance) < 1) {
+			throw InventoryErrors.itemListed();
+		}
 		instance.decreaseQuantity(1);
 		if (instance.getQuantity() == 0) {
 			itemInstanceRepository.delete(instance);
@@ -202,6 +212,82 @@ public class InventoryApplicationService {
 		itemInstanceRepository.flush();
 	}
 
+	@Transactional(propagation = Propagation.MANDATORY)
+	public OwnedItemSnapshot requireOwnedItemForTrade(UUID characterId, UUID itemInstanceId) {
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		return new OwnedItemSnapshot(
+				instance.getId(),
+				instance.getItemDefinitionId(),
+				instance.getQuantity(),
+				unreservedQuantity(instance),
+				equipmentRepository.existsByItemInstanceId(instance.getId()));
+	}
+
+	/**
+	 * Moves listed quantity from seller to buyer, merging stackable stacks so uniqueness holds.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void transferListedQuantity(
+			UUID fromCharacterId,
+			UUID toCharacterId,
+			UUID itemInstanceId,
+			int quantity) {
+		if (quantity < 1) {
+			throw new IllegalArgumentException("quantity must be positive");
+		}
+		ItemInstanceEntity instance = requireOwnedInstance(fromCharacterId, itemInstanceId);
+		if (equipmentRepository.existsByItemInstanceId(instance.getId())) {
+			throw InventoryErrors.itemListed();
+		}
+		if (instance.getQuantity() < quantity) {
+			throw InventoryErrors.itemNotFound();
+		}
+
+		if (instance.isStackable()) {
+			ItemInstanceEntity buyerStack = itemInstanceRepository
+					.findWithLockByOwnerCharacterIdAndItemDefinitionId(toCharacterId, instance.getItemDefinitionId())
+					.orElse(null);
+			if (buyerStack != null) {
+				buyerStack.increaseQuantity(quantity);
+				itemInstanceRepository.saveAndFlush(buyerStack);
+				instance.decreaseQuantity(quantity);
+				if (instance.getQuantity() == 0) {
+					itemInstanceRepository.delete(instance);
+					itemInstanceRepository.flush();
+				}
+				else {
+					itemInstanceRepository.saveAndFlush(instance);
+				}
+				return;
+			}
+			if (instance.getQuantity() == quantity) {
+				ensureCapacity(toCharacterId, 1);
+				instance.transferTo(toCharacterId);
+				itemInstanceRepository.saveAndFlush(instance);
+				return;
+			}
+			ensureCapacity(toCharacterId, 1);
+			instance.decreaseQuantity(quantity);
+			itemInstanceRepository.saveAndFlush(instance);
+			itemInstanceRepository.saveAndFlush(new ItemInstanceEntity(
+					UUID.randomUUID(),
+					instance.getItemDefinitionId(),
+					toCharacterId,
+					quantity,
+					true,
+					Instant.now(clock)));
+			return;
+		}
+
+		if (quantity != 1) {
+			throw new IllegalArgumentException("non-stackable transfer quantity must be 1");
+		}
+		ensureCapacity(toCharacterId, 1);
+		instance.transferTo(toCharacterId);
+		itemInstanceRepository.saveAndFlush(instance);
+	}
+
 	/**
 	 * Equips an owned item using the same rules as the player-facing equip path (type + level).
 	 */
@@ -213,6 +299,9 @@ public class InventoryApplicationService {
 
 	private void equipForCharacter(CharacterVitalsView vitals, UUID itemInstanceId) {
 		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
+		if (reservedQuantity(instance.getId()) > 0) {
+			throw InventoryErrors.itemListed();
+		}
 		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
 
 		if (!definition.getType().isEquippable()) {
@@ -265,6 +354,8 @@ public class InventoryApplicationService {
 		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
 		Map<EquipmentSlot, UUID> equippedBySlot = equippedItemIds(vitals.characterId());
 		Set<UUID> equippedIds = new HashSet<>(equippedBySlot.values());
+		Map<UUID, Integer> reservedQuantities = itemReservationQuery.reservedQuantities(
+				instances.stream().map(ItemInstanceEntity::getId).toList());
 
 		List<InventoryItemView> items = instances.stream()
 				.map(instance -> {
@@ -272,6 +363,8 @@ public class InventoryApplicationService {
 					EquipmentSlot slot = definition.getType().isEquippable()
 							? EquipmentSlot.forItemType(definition.getType())
 							: null;
+					int listedQuantity = reservedQuantities.getOrDefault(instance.getId(), 0);
+					int available = instance.getQuantity() - listedQuantity;
 					return new InventoryItemView(
 							instance.getId(),
 							definition.getId(),
@@ -285,7 +378,8 @@ public class InventoryApplicationService {
 							definition.getBaseValue(),
 							equippedIds.contains(instance.getId()),
 							slot,
-							isUsable(definition),
+							isUsable(definition) && available > 0,
+							listedQuantity,
 							definition.getWeaponDamage(),
 							definition.getArmorValue(),
 							definition.getHealAmount());
@@ -336,6 +430,14 @@ public class InventoryApplicationService {
 	 */
 	private static boolean isUsable(ItemDefinitionEntity definition) {
 		return definition.getType() == ItemType.CONSUMABLE && definition.getHealAmount() != null;
+	}
+
+	private int reservedQuantity(UUID itemInstanceId) {
+		return itemReservationQuery.reservedQuantity(itemInstanceId);
+	}
+
+	private int unreservedQuantity(ItemInstanceEntity instance) {
+		return Math.max(0, instance.getQuantity() - reservedQuantity(instance.getId()));
 	}
 
 	private ItemInstanceEntity requireOwnedInstance(UUID characterId, UUID itemInstanceId) {

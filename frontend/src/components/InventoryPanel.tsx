@@ -161,6 +161,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 <p className="inventory-item-meta">
                   {item.type} · Qty {item.quantity}
                   {item.equipped ? ' · Equipped' : ''}
+                  {item.listedQuantity > 0 ? ` · Listed ${item.listedQuantity}` : ''}
                 </p>
                 <p className="inventory-item-stats">{itemStats(item)}</p>
                 <div className="inventory-item-actions">

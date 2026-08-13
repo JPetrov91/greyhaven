@@ -78,6 +78,7 @@ public class InventoryController {
 				item.equipped(),
 				item.equipmentSlot() == null ? null : item.equipmentSlot().name(),
 				item.usable(),
+				item.listedQuantity(),
 				item.weaponDamage(),
 				item.armorValue(),
 				item.healAmount());

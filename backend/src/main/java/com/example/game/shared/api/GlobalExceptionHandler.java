@@ -6,6 +6,7 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -86,6 +87,18 @@ public class GlobalExceptionHandler {
 				ConstraintViolations.violatedConstraintName(exception), exception);
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 				.body(error("CONSTRAINT_VIOLATION", "The request conflicts with existing data."));
+	}
+
+	/**
+	 * A lock wait that Postgres aborts (deadlock, lock timeout) is a conflict the client can
+	 * retry, not an internal error. Market buy/cancel take the listing row first to avoid the
+	 * common deadlock; this handler is the remaining safety net.
+	 */
+	@ExceptionHandler(PessimisticLockingFailureException.class)
+	public ResponseEntity<ApiError> handleLockFailure(PessimisticLockingFailureException exception) {
+		log.warn("Pessimistic lock failure", exception);
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+				.body(error("CONCURRENT_UPDATE", "That action could not be completed. Try again."));
 	}
 
 	@ExceptionHandler(Exception.class)
