@@ -378,9 +378,9 @@ class AuthAndCharacterIntegrationTest {
 	@Test
 	void flywayMigrationsWereApplied() {
 		Integer flywayCount = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version in ('2', '3', '4', '5', '6') and success = true",
+				"select count(*) from flyway_schema_history where version in ('2', '3', '4', '5', '6', '7') and success = true",
 				Integer.class);
-		assertThat(flywayCount).isEqualTo(5);
+		assertThat(flywayCount).isEqualTo(6);
 
 		Integer emailIndexCount = jdbcTemplate.queryForObject(
 				"select count(*) from pg_indexes where tablename = 'accounts' and indexname = 'uq_accounts_email_lower'",

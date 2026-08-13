@@ -11,12 +11,9 @@ public final class CharacterStatCalculator {
 	public static DerivedCombatStats calculate(
 			int strength,
 			int agility,
-			int endurance,
 			int perception,
 			int weaponDamage,
 			int armorValue) {
-		int maxHealth = CharacterBalance.maxHealth(endurance);
-		int maxStamina = CharacterBalance.maxStamina(endurance, agility);
 		int physicalDamage = (int) Math.round(weaponDamage + (strength * CombatBalance.PHYSICAL_DAMAGE_PER_STRENGTH));
 		int accuracy = CombatBalance.BASE_ACCURACY + (perception * CombatBalance.ACCURACY_PER_PERCEPTION);
 		int dodge = (int) Math.round(agility * CombatBalance.DODGE_PER_AGILITY);
@@ -24,8 +21,6 @@ public final class CharacterStatCalculator {
 				CombatBalance.BASE_CRITICAL_CHANCE
 						+ (perception * CombatBalance.CRITICAL_CHANCE_PER_PERCEPTION));
 		return new DerivedCombatStats(
-				maxHealth,
-				maxStamina,
 				physicalDamage,
 				accuracy,
 				dodge,

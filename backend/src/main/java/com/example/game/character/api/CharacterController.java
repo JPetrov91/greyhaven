@@ -63,8 +63,6 @@ public class CharacterController {
 
 	private static DerivedStatsResponse toDerivedStats(DerivedCombatStats stats) {
 		return new DerivedStatsResponse(
-				stats.maxHealth(),
-				stats.maxStamina(),
 				stats.physicalDamage(),
 				stats.accuracy(),
 				stats.dodge(),

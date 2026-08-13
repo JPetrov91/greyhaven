@@ -154,6 +154,34 @@ final class GreyhavenUi {
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
 	}
 
+	void waitForInventory() {
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='inventory-panel']")));
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='inventory-list']")));
+	}
+
+	void clickAction(String testId) {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='" + testId + "']"))).click();
+	}
+
+	void waitForText(String testId, String expected) {
+		wait.until(ExpectedConditions.textToBe(By.cssSelector("[data-testid='" + testId + "']"), expected));
+	}
+
+	void waitForTextContaining(String testId, String expected) {
+		wait.until(ExpectedConditions.textToBePresentInElementLocated(
+				By.cssSelector("[data-testid='" + testId + "']"),
+				expected));
+	}
+
+	boolean hasTestId(String testId) {
+		return !driver.findElements(By.cssSelector("[data-testid='" + testId + "']")).isEmpty();
+	}
+
+	void waitUntilGone(String testId) {
+		By locator = By.cssSelector("[data-testid='" + testId + "']");
+		wait.until(driver -> driver.findElements(locator).isEmpty());
+	}
+
 	/**
 	 * Posts an authenticated move intent through the browser session (CSRF + cookies).
 	 * Used to exercise invalid destinations that the UI does not offer as travel buttons.

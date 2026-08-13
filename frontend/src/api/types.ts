@@ -11,8 +11,6 @@ export type MeResponse = {
 }
 
 export type DerivedStatsResponse = {
-  maxHealth: number
-  maxStamina: number
   physicalDamage: number
   accuracy: number
   dodge: number
@@ -58,6 +56,7 @@ export type InventoryItemResponse = {
   baseValue: number
   equipped: boolean
   equipmentSlot: EquipmentSlot | null
+  usable: boolean
   weaponDamage: number | null
   armorValue: number | null
   healAmount: number | null

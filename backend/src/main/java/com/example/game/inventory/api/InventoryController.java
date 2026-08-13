@@ -77,6 +77,7 @@ public class InventoryController {
 				item.baseValue(),
 				item.equipped(),
 				item.equipmentSlot() == null ? null : item.equipmentSlot().name(),
+				item.usable(),
 				item.weaponDamage(),
 				item.armorValue(),
 				item.healAmount());
@@ -84,8 +85,6 @@ public class InventoryController {
 
 	private static DerivedStatsResponse toDerivedStats(DerivedCombatStats stats) {
 		return new DerivedStatsResponse(
-				stats.maxHealth(),
-				stats.maxStamina(),
 				stats.physicalDamage(),
 				stats.accuracy(),
 				stats.dodge(),

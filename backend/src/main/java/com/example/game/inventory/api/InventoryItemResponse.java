@@ -15,6 +15,7 @@ public record InventoryItemResponse(
 		int baseValue,
 		boolean equipped,
 		String equipmentSlot,
+		boolean usable,
 		Integer weaponDamage,
 		Integer armorValue,
 		Integer healAmount

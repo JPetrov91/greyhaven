@@ -104,10 +104,7 @@ public class InventoryApplicationService {
 		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
 		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
 
-		if (definition.getType() != ItemType.CONSUMABLE || definition.getHealAmount() == null) {
-			throw InventoryErrors.itemNotUsable();
-		}
-		if (equipmentRepository.existsByItemInstanceId(instance.getId())) {
+		if (!isUsable(definition) || equipmentRepository.existsByItemInstanceId(instance.getId())) {
 			throw InventoryErrors.itemNotUsable();
 		}
 
@@ -227,7 +224,6 @@ public class InventoryApplicationService {
 					EquipmentSlot slot = definition.getType().isEquippable()
 							? EquipmentSlot.forItemType(definition.getType())
 							: null;
-					boolean equipped = equippedIds.contains(instance.getId());
 					return new InventoryItemView(
 							instance.getId(),
 							definition.getId(),
@@ -239,8 +235,9 @@ public class InventoryApplicationService {
 							instance.getQuantity(),
 							definition.getRequiredLevel(),
 							definition.getBaseValue(),
-							equipped,
-							equipped ? slot : null,
+							equippedIds.contains(instance.getId()),
+							slot,
+							isUsable(definition),
 							definition.getWeaponDamage(),
 							definition.getArmorValue(),
 							definition.getHealAmount());
@@ -251,7 +248,6 @@ public class InventoryApplicationService {
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
 				vitals.strength(),
 				vitals.agility(),
-				vitals.endurance(),
 				vitals.perception(),
 				bonuses.weaponDamage(),
 				bonuses.armorValue());
@@ -284,6 +280,14 @@ public class InventoryApplicationService {
 			definitions.put(definition.getId(), definition);
 		}
 		return definitions;
+	}
+
+	/**
+	 * The single definition of "can be used", shared by {@link #use} and the inventory view so
+	 * the client never has to re-derive the rule.
+	 */
+	private static boolean isUsable(ItemDefinitionEntity definition) {
+		return definition.getType() == ItemType.CONSUMABLE && definition.getHealAmount() != null;
 	}
 
 	private ItemInstanceEntity requireOwnedInstance(UUID characterId, UUID itemInstanceId) {

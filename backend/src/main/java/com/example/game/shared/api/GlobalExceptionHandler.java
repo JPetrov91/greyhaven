@@ -15,6 +15,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.example.game.shared.infrastructure.ConstraintViolations;
 
@@ -60,6 +61,19 @@ public class GlobalExceptionHandler {
 		log.debug("Rejected unreadable request body", exception);
 		return ResponseEntity.badRequest()
 				.body(error("MALFORMED_REQUEST", "The request body could not be read."));
+	}
+
+	/**
+	 * A path or query value the binder cannot convert — a non-UUID item id, for example — is a
+	 * client error. This needs its own handler for the same reason as the one above: the
+	 * catch-all would otherwise claim the exception first and answer 500. Only the parameter
+	 * name is echoed, never the submitted value.
+	 */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException exception) {
+		log.debug("Rejected unconvertible request parameter", exception);
+		return ResponseEntity.badRequest()
+				.body(error("MALFORMED_REQUEST", "'" + exception.getName() + "' is not a valid value."));
 	}
 
 	/**

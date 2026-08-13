@@ -114,7 +114,6 @@ public class CharacterApplicationService {
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
 				character.getStrength(),
 				character.getAgility(),
-				character.getEndurance(),
 				character.getPerception(),
 				bonuses.weaponDamage(),
 				bonuses.armorValue());

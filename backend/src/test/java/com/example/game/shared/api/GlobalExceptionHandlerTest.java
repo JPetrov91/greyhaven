@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 class GlobalExceptionHandlerTest {
 
@@ -53,6 +56,22 @@ class GlobalExceptionHandlerTest {
 	}
 
 	@Test
+	void mapsUnconvertiblePathVariableToBadRequestWithoutEchoingTheValue() throws NoSuchMethodException {
+		MethodParameter parameter = new MethodParameter(
+				Endpoint.class.getDeclaredMethod("equip", UUID.class), 0);
+		MethodArgumentTypeMismatchException exception = new MethodArgumentTypeMismatchException(
+				"secret-payload", UUID.class, "itemId", parameter, new IllegalArgumentException("bad uuid"));
+
+		ResponseEntity<ApiError> response = handler.handleTypeMismatch(exception);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+		assertThat(response.getBody()).isNotNull();
+		assertThat(response.getBody().code()).isEqualTo("MALFORMED_REQUEST");
+		assertThat(response.getBody().message()).isEqualTo("'itemId' is not a valid value.");
+		assertThat(response.getBody().message()).doesNotContain("secret-payload");
+	}
+
+	@Test
 	void mapsUnexpectedExceptionWithoutLeakingDetails() {
 		ResponseEntity<ApiError> response = handler.handleUnexpected(new RuntimeException("secret details"));
 
@@ -61,5 +80,12 @@ class GlobalExceptionHandlerTest {
 		assertThat(response.getBody().code()).isEqualTo("INTERNAL_ERROR");
 		assertThat(response.getBody().message()).isEqualTo("An unexpected error occurred.");
 		assertThat(response.getBody().message()).doesNotContain("secret");
+	}
+
+	/** Supplies a realistic {@link MethodParameter} for the type-mismatch case. */
+	private static final class Endpoint {
+
+		void equip(UUID itemId) {
+		}
 	}
 }

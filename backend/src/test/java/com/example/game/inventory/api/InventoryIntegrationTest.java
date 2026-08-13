@@ -2,6 +2,7 @@ package com.example.game.inventory.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
@@ -125,15 +127,110 @@ class InventoryIntegrationTest {
 	}
 
 	@Test
-	void ownershipIsValidatedForEquip() throws Exception {
+	void nonEquippableItemsCannotBeEquipped() throws Exception {
+		String email = "inv-material-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+
+		inventoryApplicationService.grantItems(characterId, ItemCodes.WOLF_PELT, 1);
+		UUID peltId = itemInstanceId(characterId, ItemCodes.WOLF_PELT);
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + peltId + "/equip")).session(session))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ITEM_NOT_EQUIPPABLE"));
+	}
+
+	@Test
+	void unequippingAnItemThatIsNotEquippedIsRejected() throws Exception {
+		String email = "inv-notequipped-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID potionId = itemInstanceId(characterIdForEmail(email), ItemCodes.HEALING_POTION);
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + potionId + "/unequip")).session(session))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ITEM_NOT_EQUIPPED"));
+	}
+
+	@Test
+	void nonConsumableItemsCannotBeUsed() throws Exception {
+		String email = "inv-notusable-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID weaponId = itemInstanceId(characterIdForEmail(email), ItemCodes.RUSTY_SWORD);
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/use")).session(session))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ITEM_NOT_USABLE"));
+	}
+
+	@Test
+	void ownershipIsValidatedForEveryMutation() throws Exception {
 		String ownerEmail = "inv-owner-" + System.nanoTime() + "@greyhaven.test";
 		registerWithCharacter(ownerEmail);
 		MockHttpSession thiefSession = registerWithCharacter("inv-thief-" + System.nanoTime() + "@greyhaven.test");
-		UUID ownerWeaponId = itemInstanceId(characterIdForEmail(ownerEmail), ItemCodes.RUSTY_SWORD);
+		UUID ownerCharacterId = characterIdForEmail(ownerEmail);
+		UUID ownerWeaponId = itemInstanceId(ownerCharacterId, ItemCodes.RUSTY_SWORD);
+		UUID ownerPotionId = itemInstanceId(ownerCharacterId, ItemCodes.HEALING_POTION);
 
-		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + ownerWeaponId + "/equip")).session(thiefSession))
-				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.code").value("ITEM_NOT_OWNED"));
+		for (String path : new String[] {
+				"/api/v1/inventory/" + ownerWeaponId + "/equip",
+				"/api/v1/inventory/" + ownerWeaponId + "/unequip",
+				"/api/v1/inventory/" + ownerPotionId + "/use" }) {
+			mockMvc.perform(withCsrf(post(path)).session(thiefSession))
+					.andExpect(status().isForbidden())
+					.andExpect(jsonPath("$.code").value("ITEM_NOT_OWNED"));
+		}
+
+		Integer ownerPotions = jdbcTemplate.queryForObject(
+				"select quantity from item_instances where id = ?",
+				Integer.class,
+				ownerPotionId);
+		assertThat(ownerPotions).isEqualTo(2);
+	}
+
+	@Test
+	void malformedItemIdIsRejectedAsClientError() throws Exception {
+		MockHttpSession session = registerWithCharacter("inv-badid-" + System.nanoTime() + "@greyhaven.test");
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/not-a-uuid/equip")).session(session))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+	}
+
+	@Test
+	void databaseRejectsEquipmentPointingAtAnotherCharactersItem() throws Exception {
+		String ownerEmail = "inv-fk-owner-" + System.nanoTime() + "@greyhaven.test";
+		String otherEmail = "inv-fk-other-" + System.nanoTime() + "@greyhaven.test";
+		registerWithCharacter(ownerEmail);
+		registerWithCharacter(otherEmail);
+		UUID ownerCharacterId = characterIdForEmail(ownerEmail);
+		UUID otherCharacterId = characterIdForEmail(otherEmail);
+
+		// An unequipped weapon, so the insert below can only fail on the ownership foreign key.
+		inventoryApplicationService.grantItems(ownerCharacterId, ItemCodes.OLD_DAGGER, 1);
+		UUID foreignDaggerId = itemInstanceId(ownerCharacterId, ItemCodes.OLD_DAGGER);
+		jdbcTemplate.update("delete from equipment where character_id = ?", otherCharacterId);
+
+		assertThatThrownBy(() -> jdbcTemplate.update(
+				"insert into equipment (id, character_id, slot, item_instance_id) values (?, ?, 'WEAPON', ?)",
+				UUID.randomUUID(),
+				otherCharacterId,
+				foreignDaggerId))
+				.isInstanceOf(DataIntegrityViolationException.class)
+				.hasMessageContaining("fk_equipment_owned_item");
+	}
+
+	@Test
+	void inventoryItemsCarryServerDecidedActionFlags() throws Exception {
+		MockHttpSession session = registerWithCharacter("inv-flags-" + System.nanoTime() + "@greyhaven.test");
+
+		mockMvc.perform(get("/api/v1/inventory").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'WEAPON')].code",
+						containsInAnyOrder(ItemCodes.RUSTY_SWORD)))
+				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'ARMOR')].code",
+						containsInAnyOrder(ItemCodes.WORN_LEATHER_ARMOR)))
+				.andExpect(jsonPath("$.items[?(@.usable == true)].code",
+						containsInAnyOrder(ItemCodes.HEALING_POTION)));
 	}
 
 	@Test

@@ -156,7 +156,7 @@ export function InventoryPanel() {
                 </p>
                 <p className="inventory-item-stats">{itemStats(item)}</p>
                 <div className="inventory-item-actions">
-                  {item.type === 'WEAPON' || item.type === 'ARMOR' ? (
+                  {item.equipmentSlot !== null ? (
                     item.equipped ? (
                       <button
                         type="button"
@@ -179,7 +179,7 @@ export function InventoryPanel() {
                       </button>
                     )
                   ) : null}
-                  {item.type === 'CONSUMABLE' ? (
+                  {item.usable ? (
                     <button
                       type="button"
                       className="travel-button"

@@ -19,6 +19,7 @@ public record InventoryItemView(
 		int baseValue,
 		boolean equipped,
 		EquipmentSlot equipmentSlot,
+		boolean usable,
 		Integer weaponDamage,
 		Integer armorValue,
 		Integer healAmount
