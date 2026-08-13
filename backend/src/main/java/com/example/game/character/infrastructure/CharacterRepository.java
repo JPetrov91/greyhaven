@@ -1,5 +1,6 @@
 package com.example.game.character.infrastructure;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,8 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, UUID
 
 	@Query("select count(c) > 0 from CharacterEntity c where lower(c.name) = lower(:name)")
 	boolean existsByNameIgnoreCase(@Param("name") String name);
+
+	List<CharacterEntity> findByCurrentLocationIdAndIdNotOrderByNameAsc(
+			UUID currentLocationId,
+			UUID excludedCharacterId);
 }

@@ -62,7 +62,7 @@ public class CharacterEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int gold;
 
-	@Column(name = "current_location_id")
+	@Column(name = "current_location_id", nullable = false)
 	private UUID currentLocationId;
 
 	@Column(name = "created_at", nullable = false)
@@ -197,5 +197,10 @@ public class CharacterEntity implements Persistable<UUID> {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	public void moveTo(UUID locationId, Instant updatedAt) {
+		this.currentLocationId = locationId;
+		this.updatedAt = updatedAt;
 	}
 }

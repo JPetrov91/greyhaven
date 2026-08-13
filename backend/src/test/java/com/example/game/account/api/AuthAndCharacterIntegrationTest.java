@@ -376,14 +376,19 @@ class AuthAndCharacterIntegrationTest {
 	@Test
 	void flywayMigrationsWereApplied() {
 		Integer flywayCount = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version in ('2', '3') and success = true",
+				"select count(*) from flyway_schema_history where version in ('2', '3', '4') and success = true",
 				Integer.class);
-		assertThat(flywayCount).isEqualTo(2);
+		assertThat(flywayCount).isEqualTo(3);
 
 		Integer emailIndexCount = jdbcTemplate.queryForObject(
 				"select count(*) from pg_indexes where tablename = 'accounts' and indexname = 'uq_accounts_email_lower'",
 				Integer.class);
 		assertThat(emailIndexCount).isEqualTo(1);
+
+		Integer locationCount = jdbcTemplate.queryForObject(
+				"select count(*) from locations where code = 'CITY_SQUARE'",
+				Integer.class);
+		assertThat(locationCount).isEqualTo(1);
 	}
 
 	private MockHttpSession registerAndGetSession(String email) throws Exception {

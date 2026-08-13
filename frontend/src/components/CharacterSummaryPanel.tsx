@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { fetchCharacter } from '../api/character'
+import { fetchCurrentLocation } from '../api/world'
 import { ApiError } from '../api/client'
 
 export function CharacterSummaryPanel() {
@@ -7,6 +8,13 @@ export function CharacterSummaryPanel() {
     queryKey: ['character'],
     queryFn: fetchCharacter,
     retry: false,
+  })
+
+  const locationQuery = useQuery({
+    queryKey: ['location'],
+    queryFn: fetchCurrentLocation,
+    retry: false,
+    enabled: !!characterQuery.data,
   })
 
   if (characterQuery.isLoading) {
@@ -31,6 +39,8 @@ export function CharacterSummaryPanel() {
   if (!character) {
     return null
   }
+
+  const locationName = locationQuery.data?.name ?? '…'
 
   return (
     <aside className="game-column game-column-left" data-testid="character-summary">
@@ -59,6 +69,10 @@ export function CharacterSummaryPanel() {
         <div>
           <dt>Gold</dt>
           <dd data-testid="character-summary-gold">{character.gold}</dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd data-testid="character-summary-location">{locationName}</dd>
         </div>
         <div>
           <dt>Strength</dt>

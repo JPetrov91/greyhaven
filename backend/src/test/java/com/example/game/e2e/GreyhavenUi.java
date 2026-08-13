@@ -1,6 +1,8 @@
 package com.example.game.e2e;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -109,6 +111,100 @@ final class GreyhavenUi {
 
 	void waitUntilPath(String expectedPath) {
 		wait.until(driver -> expectedPath.equals(currentPath()));
+	}
+
+	void waitForLocation(String locationName) {
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
+		wait.until(ExpectedConditions.textToBe(
+				By.cssSelector("[data-testid='current-location']"),
+				locationName));
+		wait.until(ExpectedConditions.textToBe(
+				By.cssSelector("[data-testid='character-summary-location']"),
+				locationName));
+	}
+
+	void travelTo(String locationCode, String expectedLocationName) {
+		By travelButton = By.cssSelector("[data-testid='destination-" + locationCode + "']");
+		wait.until(ExpectedConditions.elementToBeClickable(travelButton)).click();
+		waitForLocation(expectedLocationName);
+	}
+
+	void waitForDestination(String locationCode) {
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.cssSelector("[data-testid='destination-" + locationCode + "']")));
+	}
+
+	boolean hasDestination(String locationCode) {
+		return !driver.findElements(By.cssSelector("[data-testid='destination-" + locationCode + "']")).isEmpty();
+	}
+
+	void waitForNearbyCharacter(String characterName) {
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.cssSelector("[data-testid='nearby-" + characterName + "']")));
+	}
+
+	void waitUntilNearbyDoesNotContain(String characterName) {
+		By locator = By.cssSelector("[data-testid='nearby-" + characterName + "']");
+		wait.until(driver -> driver.findElements(locator).isEmpty());
+	}
+
+	void refreshGame() {
+		driver.navigate().refresh();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='game-layout']")));
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
+	}
+
+	/**
+	 * Posts an authenticated move intent through the browser session (CSRF + cookies).
+	 * Used to exercise invalid destinations that the UI does not offer as travel buttons.
+	 */
+	Map<String, Object> postMoveViaBrowserSession(String destinationLocationId) {
+		Object raw = ((JavascriptExecutor) driver).executeAsyncScript(
+				"""
+						const destinationLocationId = arguments[0];
+						const done = arguments[arguments.length - 1];
+						(async () => {
+						  try {
+						    await fetch('/api/v1/bootstrap', { method: 'GET', credentials: 'include' });
+						    const csrf = document.cookie.split(';')
+						      .map((part) => part.trim())
+						      .find((part) => part.startsWith('XSRF-TOKEN='));
+						    const token = csrf
+						      ? decodeURIComponent(csrf.substring('XSRF-TOKEN='.length))
+						      : '';
+						    const response = await fetch('/api/v1/world/move', {
+						      method: 'POST',
+						      credentials: 'include',
+						      headers: {
+						        'Content-Type': 'application/json',
+						        'X-XSRF-TOKEN': token,
+						      },
+						      body: JSON.stringify({ destinationLocationId }),
+						    });
+						    const body = await response.json();
+						    done({
+						      status: response.status,
+						      code: body.code ?? null,
+						      message: body.message ?? null,
+						      name: body.name ?? null,
+						    });
+						  } catch (error) {
+						    done({
+						      status: 0,
+						      code: 'SCRIPT_ERROR',
+						      message: String(error),
+						      name: null,
+						    });
+						  }
+						})();
+						""",
+				destinationLocationId);
+		if (!(raw instanceof Map<?, ?> map)) {
+			throw new IllegalStateException("Unexpected move script result: " + raw);
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		map.forEach((key, value) -> result.put(String.valueOf(key), value));
+		return result;
 	}
 
 	private void waitForTestId(String testId) {

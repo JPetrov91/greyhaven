@@ -30,6 +30,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // settled as "guest" instead of refetching /api/v1/me in a 401 loop.
       queryClient.setQueryData(['me'], null)
       queryClient.removeQueries({ queryKey: ['character'] })
+      queryClient.removeQueries({ queryKey: ['location'] })
+      queryClient.removeQueries({ queryKey: ['destinations'] })
+      queryClient.removeQueries({ queryKey: ['nearby-characters'] })
     })
     return () => setUnauthorizedHandler(null)
   }, [queryClient])
@@ -46,6 +49,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await loginAccount(email, password)
     queryClient.setQueryData(['me'], response)
     await queryClient.invalidateQueries({ queryKey: ['character'] })
+    await queryClient.invalidateQueries({ queryKey: ['location'] })
+    await queryClient.invalidateQueries({ queryKey: ['destinations'] })
+    await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
     return response
   }
 
@@ -53,6 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await registerAccount(email, password)
     queryClient.setQueryData(['me'], response)
     await queryClient.invalidateQueries({ queryKey: ['character'] })
+    await queryClient.invalidateQueries({ queryKey: ['location'] })
+    await queryClient.invalidateQueries({ queryKey: ['destinations'] })
+    await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
     return response
   }
 
@@ -62,6 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       queryClient.setQueryData(['me'], null)
       queryClient.removeQueries({ queryKey: ['character'] })
+      queryClient.removeQueries({ queryKey: ['location'] })
+      queryClient.removeQueries({ queryKey: ['destinations'] })
+      queryClient.removeQueries({ queryKey: ['nearby-characters'] })
     }
   }
 

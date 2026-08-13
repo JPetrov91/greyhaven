@@ -223,6 +223,95 @@ h2,
   color: var(--ink-soft);
 }
 
+.location-region {
+  margin: 0 0 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.location-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0 0 0.85rem;
+}
+
+.safety-safe,
+.safety-danger {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.safety-safe {
+  color: var(--accent-strong);
+}
+
+.safety-danger {
+  color: #8a2f2f;
+}
+
+.location-section {
+  margin-top: 1.25rem;
+}
+
+.location-section h3 {
+  margin: 0 0 0.55rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.25rem;
+}
+
+.destination-list,
+.action-list,
+.nearby-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.destination-list li,
+.nearby-list li,
+.action-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+}
+
+.travel-button {
+  font: inherit;
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: #f7faf7;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.travel-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.action-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.action-status.available {
+  color: var(--accent-strong);
+}
+
+.action-status.unavailable {
+  color: var(--ink-soft);
+}
+
 @media (max-width: 900px) {
   .game-layout {
     grid-template-columns: 1fr;

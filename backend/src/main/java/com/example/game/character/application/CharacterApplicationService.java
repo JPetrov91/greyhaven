@@ -14,6 +14,9 @@ import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.infrastructure.ConstraintViolations;
+import com.example.game.world.domain.LocationCodes;
+import com.example.game.world.infrastructure.LocationEntity;
+import com.example.game.world.infrastructure.LocationRepository;
 
 @Service
 public class CharacterApplicationService {
@@ -22,10 +25,15 @@ public class CharacterApplicationService {
 	private static final String UNIQUE_NAME_CONSTRAINT = "uq_characters_name_lower";
 
 	private final CharacterRepository characterRepository;
+	private final LocationRepository locationRepository;
 	private final Clock clock;
 
-	public CharacterApplicationService(CharacterRepository characterRepository, Clock clock) {
+	public CharacterApplicationService(
+			CharacterRepository characterRepository,
+			LocationRepository locationRepository,
+			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.locationRepository = locationRepository;
 		this.clock = clock;
 	}
 
@@ -38,6 +46,12 @@ public class CharacterApplicationService {
 		if (characterRepository.existsByNameIgnoreCase(name)) {
 			throw characterNameTaken();
 		}
+
+		LocationEntity startingLocation = locationRepository.findByCode(LocationCodes.CITY_SQUARE)
+				.orElseThrow(() -> new ApiException(
+						"STARTING_LOCATION_MISSING",
+						"Greyhaven starting location is not seeded.",
+						HttpStatus.INTERNAL_SERVER_ERROR));
 
 		int strength = CharacterBalance.STARTING_STRENGTH;
 		int agility = CharacterBalance.STARTING_AGILITY;
@@ -62,7 +76,7 @@ public class CharacterApplicationService {
 				maxStamina,
 				maxStamina,
 				CharacterBalance.STARTING_GOLD,
-				null,
+				startingLocation.getId(),
 				now,
 				now);
 

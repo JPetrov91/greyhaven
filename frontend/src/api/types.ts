@@ -29,3 +29,49 @@ export type CharacterResponse = {
   createdAt: string
   updatedAt: string
 }
+
+export type LocationSafety = 'SAFE' | 'DANGEROUS'
+
+export type LocationAction =
+  | 'INSPECT'
+  | 'MOVE'
+  | 'VIEW_NEARBY'
+  | 'VIEW_CHAT'
+  | 'START_EXPEDITION'
+  | 'INSPECT_EXPEDITIONS'
+  | 'BROWSE_MARKET'
+  | 'CREATE_LISTING'
+  | 'BUY_ITEM'
+  | 'CANCEL_LISTING'
+  | 'SEARCH_ENCOUNTER'
+
+export type LocationResponse = {
+  id: string
+  code: string
+  name: string
+  description: string
+  safety: LocationSafety
+  region: string
+  actions: LocationAction[]
+}
+
+export type DestinationResponse = {
+  id: string
+  code: string
+  name: string
+  safety: LocationSafety
+}
+
+export type DestinationsResponse = {
+  destinations: DestinationResponse[]
+}
+
+export type NearbyCharacterResponse = {
+  id: string
+  name: string
+  level: number
+}
+
+export type NearbyCharactersResponse = {
+  characters: NearbyCharacterResponse[]
+}
