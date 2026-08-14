@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { InventoryItemResponse } from '../api/types'
-import { itemAriaLabel, itemStatsLine, shouldShowItemComparison } from './itemCopy'
+import {
+  itemAriaLabel,
+  itemInspectMeta,
+  itemPrimaryStatRows,
+  itemRequirementRows,
+  itemSecondaryStatRows,
+  itemStatsLine,
+  shouldShowItemComparison,
+} from './itemCopy'
 
 function potion(): InventoryItemResponse {
   return {
@@ -59,6 +67,38 @@ describe('itemAriaLabel', () => {
         criticalChance: 1,
       }),
     ).toBe('Damage 8 · Accuracy +4 · Crit +1')
+  })
+})
+
+describe('market inspect copy', () => {
+  it('splits primary damage from secondary modifiers', () => {
+    const sword = {
+      ...potion(),
+      type: 'WEAPON' as const,
+      weaponFamily: 'SWORD',
+      equipmentSlot: 'MAIN_HAND' as const,
+      requiredLevel: 3,
+      requiredStrength: 8,
+      weaponDamage: 8,
+      healAmount: null,
+      accuracy: 4,
+      criticalChance: 1,
+    }
+    expect(itemInspectMeta(sword)).toEqual({
+      kicker: 'Common Sword',
+      slotLine: 'Main Hand',
+      itemLevel: 'Item Level 3',
+    })
+    expect(itemPrimaryStatRows(sword)).toEqual([{ label: 'Damage', value: 8 }])
+    expect(itemSecondaryStatRows(sword)).toEqual([
+      { label: 'Accuracy', value: '+4' },
+      { label: 'Crit', value: '+1' },
+    ])
+    expect(itemRequirementRows(sword)).toEqual([
+      { label: 'Required Level', value: '3' },
+      { label: 'Required Strength', value: '8' },
+      { label: 'Slot', value: 'Main Hand' },
+    ])
   })
 })
 

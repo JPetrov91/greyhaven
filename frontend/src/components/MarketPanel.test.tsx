@@ -188,6 +188,8 @@ describe('MarketPanel', () => {
     await openPlayerMarket()
 
     expect(await screen.findByTestId('inspector-buy-LEATHER_ARMOR')).toBeTruthy()
+    expect(screen.getByTestId('listing-seller').textContent).toContain('Bram')
+    expect(screen.getByTestId('listing-seller').className).toContain('market-seller')
     expect(screen.getByTestId('market-buy-order')).toHaveProperty('disabled', true)
     expect(screen.getByTestId('market-watchlist')).toHaveProperty('disabled', true)
     expect(screen.getByTestId('market-tab-orders')).toHaveProperty('disabled', true)
@@ -293,6 +295,8 @@ describe('MarketPanel', () => {
               requiredAgility: 0,
               requiredEndurance: 0,
               requiredPerception: 0,
+              accuracy: 4,
+              criticalChance: 1,
             },
           ],
         },
@@ -305,7 +309,16 @@ describe('MarketPanel', () => {
     expect(screen.getByText('Edric Varn')).toBeTruthy()
     expect(screen.getByTestId('merchant-stock-RUSTY_SWORD')).toBeTruthy()
     expect(await screen.findByTestId('buy-merchant-RUSTY_SWORD')).toBeTruthy()
-    expect(screen.getByText('7g')).toBeTruthy()
+    expect(screen.getAllByText('7g').length).toBeGreaterThan(0)
+    const seller = screen.getByTestId('merchant-identity')
+    expect(seller.textContent).toContain('Edric Varn')
+    expect(seller.textContent).toContain('Greyhaven Weaponsmith')
+    expect(seller.textContent).toContain('Honest steel.')
+    expect(seller.className).toContain('market-seller')
+    expect(screen.getByText('Rusty Sword', { selector: '.item-name' }).closest('.market-item-card')).toBeTruthy()
+    expect(screen.getByText('Damage')).toBeTruthy()
+    expect(screen.getByText('+4 Accuracy')).toBeTruthy()
+    expect(screen.getByText('Required Level')).toBeTruthy()
     expect(screen.queryByTestId('market-listings')).toBeNull()
   })
 })

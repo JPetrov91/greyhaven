@@ -32,6 +32,7 @@ import { ItemDetail } from '../ui/ItemDetail'
 import { ItemIcon } from '../ui/itemIcons'
 import { LoadingState } from '../ui/LoadingState'
 import { locationArtUrl } from '../ui/locationMedia'
+import { merchantPortraitUrl } from '../ui/merchantMedia'
 import { Panel } from '../ui/Panel'
 import { RarityBadge } from '../ui/RarityBadge'
 import { StatRow } from '../ui/StatRow'
@@ -591,7 +592,16 @@ export function MarketPanel({ onClose }: Props) {
               onCancel={() => cancelMutation.mutate(selectedListing.id)}
             />
           ) : tab === 'mine' && selectedItem ? (
-            <ItemDetail item={selectedItem} showComparison={false} showIcon valueLabel="Vendor value" />
+            <article className="market-item-card">
+              <h3 className="item-section-label">Item details</h3>
+              <ItemDetail
+                item={selectedItem}
+                variant="market"
+                showComparison={false}
+                hideValue
+                valueLabel="Vendor value"
+              />
+            </article>
           ) : (
             <EmptyState>Select a listing to inspect it.</EmptyState>
           )}
@@ -689,60 +699,93 @@ function ListingInspector({
 
   return (
     <>
-      {inventoryItem ? (
-        <ItemDetail item={inventoryItem} showComparison={Boolean(inventoryItem.comparison)} showIcon />
-      ) : (
-        <div className="item-detail">
-          <header className="item-tooltip-header">
-            <ItemIcon item={listingIconSource(listing.itemType, listing.itemCode)} className="item-icon item-icon-inspector" />
-            <div className="item-detail-heading">
-              <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</strong>
-              <RarityBadge rarity={listing.rarity} />
-            </div>
-          </header>
-          <p className="item-tooltip-meta">
-            {formatItemType(listing.itemType)} · Qty {listing.quantity}
-          </p>
-          <p className="item-tooltip-meta">Seller {listing.sellerName}</p>
-        </div>
-      )}
-      <dl className="stat-list">
-        <StatRow label="List price" value={`${listing.price} gold`} />
-        <StatRow label="Lvl" value="—" />
-        <StatRow label="Durability" value="—" />
-        <StatRow label="Time left" value="—" />
-      </dl>
-      <div className="inventory-inspector-actions">
-        {tab === 'mine' ? (
-          <Button
-            type="button"
-            className="inventory-action-primary"
-            data-testid={`inspector-cancel-${listing.itemCode}`}
-            disabled={tradeDisabled || cancelPending}
-            title={!tradeDisabled ? undefined : travelReason}
-            onClick={onCancel}
-          >
-            Cancel listing
-          </Button>
+      <MarketSellerBlock name={listing.sellerName} title="Player seller" testId="listing-seller" />
+      <article className="market-item-card">
+        <h3 className="item-section-label">Item details</h3>
+        {inventoryItem ? (
+          <ItemDetail
+            item={inventoryItem}
+            variant="market"
+            showComparison={Boolean(inventoryItem.comparison)}
+            hideValue
+          />
         ) : (
-          <Button
-            type="button"
-            className="inventory-action-primary"
-            data-testid={`inspector-buy-${listing.itemCode}`}
-            disabled={buyDisabled}
-            title={buyReason}
-            onClick={onBuy}
-          >
-            Buy item
-          </Button>
+          <div className="item-detail item-detail-market">
+            <header className="item-tooltip-header">
+              <span className={`item-icon-frame rarity-frame-${listing.rarity.toLowerCase()}`}>
+                <ItemIcon item={listingIconSource(listing.itemType, listing.itemCode)} className="item-icon item-icon-inspector" />
+              </span>
+              <div className="item-detail-heading">
+                <div className="item-detail-title-row">
+                  <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</strong>
+                  <RarityBadge rarity={listing.rarity} />
+                </div>
+                <p className="item-detail-kicker">
+                  {formatRarity(listing.rarity)} {formatItemType(listing.itemType)}
+                </p>
+              </div>
+            </header>
+            <dl className="stat-list item-requirement-list">
+              <StatRow label="Quantity" value={listing.quantity} />
+            </dl>
+          </div>
         )}
-        <ComingLaterButton className="inventory-later" data-testid="market-buy-order">
-          Place buy order
-        </ComingLaterButton>
-        <ComingLaterButton className="inventory-later" data-testid="market-watchlist">
-          Add to watchlist
-        </ComingLaterButton>
-      </div>
+      </article>
+      <section className="market-actions" aria-label="Listing actions">
+        <dl className="stat-list">
+          <StatRow
+            label="List price"
+            value={
+              <span className="market-gold">
+                <img src="/chrome/currency-gold.webp" alt="" />
+                {listing.price} gold
+              </span>
+            }
+          />
+          <StatRow label="Durability" value="—" />
+          <StatRow label="Time left" value="—" />
+        </dl>
+        <div className="inventory-inspector-actions">
+          {tab === 'mine' ? (
+            <MarketActionButton
+              testId={`inspector-cancel-${listing.itemCode}`}
+              icon="cancel"
+              label="Cancel listing"
+              hint="Remove this offer from the hall."
+              disabled={tradeDisabled || cancelPending}
+              title={!tradeDisabled ? undefined : travelReason}
+              onClick={onCancel}
+            />
+          ) : (
+            <MarketActionButton
+              testId={`inspector-buy-${listing.itemCode}`}
+              icon="buy"
+              label="Buy item"
+              hint="Purchase this item now."
+              trailing={`${listing.price}g`}
+              disabled={buyDisabled}
+              title={buyReason}
+              onClick={onBuy}
+            />
+          )}
+          <ComingLaterButton className="market-action-row" data-testid="market-buy-order">
+            <ActionGlyph name="order" />
+            <span className="market-action-copy">
+              <strong>Place buy order</strong>
+              <small>Buy this item at your price.</small>
+            </span>
+            <ActionChevron />
+          </ComingLaterButton>
+          <ComingLaterButton className="market-action-row" data-testid="market-watchlist">
+            <ActionGlyph name="watch" />
+            <span className="market-action-copy">
+              <strong>Add item to watchlist</strong>
+              <small>Get price alerts for this item.</small>
+            </span>
+            <ActionChevron />
+          </ComingLaterButton>
+        </div>
+      </section>
       <section className="market-orders" aria-labelledby="market-orders-heading">
         <div className="market-orders-header">
           <h3 id="market-orders-heading">Active buy orders</h3>
@@ -857,7 +900,7 @@ function MerchantHub({
             onClick={() => onSelectMerchant(merchant.id)}
           >
             <span className="merchant-portrait" aria-hidden="true">
-              {initials(merchant.name)}
+              <MerchantPortrait code={merchant.portraitCode} name={merchant.name} />
             </span>
             <span>
               <strong>{merchant.name}</strong>
@@ -929,38 +972,196 @@ function MerchantHub({
       <aside className="market-inspector" aria-label="Selected merchant goods">
         {selectedMerchant && selectedStock ? (
           <>
-            <p className="muted" data-testid="merchant-identity">
-              {selectedMerchant.name} · {selectedMerchant.title}
-            </p>
-            <p>{selectedMerchant.description}</p>
-            <ItemDetail item={stockAsInventoryItem(selectedStock)} showComparison={false} showIcon valueLabel="Merchant price" />
-            <StatRow label="Price" value={`${selectedStock.sellPrice} gold`} />
-            <Field label="Quantity">
-              <input
-                data-testid="merchant-buy-quantity"
-                type="number"
-                min={1}
-                max={merchantMaxQuantity}
-                value={merchantQuantity}
-                onChange={(event) => onQuantity(Number(event.target.value))}
+            <MarketSellerBlock
+              name={selectedMerchant.name}
+              title={selectedMerchant.title}
+              description={selectedMerchant.description}
+              portraitCode={selectedMerchant.portraitCode}
+              testId="merchant-identity"
+            />
+            <article className="market-item-card">
+              <h3 className="item-section-label">Item details</h3>
+              <ItemDetail
+                item={stockAsInventoryItem(selectedStock)}
+                variant="market"
+                showComparison={false}
+                hideValue
+                showQuantity={false}
               />
-            </Field>
-            <Button
-              type="button"
-              className="inventory-action-primary"
-              data-testid={`buy-merchant-${selectedStock.itemCode}`}
-              disabled={tradeDisabled || buyPending}
-              title={buyDisabledReason}
-              onClick={onBuy}
-            >
-              {buyPending ? 'Buying…' : `Buy for ${selectedStock.sellPrice * merchantQuantity} gold`}
-            </Button>
+            </article>
+            <section className="market-actions" aria-label="Merchant purchase">
+              <dl className="stat-list">
+                <StatRow
+                  label="Price"
+                  value={
+                    <span className="market-gold">
+                      <img src="/chrome/currency-gold.webp" alt="" />
+                      {selectedStock.sellPrice} gold
+                    </span>
+                  }
+                />
+              </dl>
+              <Field label="Quantity">
+                <input
+                  data-testid="merchant-buy-quantity"
+                  type="number"
+                  min={1}
+                  max={merchantMaxQuantity}
+                  value={merchantQuantity}
+                  onChange={(event) => onQuantity(Number(event.target.value))}
+                />
+              </Field>
+              <div className="inventory-inspector-actions">
+                <MarketActionButton
+                  testId={`buy-merchant-${selectedStock.itemCode}`}
+                  icon="buy"
+                  label={buyPending ? 'Buying…' : 'Buy item'}
+                  hint="Purchase this item now."
+                  trailing={`${selectedStock.sellPrice * merchantQuantity}g`}
+                  disabled={tradeDisabled || buyPending}
+                  title={buyDisabledReason}
+                  onClick={onBuy}
+                />
+                <ComingLaterButton className="market-action-row" data-testid="merchant-buy-order">
+                  <ActionGlyph name="order" />
+                  <span className="market-action-copy">
+                    <strong>Place buy order</strong>
+                    <small>Buy this item at your price.</small>
+                  </span>
+                  <ActionChevron />
+                </ComingLaterButton>
+                <ComingLaterButton className="market-action-row" data-testid="merchant-watchlist">
+                  <ActionGlyph name="watch" />
+                  <span className="market-action-copy">
+                    <strong>Add item to watchlist</strong>
+                    <small>Get price alerts for this item.</small>
+                  </span>
+                  <ActionChevron />
+                </ComingLaterButton>
+              </div>
+            </section>
           </>
         ) : (
           <EmptyState>Select a merchant good to inspect it.</EmptyState>
         )}
       </aside>
     </div>
+  )
+}
+
+function MarketSellerBlock({
+  name,
+  title,
+  description,
+  portraitCode,
+  testId,
+}: {
+  name: string
+  title?: string
+  description?: string
+  portraitCode?: string
+  testId?: string
+}) {
+  return (
+    <section className="market-seller" data-testid={testId} aria-label="Seller">
+      <div className="market-seller-head">
+        <span className="merchant-portrait" aria-hidden="true">
+          <MerchantPortrait code={portraitCode} name={name} />
+        </span>
+        <div>
+          <strong>{name}</strong>
+          {title ? <span className="muted">{title}</span> : null}
+        </div>
+      </div>
+      {description ? <p className="market-seller-blurb">{description}</p> : null}
+    </section>
+  )
+}
+
+function MerchantPortrait({ code, name }: { code?: string; name: string }) {
+  const src = merchantPortraitUrl(code)
+  if (!src) {
+    return <>{initials(name)}</>
+  }
+  return <img src={src} alt="" />
+}
+
+function MarketActionButton({
+  testId,
+  icon,
+  label,
+  hint,
+  trailing,
+  disabled,
+  title,
+  onClick,
+}: {
+  testId: string
+  icon: 'buy' | 'cancel'
+  label: string
+  hint: string
+  trailing?: string
+  disabled?: boolean
+  title?: string
+  onClick: () => void
+}) {
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      className={icon === 'buy' ? 'market-action-row market-action-buy' : 'market-action-row'}
+      data-testid={testId}
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+    >
+      <ActionGlyph name={icon} />
+      <span className="market-action-copy">
+        <strong>{label}</strong>
+        <small>{hint}</small>
+      </span>
+      {trailing ? <span className="market-action-trailing">{trailing}</span> : <ActionChevron />}
+    </Button>
+  )
+}
+
+function ActionGlyph({ name }: { name: 'buy' | 'cancel' | 'order' | 'watch' }) {
+  if (name === 'watch') {
+    return (
+      <svg className="market-action-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 6c-5 0-9 4.2-10 6 1 1.8 5 6 10 6s9-4.2 10-6c-1-1.8-5-6-10-6Z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+        <circle cx="12" cy="12" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      </svg>
+    )
+  }
+  if (name === 'order') {
+    return (
+      <svg className="market-action-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M6 7h12l-1.2 11.2H7.2Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        <path d="M9 7V5.6A3 3 0 0 1 12 2.8 3 3 0 0 1 15 5.6V7" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      </svg>
+    )
+  }
+  if (name === 'cancel') {
+    return (
+      <svg className="market-action-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7 7 17 17M17 7 7 17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  return (
+    <svg className="market-action-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 10h16l-1.4 9H5.4Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M8 10V8.2A4 4 0 0 1 12 4.4 4 4 0 0 1 16 8.2V10" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  )
+}
+
+function ActionChevron() {
+  return (
+    <svg className="market-action-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M6 3.2 11 8 6 12.8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
   )
 }
 

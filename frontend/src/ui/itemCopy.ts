@@ -30,6 +30,40 @@ export function verdictTone(
   return 'neutral'
 }
 
+const PRIMARY_STAT_LABELS = new Set(['Damage', 'Armor', 'Heal'])
+
+export function formatCatalogLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+export function itemInspectMeta(item: InventoryItemResponse): {
+  kicker: string
+  slotLine: string | null
+  itemLevel: string
+} {
+  const family = item.weaponFamily
+    ? formatCatalogLabel(item.weaponFamily)
+    : item.armorCategory
+      ? formatCatalogLabel(item.armorCategory)
+      : formatCatalogLabel(item.type)
+  let slotLine: string | null = null
+  if (item.twoHanded) {
+    slotLine = item.weaponFamily ? `Two-Handed ${formatCatalogLabel(item.weaponFamily)}` : 'Two-Handed'
+  } else if (item.equipmentSlot) {
+    slotLine = SLOT_LABELS[item.equipmentSlot]
+  }
+  return {
+    kicker: `${formatRarity(item.rarity)} ${family}`,
+    slotLine,
+    itemLevel: `Item Level ${item.requiredLevel}`,
+  }
+}
+
 export function itemCombatStatRows(
   item: InventoryItemResponse,
 ): Array<{ label: string; value: number | string }> {
@@ -66,6 +100,42 @@ export function itemCombatStatRows(
   }
   if (item.staminaCostReduction) {
     rows.push({ label: 'Stamina Cost', value: `-${item.staminaCostReduction}` })
+  }
+  return rows
+}
+
+export function itemPrimaryStatRows(
+  item: InventoryItemResponse,
+): Array<{ label: string; value: number | string }> {
+  return itemCombatStatRows(item).filter((row) => PRIMARY_STAT_LABELS.has(row.label))
+}
+
+export function itemSecondaryStatRows(
+  item: InventoryItemResponse,
+): Array<{ label: string; value: number | string }> {
+  return itemCombatStatRows(item).filter((row) => !PRIMARY_STAT_LABELS.has(row.label))
+}
+
+export function itemRequirementRows(
+  item: InventoryItemResponse,
+): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [
+    { label: 'Required Level', value: String(item.requiredLevel) },
+  ]
+  if (item.requiredStrength > 0) {
+    rows.push({ label: 'Required Strength', value: String(item.requiredStrength) })
+  }
+  if (item.requiredAgility > 0) {
+    rows.push({ label: 'Required Agility', value: String(item.requiredAgility) })
+  }
+  if (item.requiredEndurance > 0) {
+    rows.push({ label: 'Required Endurance', value: String(item.requiredEndurance) })
+  }
+  if (item.requiredPerception > 0) {
+    rows.push({ label: 'Required Perception', value: String(item.requiredPerception) })
+  }
+  if (item.equipmentSlot) {
+    rows.push({ label: 'Slot', value: item.twoHanded ? 'Two-Handed' : SLOT_LABELS[item.equipmentSlot] })
   }
   return rows
 }
