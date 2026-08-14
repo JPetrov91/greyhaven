@@ -41,9 +41,12 @@ export function AppShell() {
     applyUiMode(next)
   }
 
+  const isAuthLanding = location.pathname === '/login' || location.pathname === '/register'
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
+    <div className={isAuthLanding ? 'app-shell app-shell-auth' : 'app-shell'}>
+      {isAuthLanding ? null : (
+        <header className="app-header">
         <NavLink to={isAuthenticated ? '/game' : '/login'} className="brand">
           Greyhaven
         </NavLink>
@@ -101,8 +104,9 @@ export function AppShell() {
             </>
           )}
         </nav>
-      </header>
-      <main className="app-main">
+        </header>
+      )}
+      <main className={isAuthLanding ? 'app-main app-main-auth' : 'app-main'}>
         <Outlet />
       </main>
     </div>

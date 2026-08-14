@@ -1,5 +1,6 @@
 @import './ui/tokens.css';
 @import './ui/components.css';
+@import './pages/authLanding.css';
 
 :root {
   font-family: var(--font-body);

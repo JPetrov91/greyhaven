@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="gh-gold" x1="24" y1="4" x2="104" y2="124">
+      <stop offset="0%" stop-color="#f6e7b4"/>
+      <stop offset="42%" stop-color="#e8c36a"/>
+      <stop offset="100%" stop-color="#8d5f1e"/>
+    </linearGradient>
+    <linearGradient id="gh-blade" x1="64" y1="18" x2="64" y2="108">
+      <stop offset="0%" stop-color="#fff6d6"/>
+      <stop offset="38%" stop-color="#e8c36a"/>
+      <stop offset="100%" stop-color="#a56d28"/>
+    </linearGradient>
+    <radialGradient id="gh-well" cx="50%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#3a2a16"/>
+      <stop offset="100%" stop-color="#120e0b"/>
+    </radialGradient>
+  </defs>
+  <path
+    fill="url(#gh-gold)"
+    d="M64.00,3.00 73.56,15.94 87.34,7.64 91.22,23.26 107.13,20.87 104.74,36.78 120.36,40.66 112.06,54.44 125.00,64.00 112.06,73.56 120.36,87.34 104.74,91.22 107.13,107.13 91.22,104.74 87.34,120.36 73.56,112.06 64.00,125.00 54.44,112.06 40.66,120.36 36.78,104.74 20.87,107.13 23.26,91.22 7.64,87.34 15.94,73.56 3.00,64.00 15.94,54.44 7.64,40.66 23.26,36.78 20.87,20.87 36.78,23.26 40.66,7.64 54.44,15.94Z"
+  />
+  <circle cx="64" cy="64" r="44" fill="url(#gh-well)" stroke="#c4923a" stroke-width="1.4"/>
+  <circle cx="64" cy="64" r="38.5" stroke="#e8c36a" stroke-width="0.7" opacity="0.55"/>
+  <path
+    fill="none"
+    stroke="#d4b05a"
+    stroke-width="1.35"
+    opacity="0.85"
+    d="M46 78V52c0-8 8-16 18-16s18 8 18 16v26"
+  />
+  <path fill="url(#gh-blade)" d="M61.4 22h5.2l1.2 8.2 4.8-1.6.9 2.8-5.4 1.4v9.2h8.6v3.2H63.3v48.6c0 1.2-.4 2.2-1.3 2.2s-1.3-1-1.3-2.2V45.2H52.1v-3.2h8.6V32.8l-5.4-1.4.9-2.8 4.8 1.6 1.4-8.2Z"/>
+  <path fill="#f0d48a" d="M63.2 22.6h1.6v9.4h-1.6z"/>
+  <path fill="url(#gh-gold)" d="M49.5 42.2h29v3.4h-29z"/>
+  <path fill="#c4923a" d="M54.2 39.4h19.6v2.4H54.2z"/>
+  <path fill="#e8c36a" d="M64 96.2 58.6 104h10.8L64 96.2Z"/>
+</svg>
