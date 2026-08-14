@@ -1,5 +1,6 @@
 package com.example.game.item.application;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.example.game.inventory.domain.EquipmentSlot;
@@ -30,6 +31,7 @@ public record ItemDefinitionView(
 		int requiredStrength,
 		int requiredAgility,
 		int requiredEndurance,
-		int requiredPerception
+		int requiredPerception,
+		List<ItemModifierView> modifiers
 ) {
 }

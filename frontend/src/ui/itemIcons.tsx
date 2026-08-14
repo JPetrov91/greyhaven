@@ -1,10 +1,12 @@
 import type { EquipmentSlot, ItemType } from '../api/types'
 import { classNames } from './classNames'
 import { EquipmentSlotIcon } from './equipmentIcons'
+import { itemArtUrl } from './itemMedia'
 
 export type ItemIconSource = {
   type: ItemType
   equipmentSlot?: EquipmentSlot | null
+  code?: string | null
 }
 
 type Props = {
@@ -14,9 +16,10 @@ type Props = {
 
 export function ItemIcon({ item, className = 'item-icon' }: Props) {
   const kind = item.type.toLowerCase()
+  const artUrl = itemArtUrl(item.code)
   return (
-    <span className={classNames('item-icon-face', `item-icon-face-${kind}`, className)}>
-      <ItemGlyph item={item} />
+    <span className={classNames('item-icon-face', `item-icon-face-${kind}`, artUrl && 'item-icon-face-art', className)}>
+      {artUrl ? <img className="item-icon-art" src={artUrl} alt="" /> : <ItemGlyph item={item} />}
     </span>
   )
 }

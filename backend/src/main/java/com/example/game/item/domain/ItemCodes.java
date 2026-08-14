@@ -29,6 +29,8 @@ public final class ItemCodes {
 	public static final String KNOBBED_CLUB = "KNOBBED_CLUB";
 	public static final String PADDED_JACK = "PADDED_JACK";
 	public static final String SPLINT_VEST = "SPLINT_VEST";
+	public static final String MILITIA_SHORTSWORD = "MILITIA_SHORTSWORD";
+	public static final String ARMING_SWORD = "ARMING_SWORD";
 
 	private ItemCodes() {
 	}

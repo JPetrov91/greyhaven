@@ -199,9 +199,13 @@ class ItemizationIntegrationTest {
 		mockMvc.perform(get("/api/v1/inventory").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.slot", hasItem("MAIN_HAND")))
-				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.verdict", hasItem("UPGRADE")))
+				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.verdict", hasItem("MIXED")))
 				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.deltas[?(@.stat=='Damage')].delta",
-						hasItem(7)));
+						hasItem(7)))
+				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.deltas[?(@.stat=='Accuracy')].delta",
+						hasItem(-1)))
+				.andExpect(jsonPath("$.items[?(@.code=='IRON_AXE')].comparison.deltas[?(@.stat=='Critical')].delta",
+						hasItem(2)));
 	}
 
 	@Test

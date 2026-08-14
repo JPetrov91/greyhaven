@@ -15,17 +15,17 @@ type Props = {
   onAction: () => void
 }
 
-export function listingIconSource(itemType: ItemType): ItemIconSource {
+export function listingIconSource(itemType: ItemType, itemCode?: string): ItemIconSource {
   if (itemType === 'WEAPON') {
-    return { type: itemType, equipmentSlot: 'MAIN_HAND' }
+    return { type: itemType, equipmentSlot: 'MAIN_HAND', code: itemCode }
   }
   if (itemType === 'ARMOR') {
-    return { type: itemType, equipmentSlot: 'CHEST' }
+    return { type: itemType, equipmentSlot: 'CHEST', code: itemCode }
   }
   if (itemType === 'ACCESSORY') {
-    return { type: itemType, equipmentSlot: 'AMULET' }
+    return { type: itemType, equipmentSlot: 'AMULET', code: itemCode }
   }
-  return { type: itemType }
+  return { type: itemType, code: itemCode }
 }
 
 export function formatItemType(itemType: ItemType): string {
@@ -50,7 +50,7 @@ export function MarketListingRow({
     >
       <td>
         <button type="button" className="market-row-select" onClick={onSelect}>
-          <ItemIcon item={listingIconSource(listing.itemType)} className="item-icon item-icon-row" />
+          <ItemIcon item={listingIconSource(listing.itemType, listing.itemCode)} className="item-icon item-icon-row" />
           <span className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</span>
         </button>
       </td>

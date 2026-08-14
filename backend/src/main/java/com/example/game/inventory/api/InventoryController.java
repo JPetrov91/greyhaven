@@ -93,6 +93,14 @@ public class InventoryController {
 				item.weaponDamage(),
 				item.armorValue(),
 				item.healAmount(),
+				item.accuracy(),
+				item.criticalChance(),
+				item.dodge(),
+				item.strength(),
+				item.agility(),
+				item.endurance(),
+				item.perception(),
+				item.staminaCostReduction(),
 				item.affixes().stream()
 						.map(affix -> new ItemAffixResponse(
 								affix.code(),

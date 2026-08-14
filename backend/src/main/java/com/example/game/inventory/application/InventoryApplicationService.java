@@ -39,6 +39,8 @@ import com.example.game.item.domain.ItemStats;
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.domain.RolledAffix;
 import com.example.game.item.infrastructure.ItemDefinitionEntity;
+import com.example.game.item.infrastructure.ItemDefinitionModifierEntity;
+import com.example.game.item.infrastructure.ItemDefinitionModifierRepository;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceAffixEntity;
 import com.example.game.item.infrastructure.ItemInstanceAffixRepository;
@@ -57,6 +59,7 @@ public class InventoryApplicationService {
 	private final CharacterCombatGuard characterCombatGuard;
 	private final ItemReservationQuery itemReservationQuery;
 	private final ItemInstanceAffixRepository itemInstanceAffixRepository;
+	private final ItemDefinitionModifierRepository itemDefinitionModifierRepository;
 	private final AffixCatalogService affixCatalogService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
@@ -69,6 +72,7 @@ public class InventoryApplicationService {
 			CharacterCombatGuard characterCombatGuard,
 			ItemReservationQuery itemReservationQuery,
 			ItemInstanceAffixRepository itemInstanceAffixRepository,
+			ItemDefinitionModifierRepository itemDefinitionModifierRepository,
 			AffixCatalogService affixCatalogService,
 			RandomProvider randomProvider,
 			Clock clock) {
@@ -79,6 +83,7 @@ public class InventoryApplicationService {
 		this.characterCombatGuard = characterCombatGuard;
 		this.itemReservationQuery = itemReservationQuery;
 		this.itemInstanceAffixRepository = itemInstanceAffixRepository;
+		this.itemDefinitionModifierRepository = itemDefinitionModifierRepository;
 		this.affixCatalogService = affixCatalogService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
@@ -501,10 +506,12 @@ public class InventoryApplicationService {
 	EquippedBonusesSnapshot equippedBonuses(UUID characterId) {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId);
+		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
 		return equippedBonuses(
 				equippedItemIds(characterId),
 				instances,
-				loadDefinitions(instances),
+				definitions,
+				loadCatalogModifiers(definitions.keySet()),
 				loadAffixes(instances),
 				affixCatalogService.load());
 	}
@@ -513,6 +520,7 @@ public class InventoryApplicationService {
 			Map<EquipmentSlot, UUID> equipped,
 			List<ItemInstanceEntity> instances,
 			Map<UUID, ItemDefinitionEntity> definitions,
+			Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers,
 			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
 			AffixCatalog catalog) {
 		Map<UUID, ItemInstanceEntity> instancesById = new HashMap<>();
@@ -533,7 +541,7 @@ public class InventoryApplicationService {
 			if (definition == null) {
 				definition = requireDefinition(instance.getItemDefinitionId());
 			}
-			total = total.plus(statsOf(instance, definition, affixesByInstance, catalog));
+			total = total.plus(statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog));
 			heaviestArmor = ArmorCategory.heaviest(heaviestArmor, definition.getArmorCategory());
 		}
 		total = total.plusDodge(ItemBalance.armorDodge(heaviestArmor));
@@ -554,6 +562,7 @@ public class InventoryApplicationService {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(vitals.characterId());
 		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers = loadCatalogModifiers(definitions.keySet());
 		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
 		AffixCatalog catalog = affixCatalogService.load();
 		Map<EquipmentSlot, UUID> equippedBySlot = equippedItemIds(vitals.characterId());
@@ -563,7 +572,7 @@ public class InventoryApplicationService {
 		Map<UUID, ItemStats> statsByInstance = new HashMap<>();
 		for (ItemInstanceEntity instance : instances) {
 			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
-			statsByInstance.put(instance.getId(), statsOf(instance, definition, affixesByInstance, catalog));
+			statsByInstance.put(instance.getId(), statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog));
 		}
 		EquipmentValidator.CharacterRequirements requirements = requirementsOf(vitals);
 		boolean mainHandTwoHanded = isTwoHanded(equippedBySlot.get(EquipmentSlot.MAIN_HAND), instances, definitions);
@@ -635,6 +644,14 @@ public class InventoryApplicationService {
 							displayWeaponDamage(instance.getRolledWeaponDamage(), statsByInstance.get(instance.getId())),
 							displayArmorValue(instance.getRolledArmorValue(), statsByInstance.get(instance.getId())),
 							definition.getHealAmount(),
+							statsByInstance.get(instance.getId()).accuracy(),
+							statsByInstance.get(instance.getId()).criticalChance(),
+							statsByInstance.get(instance.getId()).dodge(),
+							statsByInstance.get(instance.getId()).strength(),
+							statsByInstance.get(instance.getId()).agility(),
+							statsByInstance.get(instance.getId()).endurance(),
+							statsByInstance.get(instance.getId()).perception(),
+							statsByInstance.get(instance.getId()).staminaCostReduction(),
 							affixViews,
 							comparison);
 				})
@@ -644,6 +661,7 @@ public class InventoryApplicationService {
 				equippedBySlot,
 				instances,
 				definitions,
+				catalogModifiers,
 				affixesByInstance,
 				catalog);
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
@@ -691,7 +709,7 @@ public class InventoryApplicationService {
 	}
 
 	private static void addDelta(List<StatDeltaView> deltas, String stat, int equipped, int candidate) {
-		if (equipped == 0 && candidate == 0) {
+		if (equipped == candidate) {
 			return;
 		}
 		deltas.add(new StatDeltaView(stat, equipped, candidate, candidate - equipped));
@@ -700,6 +718,7 @@ public class InventoryApplicationService {
 	private ItemStats statsOf(
 			ItemInstanceEntity instance,
 			ItemDefinitionEntity definition,
+			Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers,
 			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
 			AffixCatalog catalog) {
 		List<ItemStatCalculator.AppliedAffix> applied = affixesByInstance
@@ -712,8 +731,20 @@ public class InventoryApplicationService {
 		return ItemStatCalculator.calculate(
 				instance.getRolledWeaponDamage(),
 				instance.getRolledArmorValue(),
-				definition.getArmorCategory(),
+				catalogModifiers.getOrDefault(definition.getId(), List.of()),
 				applied);
+	}
+
+	private Map<UUID, List<ItemStatCalculator.AppliedAffix>> loadCatalogModifiers(Set<UUID> definitionIds) {
+		Map<UUID, List<ItemStatCalculator.AppliedAffix>> modifiers = new HashMap<>();
+		if (definitionIds.isEmpty()) {
+			return modifiers;
+		}
+		for (ItemDefinitionModifierEntity row : itemDefinitionModifierRepository.findByItemDefinitionIdIn(definitionIds)) {
+			modifiers.computeIfAbsent(row.getItemDefinitionId(), key -> new ArrayList<>())
+					.add(new ItemStatCalculator.AppliedAffix(row.getStat(), row.getMagnitude()));
+		}
+		return modifiers;
 	}
 
 	private Map<UUID, List<ItemInstanceAffixEntity>> loadAffixes(List<ItemInstanceEntity> instances) {

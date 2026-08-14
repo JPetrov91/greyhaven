@@ -1,5 +1,6 @@
 package com.example.game.item.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class ItemStatCalculator {
@@ -10,7 +11,14 @@ public final class ItemStatCalculator {
 	public static ItemStats calculate(
 			Integer rolledWeaponDamage,
 			Integer rolledArmorValue,
-			ArmorCategory armorCategory,
+			List<AppliedAffix> affixes) {
+		return calculate(rolledWeaponDamage, rolledArmorValue, List.of(), affixes);
+	}
+
+	public static ItemStats calculate(
+			Integer rolledWeaponDamage,
+			Integer rolledArmorValue,
+			List<AppliedAffix> catalogModifiers,
 			List<AppliedAffix> affixes) {
 		int baseWeapon = rolledWeaponDamage == null ? 0 : rolledWeaponDamage;
 		int armor = rolledArmorValue == null ? 0 : rolledArmorValue;
@@ -24,20 +32,25 @@ public final class ItemStatCalculator {
 		int perception = 0;
 		int staminaCostReduction = 0;
 
+		List<AppliedAffix> modifiers = new ArrayList<>();
+		if (catalogModifiers != null) {
+			modifiers.addAll(catalogModifiers);
+		}
 		if (affixes != null) {
-			for (AppliedAffix affix : affixes) {
-				switch (affix.stat()) {
-					case DAMAGE_PERCENT -> damagePercent += affix.magnitude();
-					case ACCURACY -> accuracy += affix.magnitude();
-					case CRIT_CHANCE -> criticalChance += affix.magnitude();
-					case ARMOR -> armor += affix.magnitude();
-					case STRENGTH -> strength += affix.magnitude();
-					case AGILITY -> agility += affix.magnitude();
-					case ENDURANCE -> endurance += affix.magnitude();
-					case PERCEPTION -> perception += affix.magnitude();
-					case DODGE -> dodge += affix.magnitude();
-					case STAMINA_COST -> staminaCostReduction += affix.magnitude();
-				}
+			modifiers.addAll(affixes);
+		}
+		for (AppliedAffix affix : modifiers) {
+			switch (affix.stat()) {
+				case DAMAGE_PERCENT -> damagePercent += affix.magnitude();
+				case ACCURACY -> accuracy += affix.magnitude();
+				case CRIT_CHANCE -> criticalChance += affix.magnitude();
+				case ARMOR -> armor += affix.magnitude();
+				case STRENGTH -> strength += affix.magnitude();
+				case AGILITY -> agility += affix.magnitude();
+				case ENDURANCE -> endurance += affix.magnitude();
+				case PERCEPTION -> perception += affix.magnitude();
+				case DODGE -> dodge += affix.magnitude();
+				case STAMINA_COST -> staminaCostReduction += affix.magnitude();
 			}
 		}
 

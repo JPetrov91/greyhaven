@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { InventoryItemResponse } from '../api/types'
-import { itemAriaLabel, shouldShowItemComparison } from './itemCopy'
+import { itemAriaLabel, itemStatsLine, shouldShowItemComparison } from './itemCopy'
 
 function potion(): InventoryItemResponse {
   return {
@@ -45,6 +45,20 @@ describe('itemAriaLabel', () => {
     expect(label).toContain('Common')
     expect(label).toContain('Qty 2')
     expect(label).toContain('Heal 40')
+  })
+
+  it('includes implicit combat modifiers', () => {
+    expect(
+      itemStatsLine({
+        ...potion(),
+        type: 'WEAPON',
+        code: 'ARMING_SWORD',
+        weaponDamage: 8,
+        healAmount: null,
+        accuracy: 4,
+        criticalChance: 1,
+      }),
+    ).toBe('Damage 8 · Accuracy +4 · Crit +1')
   })
 })
 

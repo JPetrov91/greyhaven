@@ -239,6 +239,14 @@ export type InventoryItemResponse = {
   weaponDamage: number | null
   armorValue: number | null
   healAmount: number | null
+  accuracy?: number
+  criticalChance?: number
+  dodge?: number
+  strength?: number
+  agility?: number
+  endurance?: number
+  perception?: number
+  staminaCostReduction?: number
   affixes: ItemAffixResponse[]
   comparison: ItemComparisonResponse | null
   merchantBuyPrice?: number
@@ -392,6 +400,14 @@ export type MerchantStockItemResponse = {
   requiredAgility: number
   requiredEndurance: number
   requiredPerception: number
+  accuracy?: number
+  criticalChance?: number
+  dodge?: number
+  strength?: number
+  agility?: number
+  endurance?: number
+  perception?: number
+  staminaCostReduction?: number
 }
 
 export type MerchantResponse = {

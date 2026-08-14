@@ -30,19 +30,50 @@ export function verdictTone(
   return 'neutral'
 }
 
-export function itemStatsLine(item: InventoryItemResponse): string {
-  const parts: string[] = []
+export function itemCombatStatRows(
+  item: InventoryItemResponse,
+): Array<{ label: string; value: number | string }> {
+  const rows: Array<{ label: string; value: number | string }> = []
   if (item.weaponDamage != null) {
-    parts.push(`Damage ${item.weaponDamage}`)
+    rows.push({ label: 'Damage', value: item.weaponDamage })
   }
   if (item.armorValue != null) {
-    parts.push(`Armor ${item.armorValue}`)
+    rows.push({ label: 'Armor', value: item.armorValue })
   }
   if (item.healAmount != null) {
-    parts.push(`Heal ${item.healAmount}`)
+    rows.push({ label: 'Heal', value: item.healAmount })
   }
+  if (item.accuracy) {
+    rows.push({ label: 'Accuracy', value: `+${item.accuracy}` })
+  }
+  if (item.criticalChance) {
+    rows.push({ label: 'Crit', value: `+${item.criticalChance}` })
+  }
+  if (item.dodge) {
+    rows.push({ label: 'Dodge', value: `+${item.dodge}` })
+  }
+  if (item.strength) {
+    rows.push({ label: 'Strength', value: `+${item.strength}` })
+  }
+  if (item.agility) {
+    rows.push({ label: 'Agility', value: `+${item.agility}` })
+  }
+  if (item.endurance) {
+    rows.push({ label: 'Endurance', value: `+${item.endurance}` })
+  }
+  if (item.perception) {
+    rows.push({ label: 'Perception', value: `+${item.perception}` })
+  }
+  if (item.staminaCostReduction) {
+    rows.push({ label: 'Stamina Cost', value: `-${item.staminaCostReduction}` })
+  }
+  return rows
+}
+
+export function itemStatsLine(item: InventoryItemResponse): string {
+  const parts = itemCombatStatRows(item).map((row) => `${row.label} ${row.value}`)
   if (parts.length === 0) {
-    parts.push('No combat stats')
+    return 'No combat stats'
   }
   return parts.join(' · ')
 }

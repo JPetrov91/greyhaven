@@ -40,6 +40,14 @@ public record InventoryItemView(
 		Integer weaponDamage,
 		Integer armorValue,
 		Integer healAmount,
+		int accuracy,
+		int criticalChance,
+		int dodge,
+		int strength,
+		int agility,
+		int endurance,
+		int perception,
+		int staminaCostReduction,
 		List<ItemAffixView> affixes,
 		ItemComparisonView comparison
 ) {

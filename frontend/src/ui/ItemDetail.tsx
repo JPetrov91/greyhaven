@@ -1,6 +1,6 @@
 import type { InventoryItemResponse } from '../api/types'
 import { SLOT_LABELS } from './equipmentSlots'
-import { comparisonLabel, verdictTone } from './itemCopy'
+import { comparisonLabel, itemCombatStatRows, verdictTone } from './itemCopy'
 import { ItemIcon } from './itemIcons'
 import { RarityBadge } from './RarityBadge'
 import { StatRow } from './StatRow'
@@ -62,9 +62,9 @@ export function ItemDetail({
       ) : null}
       {item.description ? <p className="item-tooltip-desc">{item.description}</p> : null}
       <dl className="stat-list">
-        {item.weaponDamage != null ? <StatRow label="Damage" value={item.weaponDamage} /> : null}
-        {item.armorValue != null ? <StatRow label="Armor" value={item.armorValue} /> : null}
-        {item.healAmount != null ? <StatRow label="Heal" value={item.healAmount} /> : null}
+        {itemCombatStatRows(item).map((row) => (
+          <StatRow key={row.label} label={row.label} value={row.value} />
+        ))}
         <StatRow label={valueLabel} value={item.baseValue} />
       </dl>
       {item.affixes.length > 0 ? (

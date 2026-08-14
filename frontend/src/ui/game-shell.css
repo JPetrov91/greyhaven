@@ -1845,6 +1845,19 @@ html[data-ui-mode='compact'] .character-overview-portrait {
   height: 1.7rem;
 }
 
+.item-icon-face-art {
+  overflow: hidden;
+  padding: 0;
+  background: rgba(12, 10, 8, 0.55);
+}
+
+.item-icon-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .item-icon-face-weapon {
   color: #e2c48a;
   background: rgba(226, 196, 138, 0.16);

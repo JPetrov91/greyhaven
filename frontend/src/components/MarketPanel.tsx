@@ -694,7 +694,7 @@ function ListingInspector({
       ) : (
         <div className="item-detail">
           <header className="item-tooltip-header">
-            <ItemIcon item={listingIconSource(listing.itemType)} className="item-icon item-icon-inspector" />
+            <ItemIcon item={listingIconSource(listing.itemType, listing.itemCode)} className="item-icon item-icon-inspector" />
             <div className="item-detail-heading">
               <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</strong>
               <RarityBadge rarity={listing.rarity} />
@@ -909,7 +909,7 @@ function MerchantHub({
                         data-testid={`merchant-stock-${item.itemCode}`}
                         onClick={() => onSelectStock(item.itemCode)}
                       >
-                        <ItemIcon item={listingIconSource(item.itemType)} />
+                        <ItemIcon item={listingIconSource(item.itemType, item.itemCode)} />
                         {item.itemName}
                       </button>
                     </td>
@@ -1004,6 +1004,14 @@ function stockAsInventoryItem(item: MerchantStockItemResponse): InventoryItemRes
     weaponDamage: item.weaponDamage,
     armorValue: item.armorValue,
     healAmount: item.healAmount,
+    accuracy: item.accuracy,
+    criticalChance: item.criticalChance,
+    dodge: item.dodge,
+    strength: item.strength,
+    agility: item.agility,
+    endurance: item.endurance,
+    perception: item.perception,
+    staminaCostReduction: item.staminaCostReduction,
     affixes: [],
     comparison: null,
   }

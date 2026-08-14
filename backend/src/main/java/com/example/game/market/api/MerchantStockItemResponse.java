@@ -22,6 +22,14 @@ public record MerchantStockItemResponse(
 		int requiredStrength,
 		int requiredAgility,
 		int requiredEndurance,
-		int requiredPerception
+		int requiredPerception,
+		int accuracy,
+		int criticalChance,
+		int dodge,
+		int strength,
+		int agility,
+		int endurance,
+		int perception,
+		int staminaCostReduction
 ) {
 }

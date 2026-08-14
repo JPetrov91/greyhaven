@@ -112,6 +112,14 @@ public class MerchantController {
 				item.requiredStrength(),
 				item.requiredAgility(),
 				item.requiredEndurance(),
-				item.requiredPerception());
+				item.requiredPerception(),
+				item.accuracy(),
+				item.criticalChance(),
+				item.dodge(),
+				item.strength(),
+				item.agility(),
+				item.endurance(),
+				item.perception(),
+				item.staminaCostReduction());
 	}
 }

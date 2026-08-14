@@ -20,6 +20,8 @@ import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.inventory.application.OwnedItemSnapshot;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
+import com.example.game.item.domain.ItemStatCalculator;
+import com.example.game.item.domain.ItemStats;
 import com.example.game.item.domain.ItemType;
 import com.example.game.market.domain.MerchantPriceCalculator;
 import com.example.game.market.domain.MerchantRules;
@@ -206,6 +208,13 @@ public class MerchantApplicationService {
 	}
 
 	private static MerchantStockItemView toStockView(MerchantStockEntity row, ItemDefinitionView definition) {
+		ItemStats stats = ItemStatCalculator.calculate(
+				definition.weaponDamage(),
+				definition.armorValue(),
+				definition.modifiers().stream()
+						.map(modifier -> new ItemStatCalculator.AppliedAffix(modifier.stat(), modifier.magnitude()))
+						.toList(),
+				List.of());
 		return new MerchantStockItemView(
 				definition.id(),
 				definition.code(),
@@ -216,8 +225,8 @@ public class MerchantApplicationService {
 				MerchantPriceCalculator.merchantSellPrice(definition.baseValue(), definition.rarity()),
 				row.getAvailabilityType(),
 				definition.requiredLevel(),
-				definition.weaponDamage(),
-				definition.armorValue(),
+				displayWeapon(definition.weaponDamage(), stats),
+				displayArmor(definition.armorValue(), stats),
 				definition.healAmount(),
 				definition.twoHanded(),
 				definition.equipmentSlot(),
@@ -226,7 +235,29 @@ public class MerchantApplicationService {
 				definition.requiredStrength(),
 				definition.requiredAgility(),
 				definition.requiredEndurance(),
-				definition.requiredPerception());
+				definition.requiredPerception(),
+				stats.accuracy(),
+				stats.criticalChance(),
+				stats.dodge(),
+				stats.strength(),
+				stats.agility(),
+				stats.endurance(),
+				stats.perception(),
+				stats.staminaCostReduction());
+	}
+
+	private static Integer displayWeapon(Integer catalogDamage, ItemStats stats) {
+		if (catalogDamage == null && stats.weaponDamage() == 0) {
+			return null;
+		}
+		return stats.weaponDamage();
+	}
+
+	private static Integer displayArmor(Integer catalogArmor, ItemStats stats) {
+		if (catalogArmor == null && stats.armor() == 0) {
+			return null;
+		}
+		return stats.armor();
 	}
 
 	private ItemDefinitionView requireDefinition(UUID itemDefinitionId) {

@@ -78,12 +78,36 @@ class InventoryIntegrationTest {
 		Integer flywayV20 = jdbcTemplate.queryForObject(
 				"select count(*) from flyway_schema_history where version = '20' and success = true",
 				Integer.class);
+		Integer flywayV27 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '27' and success = true",
+				Integer.class);
+		Integer modifierCount = jdbcTemplate.queryForObject(
+				"select count(*) from item_definition_modifiers",
+				Integer.class);
+		Integer rustyAccuracy = jdbcTemplate.queryForObject(
+				"""
+						select m.magnitude from item_definition_modifiers m
+						join item_definitions d on d.id = m.item_definition_id
+						where d.code = 'RUSTY_SWORD' and m.stat = 'ACCURACY'
+						""",
+				Integer.class);
+		Integer chestModifiers = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from item_definition_modifiers m
+						join item_definitions d on d.id = m.item_definition_id
+						where d.code = 'WORN_LEATHER_ARMOR'
+						""",
+				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(24);
+		assertThat(definitionCount).isEqualTo(26);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
 		assertThat(flywayV18).isEqualTo(1);
 		assertThat(flywayV20).isEqualTo(1);
+		assertThat(flywayV27).isEqualTo(1);
+		assertThat(modifierCount).isEqualTo(27);
+		assertThat(rustyAccuracy).isEqualTo(4);
+		assertThat(chestModifiers).isZero();
 	}
 
 	@Test
@@ -100,10 +124,13 @@ class InventoryIntegrationTest {
 				.andExpect(jsonPath("$.equipment.slots.HEAD").value(nullValue()))
 				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].legacy", hasItem(false)))
 				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].affixes.length()", hasItem(0)))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].accuracy", hasItem(4)))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].criticalChance", hasItem(1)))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
-				.andExpect(jsonPath("$.derivedStats.accuracy").value(83))
-				.andExpect(jsonPath("$.derivedStats.dodge").value(8));
+				.andExpect(jsonPath("$.derivedStats.accuracy").value(87))
+				.andExpect(jsonPath("$.derivedStats.dodge").value(8))
+				.andExpect(jsonPath("$.derivedStats.criticalChance").value(8));
 
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())

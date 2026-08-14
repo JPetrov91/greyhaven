@@ -1,8 +1,10 @@
 package com.example.game.item.application;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.infrastructure.ItemDefinitionEntity;
+import com.example.game.item.infrastructure.ItemDefinitionModifierEntity;
+import com.example.game.item.infrastructure.ItemDefinitionModifierRepository;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 
 /**
@@ -22,9 +26,13 @@ import com.example.game.item.infrastructure.ItemDefinitionRepository;
 public class ItemCatalogService {
 
 	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final ItemDefinitionModifierRepository itemDefinitionModifierRepository;
 
-	public ItemCatalogService(ItemDefinitionRepository itemDefinitionRepository) {
+	public ItemCatalogService(
+			ItemDefinitionRepository itemDefinitionRepository,
+			ItemDefinitionModifierRepository itemDefinitionModifierRepository) {
 		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.itemDefinitionModifierRepository = itemDefinitionModifierRepository;
 	}
 
 	/**
@@ -32,11 +40,12 @@ public class ItemCatalogService {
 	 */
 	@Transactional(readOnly = true)
 	public Map<UUID, ItemDefinitionView> findByIds(Collection<UUID> itemDefinitionIds) {
+		List<ItemDefinitionEntity> entities = itemDefinitionRepository.findAllById(itemDefinitionIds);
+		Map<UUID, List<ItemModifierView>> modifiers = loadModifiers(
+				entities.stream().map(ItemDefinitionEntity::getId).toList());
 		Map<UUID, ItemDefinitionView> definitions = new HashMap<>();
-		for (ItemDefinitionEntity definition : itemDefinitionRepository.findAllById(itemDefinitionIds)) {
-			definitions.put(
-					definition.getId(),
-					toView(definition));
+		for (ItemDefinitionEntity definition : entities) {
+			definitions.put(definition.getId(), toView(definition, modifiers));
 		}
 		return definitions;
 	}
@@ -52,7 +61,9 @@ public class ItemCatalogService {
 
 	@Transactional(readOnly = true)
 	public Optional<ItemDefinitionView> findByCode(String itemCode) {
-		return itemDefinitionRepository.findByCode(itemCode).map(ItemCatalogService::toView);
+		return itemDefinitionRepository.findByCode(itemCode).map(definition -> toView(
+				definition,
+				loadModifiers(List.of(definition.getId()))));
 	}
 
 	/**
@@ -61,15 +72,33 @@ public class ItemCatalogService {
 	@Transactional(readOnly = true)
 	public Map<String, ItemDefinitionView> findByCodes(Collection<String> itemCodes) {
 		Map<String, ItemDefinitionView> definitions = new HashMap<>();
+		List<ItemDefinitionEntity> entities = new ArrayList<>();
 		for (String code : itemCodes) {
-			itemDefinitionRepository.findByCode(code).ifPresent(definition -> definitions.put(
-					definition.getCode(),
-					toView(definition)));
+			itemDefinitionRepository.findByCode(code).ifPresent(entities::add);
+		}
+		Map<UUID, List<ItemModifierView>> modifiers = loadModifiers(
+				entities.stream().map(ItemDefinitionEntity::getId).toList());
+		for (ItemDefinitionEntity definition : entities) {
+			definitions.put(definition.getCode(), toView(definition, modifiers));
 		}
 		return definitions;
 	}
 
-	private static ItemDefinitionView toView(ItemDefinitionEntity definition) {
+	private Map<UUID, List<ItemModifierView>> loadModifiers(Collection<UUID> definitionIds) {
+		Map<UUID, List<ItemModifierView>> modifiers = new HashMap<>();
+		if (definitionIds.isEmpty()) {
+			return modifiers;
+		}
+		for (ItemDefinitionModifierEntity row : itemDefinitionModifierRepository.findByItemDefinitionIdIn(definitionIds)) {
+			modifiers.computeIfAbsent(row.getItemDefinitionId(), key -> new ArrayList<>())
+					.add(new ItemModifierView(row.getStat(), row.getMagnitude()));
+		}
+		return modifiers;
+	}
+
+	private static ItemDefinitionView toView(
+			ItemDefinitionEntity definition,
+			Map<UUID, List<ItemModifierView>> modifiers) {
 		return new ItemDefinitionView(
 				definition.getId(),
 				definition.getCode(),
@@ -89,7 +118,7 @@ public class ItemCatalogService {
 				definition.getRequiredStrength(),
 				definition.getRequiredAgility(),
 				definition.getRequiredEndurance(),
-				definition.getRequiredPerception());
+				definition.getRequiredPerception(),
+				List.copyOf(modifiers.getOrDefault(definition.getId(), List.of())));
 	}
 }
-

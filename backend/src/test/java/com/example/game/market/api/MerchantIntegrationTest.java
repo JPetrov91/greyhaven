@@ -72,12 +72,20 @@ class MerchantIntegrationTest {
 		Integer flywayV25 = jdbcTemplate.queryForObject(
 				"select count(*) from flyway_schema_history where version = '25' and success = true",
 				Integer.class);
+		Integer flywayV26 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '26' and success = true",
+				Integer.class);
+		Integer flywayV27 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '27' and success = true",
+				Integer.class);
 		Integer merchants = jdbcTemplate.queryForObject("select count(*) from merchant_definitions", Integer.class);
 		Integer stock = jdbcTemplate.queryForObject("select count(*) from merchant_stock", Integer.class);
 		assertThat(flywayV24).isEqualTo(1);
 		assertThat(flywayV25).isEqualTo(1);
+		assertThat(flywayV26).isEqualTo(1);
+		assertThat(flywayV27).isEqualTo(1);
 		assertThat(merchants).isEqualTo(4);
-		assertThat(stock).isEqualTo(17);
+		assertThat(stock).isEqualTo(19);
 	}
 
 	@Test
@@ -94,6 +102,11 @@ class MerchantIntegrationTest {
 				.andExpect(jsonPath("$.merchants[0].stock[0].rarity").value("COMMON"))
 				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='WOODSMAN_AXE')].rarity", hasItem("COMMON")))
 				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='KNOBBED_CLUB')].rarity", hasItem("COMMON")))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='MILITIA_SHORTSWORD')].weaponDamage", hasItem(7)))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='MILITIA_SHORTSWORD')].accuracy", hasItem(4)))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='ARMING_SWORD')].weaponDamage", hasItem(8)))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='ARMING_SWORD')].accuracy", hasItem(4)))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='ARMING_SWORD')].criticalChance", hasItem(1)))
 				.andExpect(jsonPath("$.merchants[1].code").value(MerchantCodes.ARMORER))
 				.andExpect(jsonPath("$.merchants[1].stock[?(@.itemCode=='PADDED_JACK')].rarity", hasItem("COMMON")))
 				.andExpect(jsonPath("$.merchants[1].stock[?(@.itemCode=='SPLINT_VEST')].rarity", hasItem("COMMON")))

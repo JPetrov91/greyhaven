@@ -34,6 +34,14 @@ public record InventoryItemResponse(
 		Integer weaponDamage,
 		Integer armorValue,
 		Integer healAmount,
+		int accuracy,
+		int criticalChance,
+		int dodge,
+		int strength,
+		int agility,
+		int endurance,
+		int perception,
+		int staminaCostReduction,
 		List<ItemAffixResponse> affixes,
 		ItemComparisonResponse comparison
 ) {
