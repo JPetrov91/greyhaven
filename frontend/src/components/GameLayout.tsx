@@ -15,6 +15,7 @@ import { ExpeditionPanel } from './ExpeditionPanel'
 import { GameLeftNav } from './GameLeftNav'
 import { GameTopBar } from './GameTopBar'
 import { GuildPlaceholder } from './GuildPlaceholder'
+import { EquipmentPanel } from './EquipmentPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 import { MarketPanel } from './MarketPanel'
@@ -44,6 +45,7 @@ export function GameLayout() {
           next.set('panel', MARKET_PANEL)
         } else {
           next.delete('panel')
+          next.delete('listItem')
         }
         return next
       },
@@ -152,13 +154,15 @@ export function GameLayout() {
     )
   } else if (view === 'character') {
     mainContent = <CharacterSummaryPanel mutationsDisabled={showCombat} />
-  } else if (view === 'inventory' || view === 'equipment') {
+  } else if (view === 'inventory') {
     mainContent = (
       <InventoryPanel
         mutationsDisabled={showCombat}
         onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
       />
     )
+  } else if (view === 'equipment') {
+    mainContent = <EquipmentPanel mutationsDisabled={showCombat} />
   } else if (view === 'mastery') {
     mainContent = <MasteryPanel mutationsDisabled={showCombat} />
   } else if (view === 'market' || showMarket) {

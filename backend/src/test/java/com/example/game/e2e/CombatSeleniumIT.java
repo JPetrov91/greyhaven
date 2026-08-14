@@ -118,7 +118,7 @@ class CombatSeleniumIT {
 
 		assertThat(finished).as("combat should end within action budget").isTrue();
 		ui.clickAction("combat-dismiss");
-		ui.waitForInventory();
+		ui.waitForLocationPanel();
 		assertThat(ui.hasTestId("location-panel")).isTrue();
 	}
 }

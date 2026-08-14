@@ -2,34 +2,11 @@ import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { InventoryItemResponse } from '../api/types'
 import { Badge } from './Badge'
 import { classNames } from './classNames'
-import { comparisonLabel, ItemTooltip, verdictTone } from './ItemTooltip'
+import { comparisonClass, comparisonLabel, itemStatsLine } from './itemCopy'
+import { ItemTooltip, verdictTone } from './ItemTooltip'
 import { RarityBadge } from './RarityBadge'
 import { StatusBadge } from './StatusBadge'
 import { Tooltip } from './Tooltip'
-
-function itemStats(item: InventoryItemResponse): string {
-  const parts: string[] = []
-  if (item.weaponDamage != null) {
-    parts.push(`Damage ${item.weaponDamage}`)
-  }
-  if (item.armorValue != null) {
-    parts.push(`Armor ${item.armorValue}`)
-  }
-  if (item.healAmount != null) {
-    parts.push(`Heal ${item.healAmount}`)
-  }
-  if (parts.length === 0) {
-    parts.push('No combat stats')
-  }
-  return parts.join(' · ')
-}
-
-function comparisonClass(item: InventoryItemResponse): string {
-  if (item.comparison == null) {
-    return ''
-  }
-  return `comparison-${item.comparison.verdict.toLowerCase()}`
-}
 
 type Props = {
   item: InventoryItemResponse
@@ -37,12 +14,13 @@ type Props = {
   onSelect: () => void
   actions?: ReactNode
   equippedName?: string | null
+  pinTooltip?: boolean
 }
 
-export function ItemCard({ item, selected, onSelect, actions, equippedName = null }: Props) {
+export function ItemCard({ item, selected, onSelect, actions, equippedName = null, pinTooltip = true }: Props) {
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
-  const open = selected || hovered || focused
+  const open = (selected && pinTooltip) || hovered || focused
   const comparison = item.comparison
 
   function handleKeyDown(event: KeyboardEvent<HTMLLIElement>) {
@@ -71,7 +49,7 @@ export function ItemCard({ item, selected, onSelect, actions, equippedName = nul
       }}
       onKeyDown={handleKeyDown}
     >
-      <Tooltip content={<ItemTooltip item={item} equippedName={equippedName} />} open={open} pinned={selected}>
+      <Tooltip content={<ItemTooltip item={item} equippedName={equippedName} />} open={open} pinned={selected && pinTooltip}>
         <button type="button" className="inventory-item-select" onClick={onSelect}>
           <div className="inventory-item-main">
             <strong className={`item-name rarity-ink-${item.rarity.toLowerCase()}`}>{item.displayName}</strong>
@@ -88,7 +66,7 @@ export function ItemCard({ item, selected, onSelect, actions, equippedName = nul
             {item.legacy ? ' · Legacy' : ''}
             {item.equipmentSlot && !item.canEquip ? ' · Unusable' : ''}
           </p>
-          <p className="inventory-item-stats">{itemStats(item)}</p>
+            <p className="inventory-item-stats">{itemStatsLine(item)}</p>
         </button>
       </Tooltip>
       <div className="item-card-badges">

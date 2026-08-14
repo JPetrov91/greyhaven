@@ -21,7 +21,9 @@ describe('isGameNavActive', () => {
     expect(isGameNavActive('character', { pathname: '/game', search: '', hash: '#character' })).toBe(true)
     expect(isGameNavActive('world', { pathname: '/game', search: '', hash: '#character' })).toBe(false)
     expect(isGameNavActive('inventory', { pathname: '/game', search: '', hash: '#inventory' })).toBe(true)
-    expect(isGameNavActive('equipment', { pathname: '/game', search: '', hash: '#inventory' })).toBe(true)
+    expect(isGameNavActive('equipment', { pathname: '/game', search: '', hash: '#inventory' })).toBe(false)
+    expect(isGameNavActive('equipment', { pathname: '/game', search: '', hash: '#equipment' })).toBe(true)
+    expect(isGameNavActive('inventory', { pathname: '/game', search: '', hash: '#equipment' })).toBe(false)
     expect(isGameNavActive('mastery', { pathname: '/game', search: '', hash: '#mastery' })).toBe(true)
     expect(isGameNavActive('expeditions', { pathname: '/game', search: '', hash: '#expeditions' })).toBe(true)
     expect(isGameNavActive('world', { pathname: '/game', search: '', hash: '#mastery' })).toBe(false)
@@ -46,6 +48,7 @@ describe('gameLink', () => {
   it('builds market as a query and other views as hashes', () => {
     expect(gameLink('market')).toEqual({ pathname: '/game', search: '?panel=market', hash: '' })
     expect(gameLink('world')).toEqual({ pathname: '/game', search: '', hash: 'world' })
+    expect(gameLink('equipment')).toEqual({ pathname: '/game', search: '', hash: 'equipment' })
     expect(gameLink('home')).toEqual({ pathname: '/game', search: '', hash: '' })
   })
 })

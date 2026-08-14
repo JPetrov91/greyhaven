@@ -28,7 +28,7 @@ export function EquipmentOverviewCard() {
             equipment={inventoryQuery.data.equipment}
             items={inventoryQuery.data.items}
           />
-          <Link to={gameLink('inventory')} className="btn btn-secondary" data-testid="view-full-equipment">
+          <Link to={gameLink('equipment')} className="btn btn-secondary" data-testid="view-full-equipment">
             View Full Equipment
           </Link>
         </>

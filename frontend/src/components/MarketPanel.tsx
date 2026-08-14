@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { fetchInventory } from '../api/inventory'
 import {
@@ -35,8 +36,9 @@ type Props = {
 
 export function MarketPanel({ onClose }: Props) {
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [itemType, setItemType] = useState<ItemType | ''>('')
-  const [selectedItemId, setSelectedItemId] = useState('')
+  const [selectedItemId, setSelectedItemId] = useState(searchParams.get('listItem') ?? '')
   const [quantity, setQuantity] = useState(1)
   const [price, setPrice] = useState(10)
   const [error, setError] = useState<string | null>(null)
@@ -77,6 +79,13 @@ export function MarketPanel({ onClose }: Props) {
 
   const selectedItem = listableItems.find((item) => item.id === selectedItemId) ?? null
   const maxQuantity = selectedItem ? selectedItem.quantity - selectedItem.listedQuantity : 1
+
+  useEffect(() => {
+    const listItem = searchParams.get('listItem')
+    if (listItem && listableItems.some((item) => item.id === listItem)) {
+      setSelectedItemId(listItem)
+    }
+  }, [searchParams, listableItems])
 
   async function refreshAfterChange() {
     await Promise.all([

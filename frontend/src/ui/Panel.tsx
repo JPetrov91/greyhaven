@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from 'react'
 import { classNames } from './classNames'
 
-type Props = HTMLAttributes<HTMLElement> & {
+type Props = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
   as?: 'section' | 'aside' | 'div'
   title?: ReactNode
   actions?: ReactNode

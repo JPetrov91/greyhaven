@@ -113,6 +113,10 @@ final class GreyhavenUi {
 		wait.until(driver -> expectedPath.equals(currentPath()));
 	}
 
+	void waitForLocationPanel() {
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
+	}
+
 	void waitForLocation(String locationName) {
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
 		wait.until(ExpectedConditions.textToBe(
@@ -155,8 +159,14 @@ final class GreyhavenUi {
 	}
 
 	void waitForInventory() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-inventory']"))).click();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='inventory-panel']")));
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='inventory-list']")));
+	}
+
+	void waitForEquipment() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-equipment']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='equipment-panel']")));
 	}
 
 	void clickAction(String testId) {

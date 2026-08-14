@@ -46,6 +46,10 @@ vi.mock('./InventoryPanel', () => ({
   InventoryPanel: () => <div>inventory</div>,
 }))
 
+vi.mock('./EquipmentPanel', () => ({
+  EquipmentPanel: () => <div>equipment</div>,
+}))
+
 vi.mock('./MasteryPanel', () => ({
   MasteryPanel: () => <div>mastery</div>,
 }))
@@ -131,5 +135,20 @@ describe('GameLayout', () => {
     expect(screen.queryByText('nav')).toBeNull()
     expect(screen.queryByText('activity')).toBeNull()
     expect(screen.queryByTestId('chat-panel')).toBeNull()
+  })
+
+  it('opens inventory and equipment as separate views', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+
+    renderGame('/game#inventory')
+    expect(await screen.findByText('inventory')).toBeTruthy()
+    expect(screen.queryByText('equipment')).toBeNull()
+
+    cleanup()
+    renderGame('/game#equipment')
+    expect(await screen.findByText('equipment')).toBeTruthy()
+    expect(screen.queryByText('inventory')).toBeNull()
   })
 })

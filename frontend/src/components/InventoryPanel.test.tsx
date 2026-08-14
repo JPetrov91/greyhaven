@@ -2,10 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
-import type { InventoryItemResponse, InventoryResponse } from '../api/types'
+import type { CharacterResponse, InventoryItemResponse, InventoryResponse } from '../api/types'
 import { InventoryPanel } from './InventoryPanel'
 import { ToastProvider } from '../ui/ToastRegion'
 
@@ -16,10 +17,58 @@ vi.mock('../api/inventory', () => ({
   useItem: vi.fn(),
 }))
 
+vi.mock('../api/character', () => ({
+  fetchCharacter: vi.fn(),
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
 })
+
+function LocationProbe() {
+  const location = useLocation()
+  return <div data-testid="location-probe">{`${location.search}${location.hash}`}</div>
+}
+
+function characterFixture(): CharacterResponse {
+  return {
+    id: 'char-1',
+    accountId: 'acc-1',
+    name: 'Hero',
+    level: 1,
+    experience: 0,
+    strength: 5,
+    agility: 5,
+    endurance: 5,
+    perception: 5,
+    currentHealth: 100,
+    maxHealth: 100,
+    currentStamina: 50,
+    maxStamina: 50,
+    gold: 1250,
+    unspentAttributePoints: 0,
+    currentLocationId: 'loc-1',
+    derivedStats: {
+      physicalDamage: 14,
+      accuracy: 83,
+      dodge: 8,
+      criticalChance: 7,
+      armor: 3,
+    },
+    progression: {
+      level: 1,
+      totalExperience: 0,
+      experienceIntoCurrentLevel: 0,
+      experienceRequiredForNextLevel: 100,
+      experienceRemaining: 100,
+      progressPercent: 0,
+      maxLevel: false,
+    },
+    createdAt: '2026-08-14T00:00:00Z',
+    updatedAt: '2026-08-14T00:00:00Z',
+  }
+}
 
 function item(overrides: Partial<InventoryItemResponse>): InventoryItemResponse {
   return {
@@ -53,14 +102,12 @@ function item(overrides: Partial<InventoryItemResponse>): InventoryItemResponse 
     armorValue: null,
     healAmount: null,
     affixes: [],
-      comparison: {
-        slot: 'MAIN_HAND',
-        equippedItemId: 'item-2',
-        verdict: 'UPGRADE',
-        deltas: [
-          { stat: 'Damage', equippedValue: 6, candidateValue: 13, delta: 7 },
-        ],
-      },
+    comparison: {
+      slot: 'MAIN_HAND',
+      equippedItemId: 'item-2',
+      verdict: 'UPGRADE',
+      deltas: [{ stat: 'Damage', equippedValue: 6, candidateValue: 13, delta: 7 }],
+    },
     ...overrides,
   }
 }
@@ -101,6 +148,7 @@ function renderPanel() {
     <MemoryRouter>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
+          <LocationProbe />
           <InventoryPanel />
         </ToastProvider>
       </QueryClientProvider>
@@ -110,6 +158,7 @@ function renderPanel() {
 
 describe('InventoryPanel', () => {
   it('filters by type and sorts by rarity', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchInventory).mockResolvedValue(
       inventoryFixture([
         item({
@@ -146,7 +195,7 @@ describe('InventoryPanel', () => {
     expect(screen.getByRole('group', { name: 'Item type' })).toBeTruthy()
     expect(screen.getByTestId('inventory-item-COPPER_AMULET')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Weapon' }))
+    fireEvent.change(screen.getByTestId('inventory-type-select'), { target: { value: 'WEAPON' } })
     expect(screen.getByTestId('inventory-item-RUSTY_SWORD')).toBeTruthy()
     expect(screen.getByTestId('inventory-item-IRON_AXE')).toBeTruthy()
     expect(screen.queryByTestId('inventory-item-COPPER_AMULET')).toBeNull()
@@ -158,6 +207,7 @@ describe('InventoryPanel', () => {
   })
 
   it('shows server comparison when an item is selected', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchInventory).mockResolvedValue(
       inventoryFixture([
         item({
@@ -174,14 +224,16 @@ describe('InventoryPanel', () => {
 
     renderPanel()
 
-    fireEvent.click(await screen.findByText('Iron Axe'))
+    fireEvent.click(await screen.findByLabelText(/Iron Axe/))
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('Damage')
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('6 → 13')
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('+7')
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('Upgrade')
+    expect(screen.getByTestId('equip-IRON_AXE')).toBeTruthy()
   })
 
   it('marks requirement-locked gear as unusable', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchInventory).mockResolvedValue(
       inventoryFixture([
         item({
@@ -207,10 +259,12 @@ describe('InventoryPanel', () => {
     const row = await screen.findByTestId('inventory-item-IRON_HELM')
     expect(row.className).toContain('inventory-item-unusable')
     expect(row.textContent).toContain('Unusable')
+    fireEvent.click(screen.getByLabelText(/Iron Helm/))
     expect(screen.getByTestId('equip-IRON_HELM')).toHaveProperty('disabled', true)
   })
 
-  it('exposes rarity as a labeled chip', async () => {
+  it('exposes rarity on the selected slot', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchInventory).mockResolvedValue(
       inventoryFixture([
         item({
@@ -225,11 +279,12 @@ describe('InventoryPanel', () => {
     renderPanel()
 
     const row = await screen.findByTestId('inventory-item-IRON_AXE')
-    expect(row.querySelector('.rarity-rare')?.textContent).toBe('Rare')
-    expect(row.querySelector('.rarity-ink-rare')).toBeTruthy()
+    expect(row.className).toContain('inventory-slot-rare')
+    expect(row.textContent).toContain('Rare')
   })
 
   it('filters by equipment slot from the slot control', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchInventory).mockResolvedValue(
       inventoryFixture([
         item({
@@ -258,5 +313,92 @@ describe('InventoryPanel', () => {
     fireEvent.change(screen.getByTestId('inventory-slot-filter'), { target: { value: 'HEAD' } })
     expect(screen.queryByTestId('inventory-item-RUSTY_SWORD')).toBeNull()
     expect(screen.getByTestId('inventory-item-IRON_HELM')).toBeTruthy()
+  })
+
+  it('shows an empty quest tab and coming-later bag actions', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(inventoryFixture([item({})]))
+
+    renderPanel()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quest' }))
+    expect(screen.getByTestId('inventory-empty').textContent).toBe('No quest items.')
+    expect((screen.getByTestId('inventory-open-stash') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTestId('inventory-loadouts') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTestId('inventory-stack-all') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('inventory-gold').textContent).toContain('1,250')
+  })
+
+  it('sends a selected item to the marketplace sell form', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'axe',
+          code: 'IRON_AXE',
+          displayName: 'Iron Axe',
+          equipped: false,
+          comparison: null,
+        }),
+      ]),
+    )
+
+    renderPanel()
+
+    fireEvent.click(await screen.findByLabelText(/Iron Axe/))
+    fireEvent.click(screen.getByTestId('sell-IRON_AXE'))
+    expect(screen.getByTestId('location-probe').textContent).toContain('panel=market')
+    expect(screen.getByTestId('location-probe').textContent).toContain('listItem=axe')
+  })
+
+  it('auto-sorts by rarity', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({ id: 'sword', code: 'RUSTY_SWORD', displayName: 'Rusty Sword', rarity: 'COMMON' }),
+        item({ id: 'axe', code: 'IRON_AXE', displayName: 'Iron Axe', rarity: 'RARE', comparison: null }),
+      ]),
+    )
+
+    renderPanel()
+    await screen.findByTestId('inventory-item-RUSTY_SWORD')
+    fireEvent.click(screen.getByTestId('inventory-auto-sort'))
+    const rows = screen.getAllByTestId(/inventory-item-/)
+    expect(rows[0].getAttribute('data-testid')).toBe('inventory-item-IRON_AXE')
+  })
+
+  it('fills remaining bag slots and skips self-comparison', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'sword',
+          code: 'RUSTY_SWORD',
+          displayName: 'Rusty Sword',
+          equipped: true,
+          comparison: {
+            slot: 'MAIN_HAND',
+            equippedItemId: 'sword',
+            verdict: 'SAME',
+            deltas: [{ stat: 'Damage', equippedValue: 6, candidateValue: 6, delta: 0 }],
+          },
+        }),
+        item({
+          id: 'axe',
+          code: 'IRON_AXE',
+          displayName: 'Iron Axe',
+          rarity: 'RARE',
+          equipped: false,
+        }),
+      ]),
+    )
+
+    renderPanel()
+
+    expect(await screen.findByTestId('inventory-item-RUSTY_SWORD')).toBeTruthy()
+    expect(screen.getAllByTestId('inventory-empty-slot')).toHaveLength(38)
+    expect(screen.queryByTestId('comparison-RUSTY_SWORD')).toBeNull()
+    fireEvent.click(screen.getByLabelText(/Iron Axe/))
+    expect(screen.getByTestId('comparison-IRON_AXE')).toBeTruthy()
   })
 })

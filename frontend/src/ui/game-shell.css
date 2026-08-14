@@ -1110,6 +1110,326 @@ html[data-ui-mode='compact'] .character-overview-portrait {
   text-align: center;
 }
 
+.inventory-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.inventory-heading-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.inventory-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.inventory-bag {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.inventory-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
+.inventory-inspector-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.inventory-action-primary {
+  width: 100%;
+}
+
+.inventory-sell-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.inventory-later-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.inventory-later {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.45rem;
+  opacity: 0.5;
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--ink-soft);
+}
+
+.inventory-bag-overview {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.inventory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.55rem;
+  align-items: end;
+}
+
+.inventory-search-field {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.inventory-filters .field {
+  font-size: 0.75rem;
+}
+
+.inventory-view-toggle {
+  display: flex;
+  gap: 0.2rem;
+  margin-left: auto;
+}
+
+.inventory-view-btn {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.inventory-view-btn[aria-pressed='true'] {
+  color: var(--accent-strong);
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.inventory-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 3.7rem);
+  justify-content: start;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.inventory-slot {
+  position: relative;
+  margin: 0;
+  width: 3.7rem;
+  height: 3.7rem;
+  border: 2px solid #6b6358;
+  border-radius: 0.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    #241e18;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.inventory-slot-empty {
+  border-color: #3d372f;
+  background: #161310;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.inventory-slot-uncommon {
+  border-color: var(--rarity-uncommon);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 8px color-mix(in srgb, var(--rarity-uncommon) 35%, transparent);
+}
+
+.inventory-slot-rare {
+  border-color: var(--rarity-rare);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 8px color-mix(in srgb, var(--rarity-rare) 35%, transparent);
+}
+
+.inventory-slot-epic {
+  border-color: var(--rarity-epic);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 8px color-mix(in srgb, var(--rarity-epic) 40%, transparent);
+}
+
+.inventory-slot-selected {
+  box-shadow: 0 0 0 2px var(--accent-strong), 0 0 12px color-mix(in srgb, var(--accent-strong) 45%, transparent);
+}
+
+.inventory-slot-select {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0.15rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.item-icon-face {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.3rem;
+}
+
+.item-icon-svg,
+.item-icon-face .equipment-slot-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.item-icon-face-weapon {
+  color: #e2c48a;
+  background: rgba(226, 196, 138, 0.16);
+}
+
+.item-icon-face-armor {
+  color: #9eb0d4;
+  background: rgba(158, 176, 212, 0.16);
+}
+
+.item-icon-face-accessory {
+  color: #d7a0f5;
+  background: rgba(215, 160, 245, 0.16);
+}
+
+.item-icon-face-consumable {
+  color: #7ed9a6;
+  background: rgba(126, 217, 166, 0.16);
+}
+
+.item-icon-face-material {
+  color: #d4b08c;
+  background: rgba(212, 176, 140, 0.16);
+}
+
+.item-icon-inspector {
+  width: 2.7rem;
+  height: 2.7rem;
+}
+
+.item-icon-row {
+  width: 2rem;
+  height: 2rem;
+}
+
+.item-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.item-peek {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.item-peek-stats {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.inventory-slot-qty,
+.inventory-slot-flag,
+.inventory-slot-listed {
+  position: absolute;
+  min-width: 1.1rem;
+  padding: 0.05rem 0.22rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: rgba(18, 16, 14, 0.9);
+}
+
+.inventory-slot-qty {
+  right: 0.12rem;
+  bottom: 0.12rem;
+}
+
+.inventory-slot-flag {
+  left: 0.12rem;
+  top: 0.12rem;
+  color: var(--accent-strong);
+}
+
+.inventory-slot-listed {
+  right: 0.12rem;
+  top: 0.12rem;
+  color: var(--accent);
+}
+
+.inventory-row {
+  margin: 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.inventory-row-selected {
+  background: var(--accent-soft);
+}
+
+.inventory-row-select {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.55rem;
+  width: 100%;
+  padding: 0.4rem 0.2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inventory-row-qty,
+.inventory-row-stats {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.inventory-capacity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inventory-capacity-row p {
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .inventory-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1200px) {
   .game-shell-body {
     grid-template-columns: 12rem minmax(0, 1fr);
@@ -1240,6 +1560,25 @@ html[data-ui-mode='compact'] .combat-player-portrait {
 
 html[data-ui-mode='compact'] .game-shell-body {
   grid-template-columns: 11rem minmax(0, 1fr) 14rem;
+}
+
+html[data-ui-mode='compact'] .inventory-workspace {
+  gap: 0.5rem;
+}
+
+html[data-ui-mode='compact'] .inventory-inspector {
+  padding: 0.45rem;
+}
+
+html[data-ui-mode='compact'] .inventory-grid {
+  grid-template-columns: repeat(auto-fill, 3.2rem);
+  gap: 0.25rem;
+  padding: 0.25rem;
+}
+
+html[data-ui-mode='compact'] .inventory-slot {
+  width: 3.2rem;
+  height: 3.2rem;
 }
 
 html[data-ui-mode='compact'] .game-shell-body-combat {

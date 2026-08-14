@@ -17,21 +17,16 @@ export function gameViewFromLocation(location: GameLocation): GameNavItem {
   if (new URLSearchParams(location.search).get('panel') === 'market') {
     return 'market'
   }
-  const hash = location.hash.replace(/^#/, '')
-  if (hash === 'character') {
-    return 'character'
-  }
-  if (hash === 'inventory' || hash === 'equipment') {
-    return hash === 'equipment' ? 'equipment' : 'inventory'
-  }
-  if (hash === 'mastery') {
-    return 'mastery'
-  }
-  if (hash === 'world') {
-    return 'world'
-  }
-  if (hash === 'expeditions') {
-    return 'expeditions'
+  const hash = location.hash.replace(/^#/, '') as GameNavItem
+  if (
+    hash === 'character' ||
+    hash === 'inventory' ||
+    hash === 'equipment' ||
+    hash === 'mastery' ||
+    hash === 'world' ||
+    hash === 'expeditions'
+  ) {
+    return hash
   }
   return 'home'
 }
@@ -43,18 +38,12 @@ export function gameLink(item: GameNavItem): { pathname: '/game'; search: string
   if (item === 'home') {
     return { pathname: '/game', search: '', hash: '' }
   }
-  const hash =
-    item === 'equipment' ? 'inventory' : item === 'world' ? 'world' : item === 'expeditions' ? 'expeditions' : item
-  return { pathname: '/game', search: '', hash }
+  return { pathname: '/game', search: '', hash: item }
 }
 
 export function isGameNavActive(item: GameNavItem, location: GameLocation): boolean {
   if (!location.pathname.startsWith('/game')) {
     return false
   }
-  const view = gameViewFromLocation(location)
-  if (item === 'inventory' || item === 'equipment') {
-    return view === 'inventory' || view === 'equipment'
-  }
-  return view === item
+  return gameViewFromLocation(location) === item
 }
