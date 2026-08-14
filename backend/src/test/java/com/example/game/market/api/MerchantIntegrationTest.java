@@ -470,7 +470,7 @@ class MerchantIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
-		assertThat(goldOf(ownerId)).isEqualTo(100);
+		assertThat(goldOf(ownerId)).isEqualTo(99);
 		assertThat(itemQuantity(ownerId, ItemCodes.WOLF_PELT)).isEqualTo(3);
 	}
 

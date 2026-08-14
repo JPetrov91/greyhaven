@@ -42,6 +42,15 @@ vi.mock('./ExpeditionPanel', () => ({
   ExpeditionPanel: () => <div>expedition</div>,
 }))
 
+vi.mock('./CraftingPanel', () => ({
+  CraftingPanel: () => <div>crafting</div>,
+}))
+
+vi.mock('../api/pvp', () => ({
+  fetchCurrentArenaMatch: vi.fn().mockResolvedValue(null),
+  fetchCurrentDuel: vi.fn().mockResolvedValue(null),
+}))
+
 vi.mock('./InventoryPanel', () => ({
   InventoryPanel: () => <div>inventory</div>,
 }))
@@ -80,6 +89,14 @@ vi.mock('./EquipmentOverviewCard', () => ({
 
 vi.mock('./GuildPlaceholder', () => ({
   GuildPlaceholder: () => <div data-testid="guild-placeholder">guild</div>,
+}))
+
+vi.mock('./ArenaPanel', () => ({
+  ArenaPanel: () => <div>arena</div>,
+}))
+
+vi.mock('./PvpCombatPanel', () => ({
+  PvpCombatPanel: () => <div>pvp</div>,
 }))
 
 afterEach(() => {

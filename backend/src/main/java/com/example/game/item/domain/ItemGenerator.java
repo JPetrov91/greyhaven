@@ -21,7 +21,42 @@ public final class ItemGenerator {
 					List.of());
 		}
 
-		ItemRarity rarity = rollRarity(definition.catalogRarity(), random);
+		ItemRarity rarity = rollRarity(definition.catalogRarity(), ItemRarity.EPIC, 1, 0, random);
+		return generateRolled(definition, catalog, random, rarity);
+	}
+
+	/**
+	 * Crafted equipment rolls rarity inside {@code [minRarity, maxRarity]}, then uses the same base
+	 * and affix rolls as loot generation. Rank shifts weight toward the ceiling.
+	 */
+	public static GeneratedItem generateCrafted(
+			ItemDefinitionData definition,
+			AffixCatalog catalog,
+			RandomProvider random,
+			ItemRarity minRarity,
+			ItemRarity maxRarity,
+			int professionRank,
+			int rankRarityBonusPerRank) {
+		if (!definition.type().isEquippable()) {
+			return generate(definition, catalog, random);
+		}
+		ItemRarity floor = minRarity == null ? ItemRarity.COMMON : minRarity;
+		ItemRarity ceiling = maxRarity == null ? ItemRarity.EPIC : maxRarity;
+		if (definition.catalogRarity() != null && definition.catalogRarity().ordinal() > floor.ordinal()) {
+			floor = definition.catalogRarity();
+		}
+		if (floor.ordinal() > ceiling.ordinal()) {
+			floor = ceiling;
+		}
+		ItemRarity rarity = rollRarity(floor, ceiling, professionRank, rankRarityBonusPerRank, random);
+		return generateRolled(definition, catalog, random, rarity);
+	}
+
+	private static GeneratedItem generateRolled(
+			ItemDefinitionData definition,
+			AffixCatalog catalog,
+			RandomProvider random,
+			ItemRarity rarity) {
 		Integer rolledWeapon = rollBase(definition.weaponDamage(), random);
 		Integer rolledArmor = rollBase(definition.armorValue(), random);
 		List<RolledAffix> affixes = AffixGenerator.generate(
@@ -35,26 +70,52 @@ public final class ItemGenerator {
 		return new GeneratedItem(rarity, rolledWeapon, rolledArmor, affixes);
 	}
 
-	private static ItemRarity rollRarity(ItemRarity floor, RandomProvider random) {
+	private static ItemRarity rollRarity(
+			ItemRarity floor,
+			ItemRarity ceiling,
+			int professionRank,
+			int rankRarityBonusPerRank,
+			RandomProvider random) {
 		ItemRarity minimum = floor == null ? ItemRarity.COMMON : floor;
+		ItemRarity maximum = ceiling == null ? ItemRarity.EPIC : ceiling;
+		int rank = Math.max(1, professionRank);
 		int total = 0;
 		for (ItemRarity rarity : ItemRarity.values()) {
-			if (rarity.ordinal() >= minimum.ordinal()) {
-				total += ItemBalance.rarityWeight(rarity);
+			if (rarity.ordinal() >= minimum.ordinal() && rarity.ordinal() <= maximum.ordinal()) {
+				total += craftingWeight(rarity, minimum, rank, rankRarityBonusPerRank);
 			}
 		}
 		int roll = random.nextInt(1, total);
 		int cursor = 0;
 		for (ItemRarity rarity : ItemRarity.values()) {
-			if (rarity.ordinal() < minimum.ordinal()) {
+			if (rarity.ordinal() < minimum.ordinal() || rarity.ordinal() > maximum.ordinal()) {
 				continue;
 			}
-			cursor += ItemBalance.rarityWeight(rarity);
+			cursor += craftingWeight(rarity, minimum, rank, rankRarityBonusPerRank);
 			if (roll <= cursor) {
 				return rarity;
 			}
 		}
 		return minimum;
+	}
+
+	public static int craftedRarityWeight(
+			ItemRarity rarity,
+			ItemRarity minimum,
+			int professionRank,
+			int rankRarityBonusPerRank) {
+		return craftingWeight(rarity, minimum, professionRank, rankRarityBonusPerRank);
+	}
+
+	private static int craftingWeight(
+			ItemRarity rarity,
+			ItemRarity minimum,
+			int professionRank,
+			int rankRarityBonusPerRank) {
+		int bonus = (professionRank - 1)
+				* Math.max(0, rankRarityBonusPerRank)
+				* (rarity.ordinal() - minimum.ordinal());
+		return ItemBalance.rarityWeight(rarity) + Math.max(0, bonus);
 	}
 
 	private static Integer rollBase(Integer definitionBase, RandomProvider random) {

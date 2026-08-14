@@ -69,6 +69,13 @@ final class InventoryErrors {
 		return new InventoryFullException("Your inventory is full.");
 	}
 
+	static ApiException missingMaterials() {
+		return new ApiException(
+				"MISSING_MATERIALS",
+				"You do not have the required materials.",
+				HttpStatus.BAD_REQUEST);
+	}
+
 	static ApiException itemDefinitionMissing(String code) {
 		return new ApiException(
 				"ITEM_DEFINITION_MISSING",

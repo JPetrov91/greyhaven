@@ -26,6 +26,7 @@ describe('isGameNavActive', () => {
     expect(isGameNavActive('inventory', { pathname: '/game', search: '', hash: '#equipment' })).toBe(false)
     expect(isGameNavActive('mastery', { pathname: '/game', search: '', hash: '#mastery' })).toBe(true)
     expect(isGameNavActive('expeditions', { pathname: '/game', search: '', hash: '#expeditions' })).toBe(true)
+    expect(isGameNavActive('crafting', { pathname: '/game', search: '', hash: '#crafting' })).toBe(true)
     expect(isGameNavActive('world', { pathname: '/game', search: '', hash: '#mastery' })).toBe(false)
   })
 

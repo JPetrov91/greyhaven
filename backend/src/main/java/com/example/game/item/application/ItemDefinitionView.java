@@ -34,4 +34,24 @@ public record ItemDefinitionView(
 		int requiredPerception,
 		List<ItemModifierView> modifiers
 ) {
+
+	public com.example.game.item.domain.ItemDefinitionData toData() {
+		return new com.example.game.item.domain.ItemDefinitionData(
+				code,
+				name,
+				type,
+				rarity,
+				false,
+				equipmentSlot,
+				twoHanded,
+				weaponFamily,
+				armorCategory,
+				weaponDamage,
+				armorValue,
+				requiredLevel,
+				requiredStrength,
+				requiredAgility,
+				requiredEndurance,
+				requiredPerception);
+	}
 }

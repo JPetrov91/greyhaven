@@ -28,7 +28,9 @@ public final class LocationActions {
 			LocationAction.BROWSE_MARKET,
 			LocationAction.CREATE_LISTING,
 			LocationAction.BUY_ITEM,
-			LocationAction.CANCEL_LISTING);
+			LocationAction.CANCEL_LISTING,
+			LocationAction.CREATE_BUY_ORDER,
+			LocationAction.FULFILL_BUY_ORDER);
 
 	private static final List<LocationAction> OLD_TOWN_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -56,10 +58,13 @@ public final class LocationActions {
 			LocationAction.ENTER_ARENA,
 			LocationAction.CHALLENGE_DUEL);
 
-	private static final List<LocationAction> SAFE_HUB_ACTIONS = List.of(
+	private static final List<LocationAction> CRAFTSMEN_WARD_ACTIONS = List.of(
 			LocationAction.INSPECT,
 			LocationAction.MOVE,
-			LocationAction.VIEW_NEARBY);
+			LocationAction.VIEW_NEARBY,
+			LocationAction.CRAFT,
+			LocationAction.CLAIM_CRAFT,
+			LocationAction.SALVAGE);
 
 	private static final List<LocationAction> HARBOUR_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -86,7 +91,7 @@ public final class LocationActions {
 			Map.entry(LocationCodes.FOREST, FOREST_ACTIONS),
 			Map.entry(LocationCodes.NORTH_ROAD, NORTH_ROAD_ACTIONS),
 			Map.entry(LocationCodes.ARENA, ARENA_ACTIONS),
-			Map.entry(LocationCodes.CRAFTSMEN_WARD, SAFE_HUB_ACTIONS),
+			Map.entry(LocationCodes.CRAFTSMEN_WARD, CRAFTSMEN_WARD_ACTIONS),
 			Map.entry(LocationCodes.HARBOUR, HARBOUR_ACTIONS),
 			Map.entry(LocationCodes.SEWERS, SEWERS_ACTIONS),
 			Map.entry(LocationCodes.OLD_MINE, OLD_MINE_ACTIONS),

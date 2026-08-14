@@ -5,39 +5,55 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.game.item.domain.ItemRarity;
+import com.example.game.item.domain.ItemType;
+import com.example.game.item.domain.WeaponFamily;
 import com.example.game.market.domain.MarketListingStatus;
 
 import jakarta.persistence.LockModeType;
 
 public interface MarketListingRepository extends JpaRepository<MarketListingEntity, UUID> {
 
-	List<MarketListingEntity> findByStatusOrderByCreatedAtDesc(MarketListingStatus status, Limit limit);
+	@Query("""
+			select l from MarketListingEntity l
+			where l.status = :status
+			  and (:sellerId is null or l.sellerCharacterId = :sellerId)
+			  and (:itemType is null or l.itemType = :itemType)
+			  and (:rarity is null or l.instanceRarity = :rarity)
+			  and (:weaponFamily is null or l.weaponFamily = :weaponFamily)
+			  and (:minLevel is null or l.requiredLevel >= :minLevel)
+			  and (:maxLevel is null or l.requiredLevel <= :maxLevel)
+			  and (:minPrice is null or l.price >= :minPrice)
+			  and (:maxPrice is null or l.price <= :maxPrice)
+			""")
+	Page<MarketListingEntity> search(
+			@Param("status") MarketListingStatus status,
+			@Param("sellerId") UUID sellerId,
+			@Param("itemType") ItemType itemType,
+			@Param("rarity") ItemRarity rarity,
+			@Param("weaponFamily") WeaponFamily weaponFamily,
+			@Param("minLevel") Integer minLevel,
+			@Param("maxLevel") Integer maxLevel,
+			@Param("minPrice") Integer minPrice,
+			@Param("maxPrice") Integer maxPrice,
+			Pageable pageable);
 
-	/**
-	 * Item type is a property of the item definition, which belongs to another module, so the
-	 * filter arrives as the set of definition ids of that type rather than as a cross-module join.
-	 */
-	List<MarketListingEntity> findByStatusAndItemDefinitionIdInOrderByCreatedAtDesc(
-			MarketListingStatus status,
-			Collection<UUID> itemDefinitionIds,
-			Limit limit);
-
-	List<MarketListingEntity> findBySellerCharacterIdAndStatusOrderByCreatedAtDesc(
-			UUID sellerCharacterId,
-			MarketListingStatus status,
-			Limit limit);
-
-	List<MarketListingEntity> findBySellerCharacterIdAndStatusAndItemDefinitionIdInOrderByCreatedAtDesc(
-			UUID sellerCharacterId,
-			MarketListingStatus status,
-			Collection<UUID> itemDefinitionIds,
-			Limit limit);
+	@Query("""
+			select l from MarketListingEntity l
+			where l.sellerCharacterId = :sellerId
+			  and l.status in :statuses
+			""")
+	Page<MarketListingEntity> findHistory(
+			@Param("sellerId") UUID sellerId,
+			@Param("statuses") Collection<MarketListingStatus> statuses,
+			Pageable pageable);
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select l from MarketListingEntity l where l.id = :id")
@@ -53,10 +69,6 @@ public interface MarketListingRepository extends JpaRepository<MarketListingEnti
 			@Param("itemInstanceId") UUID itemInstanceId,
 			@Param("status") MarketListingStatus status);
 
-	/**
-	 * Reserved quantities for a whole inventory in one query. Instances without a listing are
-	 * absent from the result.
-	 */
 	@Query("""
 			select new com.example.game.market.infrastructure.ItemInstanceReservation(
 					l.itemInstanceId, sum(l.quantity))

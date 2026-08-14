@@ -5,6 +5,9 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Persistable;
 
+import com.example.game.item.domain.ItemRarity;
+import com.example.game.item.domain.ItemType;
+import com.example.game.item.domain.WeaponFamily;
 import com.example.game.market.domain.MarketListingStatus;
 
 import jakarta.persistence.Column;
@@ -43,6 +46,27 @@ public class MarketListingEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int price;
 
+	@Column(name = "listing_fee_paid", nullable = false)
+	private int listingFeePaid;
+
+	@Column(name = "sale_fee_paid")
+	private Integer saleFeePaid;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "instance_rarity", nullable = false, length = 32)
+	private ItemRarity instanceRarity;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "item_type", nullable = false, length = 32)
+	private ItemType itemType;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "weapon_family", length = 32)
+	private WeaponFamily weaponFamily;
+
+	@Column(name = "required_level", nullable = false)
+	private int requiredLevel;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 32)
 	private MarketListingStatus status;
@@ -73,6 +97,11 @@ public class MarketListingEntity implements Persistable<UUID> {
 			UUID itemDefinitionId,
 			int quantity,
 			int price,
+			int listingFeePaid,
+			ItemRarity instanceRarity,
+			ItemType itemType,
+			WeaponFamily weaponFamily,
+			int requiredLevel,
 			Instant createdAt) {
 		this.id = id;
 		this.sellerCharacterId = sellerCharacterId;
@@ -81,6 +110,12 @@ public class MarketListingEntity implements Persistable<UUID> {
 		this.itemDefinitionId = itemDefinitionId;
 		this.quantity = quantity;
 		this.price = price;
+		this.listingFeePaid = listingFeePaid;
+		this.saleFeePaid = null;
+		this.instanceRarity = instanceRarity;
+		this.itemType = itemType;
+		this.weaponFamily = weaponFamily;
+		this.requiredLevel = requiredLevel;
 		this.status = MarketListingStatus.ACTIVE;
 		this.createdAt = createdAt;
 		this.soldAt = null;
@@ -128,6 +163,30 @@ public class MarketListingEntity implements Persistable<UUID> {
 		return price;
 	}
 
+	public int getListingFeePaid() {
+		return listingFeePaid;
+	}
+
+	public Integer getSaleFeePaid() {
+		return saleFeePaid;
+	}
+
+	public ItemRarity getInstanceRarity() {
+		return instanceRarity;
+	}
+
+	public ItemType getItemType() {
+		return itemType;
+	}
+
+	public WeaponFamily getWeaponFamily() {
+		return weaponFamily;
+	}
+
+	public int getRequiredLevel() {
+		return requiredLevel;
+	}
+
 	public MarketListingStatus getStatus() {
 		return status;
 	}
@@ -144,7 +203,7 @@ public class MarketListingEntity implements Persistable<UUID> {
 		return cancelledAt;
 	}
 
-	public void markSold(UUID buyerCharacterId, Instant soldAt) {
+	public void markSold(UUID buyerCharacterId, Instant soldAt, int saleFeePaid) {
 		if (status != MarketListingStatus.ACTIVE) {
 			throw new IllegalStateException("only ACTIVE listings can be sold");
 		}
@@ -154,6 +213,7 @@ public class MarketListingEntity implements Persistable<UUID> {
 		this.status = MarketListingStatus.SOLD;
 		this.buyerCharacterId = buyerCharacterId;
 		this.soldAt = soldAt;
+		this.saleFeePaid = saleFeePaid;
 		this.cancelledAt = null;
 	}
 

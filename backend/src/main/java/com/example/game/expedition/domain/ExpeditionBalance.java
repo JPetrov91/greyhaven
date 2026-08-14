@@ -105,9 +105,17 @@ public final class ExpeditionBalance {
 
 	public static int rareGearChancePercent(ExpeditionStrategy strategy) {
 		return switch (strategy) {
-			case CAUTIOUS -> 3;
+			case CAUTIOUS -> 4;
 			case BALANCED -> 8;
-			case AGGRESSIVE -> 14;
+			case AGGRESSIVE -> 12;
+		};
+	}
+
+	public static int herbChancePercent(ExpeditionStrategy strategy) {
+		return switch (strategy) {
+			case CAUTIOUS -> 25;
+			case BALANCED -> 40;
+			case AGGRESSIVE -> 50;
 		};
 	}
 }

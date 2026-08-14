@@ -247,7 +247,7 @@ class Phase2FoundationMigrationIntegrationTest {
 
 			flyway(dataSource).load().migrate();
 
-			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(31);
+			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(38);
 			assertThat(jdbc.queryForObject(
 					"select count(*) from flyway_schema_history where version = '21' and success = true",
 					Integer.class)).isEqualTo(1);

@@ -99,7 +99,7 @@ class InventoryIntegrationTest {
 						""",
 				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(31);
+		assertThat(definitionCount).isEqualTo(38);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
 		assertThat(flywayV18).isEqualTo(1);

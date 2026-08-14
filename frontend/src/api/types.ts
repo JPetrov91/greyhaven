@@ -284,6 +284,11 @@ export type LocationAction =
   | 'ENTER_DUNGEON'
   | 'ENTER_ARENA'
   | 'CHALLENGE_DUEL'
+  | 'CRAFT'
+  | 'CLAIM_CRAFT'
+  | 'SALVAGE'
+  | 'CREATE_BUY_ORDER'
+  | 'FULFILL_BUY_ORDER'
 
 export type LocationResponse = {
   id: string
@@ -362,6 +367,18 @@ export type ActivityType =
   | 'MARKET_CANCELLED'
   | 'MASTERY_UNLOCK'
   | 'TECHNIQUE_UNLOCK'
+  | 'ARENA_VICTORY'
+  | 'ARENA_DEFEAT'
+  | 'DUEL_RESULT'
+  | 'CRAFTING_STARTED'
+  | 'CRAFTING_CLAIMED'
+  | 'PROFESSION_RANK_UP'
+  | 'ITEM_SALVAGED'
+  | 'MARKET_LISTING_FEE'
+  | 'MARKET_SALE'
+  | 'BUY_ORDER_CREATED'
+  | 'BUY_ORDER_FILLED'
+  | 'BUY_ORDER_CANCELLED'
 
 export type MarketListingStatus = 'ACTIVE' | 'SOLD' | 'CANCELLED'
 
@@ -370,21 +387,127 @@ export type MarketListingResponse = {
   sellerCharacterId: string
   sellerName: string
   itemInstanceId: string | null
+  itemDefinitionId?: string | null
   itemCode: string
   itemName: string
+  displayName?: string
   itemType: ItemType
   rarity: ItemRarity
+  weaponFamily?: WeaponFamily | null
+  requiredLevel?: number
   quantity: number
   price: number
+  listingFeePaid?: number
+  saleFeePaid?: number | null
   status: MarketListingStatus
   createdAt: string
   soldAt: string | null
   ownListing: boolean
+  affixes?: ItemAffixResponse[]
 }
 
 export type MarketListingsResponse = {
   listings: MarketListingResponse[]
   truncated: boolean
+  page?: number
+  size?: number
+  total?: number
+  listingFeePercent?: number
+  saleFeePercent?: number
+}
+
+export type MarketBuyOrderStatus = 'ACTIVE' | 'FILLED' | 'CANCELLED'
+
+export type MarketBuyOrderResponse = {
+  id: string
+  buyerCharacterId: string
+  buyerName: string
+  itemDefinitionId: string
+  itemCode: string
+  itemName: string
+  itemType: ItemType
+  remainingQuantity: number
+  originalQuantity: number
+  maxUnitPrice: number
+  reservedGold: number
+  postingFeePaid?: number
+  status: MarketBuyOrderStatus
+  createdAt: string
+  ownOrder: boolean
+}
+
+export type MarketBuyOrdersResponse = {
+  orders: MarketBuyOrderResponse[]
+  truncated: boolean
+  page: number
+  size: number
+  total: number
+}
+
+export type Profession = 'BLACKSMITH' | 'ALCHEMIST' | 'HUNTER'
+export type CraftingJobStatus = 'ACTIVE' | 'COMPLETED' | 'CLAIMED'
+
+export type ProfessionResponse = {
+  profession: Profession
+  rank: number
+  xp: number
+  xpToNextRank: number
+  maxRank: boolean
+}
+
+export type RecipeInputResponse = {
+  itemCode: string
+  itemName: string
+  quantity: number
+  availableQuantity: number
+}
+
+export type RecipeResponse = {
+  code: string
+  name: string
+  profession: Profession
+  requiredProfessionRank: number
+  requiredCharacterLevel: number
+  goldCost: number
+  durationSeconds: number
+  outputItemCode: string
+  outputItemName: string
+  outputQuantity: number
+  minRarity: ItemRarity | null
+  maxRarity: ItemRarity | null
+  professionXp: number
+  available: boolean
+  unavailableReason: string | null
+  inputs: RecipeInputResponse[]
+}
+
+export type CraftingJobResponse = {
+  id: string
+  profession: Profession
+  recipeCode: string
+  recipeName: string
+  status: CraftingJobStatus
+  startedAt: string
+  completesAt: string
+  claimedAt: string | null
+  resultReady: boolean
+  outputItemCode: string
+  outputItemName: string
+  outputQuantity: number
+  rarity: ItemRarity | null
+  professionXp: number
+}
+
+export type SalvageResultResponse = {
+  itemCode: string
+  itemName: string
+  quantity: number
+}
+
+export type SalvageResponse = {
+  sourceItemCode: string
+  sourceItemName: string
+  results: SalvageResultResponse[]
 }
 
 export type MerchantType = 'WEAPONSMITH' | 'ARMORER' | 'APOTHECARY' | 'GENERAL'

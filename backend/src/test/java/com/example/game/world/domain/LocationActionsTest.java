@@ -44,7 +44,9 @@ class LocationActionsTest {
 						LocationAction.BROWSE_MARKET,
 						LocationAction.CREATE_LISTING,
 						LocationAction.BUY_ITEM,
-						LocationAction.CANCEL_LISTING);
+						LocationAction.CANCEL_LISTING,
+						LocationAction.CREATE_BUY_ORDER,
+						LocationAction.FULFILL_BUY_ORDER);
 	}
 
 	@Test
@@ -57,7 +59,8 @@ class LocationActionsTest {
 						LocationAction.ENTER_ARENA,
 						LocationAction.CHALLENGE_DUEL)
 				.doesNotContain(LocationAction.SEARCH_ENCOUNTER);
-		assertThat(LocationActions.forCode(LocationCodes.HARBOUR)).contains(LocationAction.SEARCH_ENCOUNTER);
+		assertThat(LocationActions.forCode(LocationCodes.CRAFTSMEN_WARD))
+				.contains(LocationAction.CRAFT, LocationAction.CLAIM_CRAFT, LocationAction.SALVAGE);
 		assertThat(LocationActions.forCode(LocationCodes.ANCIENT_RUINS))
 				.contains(LocationAction.SEARCH_ENCOUNTER, LocationAction.ENTER_DUNGEON);
 	}

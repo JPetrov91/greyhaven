@@ -46,6 +46,14 @@ class GameBalanceCatalogTest {
 		assertThat(balance.market().maxMerchantPurchaseQuantity()).isEqualTo(99);
 		assertThat(balance.market().commonRarityModifier()).isEqualTo(1.0);
 		assertThat(balance.market().epicRarityModifier()).isEqualTo(1.60);
+		assertThat(balance.market().listingFeePercent()).isEqualTo(0.02);
+		assertThat(balance.market().saleFeePercent()).isEqualTo(0.08);
+		assertThat(balance.crafting().rankRarityBonusPerRank()).isEqualTo(1);
+		assertThat(balance.crafting().maxRank()).isEqualTo(10);
+		assertThat(balance.crafting().xpPerRecipe()).isEqualTo(15);
+		assertThat(balance.crafting().cumulativeXpToReachRank()).hasSize(11);
+		assertThat(com.example.game.crafting.domain.CraftingBalance.MAX_RANK).isEqualTo(10);
+		assertThat(com.example.game.crafting.domain.CraftingBalance.cumulativeXpForRank(2)).isEqualTo(40);
 		assertThat(balance.pvp().startingRating()).isEqualTo(1000);
 		assertThat(balance.pvp().ratingKFactor()).isEqualTo(24);
 		assertThat(balance.pvp().marksPerWin()).isEqualTo(8);

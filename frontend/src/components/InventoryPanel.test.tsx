@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchCharacter } from '../api/character'
+import { salvageItem } from '../api/crafting'
 import { fetchInventory } from '../api/inventory'
 import { sellToMerchant } from '../api/market'
 import type { CharacterResponse, InventoryItemResponse, InventoryResponse, LocationResponse } from '../api/types'
@@ -25,6 +26,10 @@ vi.mock('../api/character', () => ({
 
 vi.mock('../api/market', () => ({
   sellToMerchant: vi.fn(),
+}))
+
+vi.mock('../api/crafting', () => ({
+  salvageItem: vi.fn(),
 }))
 
 vi.mock('../api/world', () => ({
@@ -467,5 +472,42 @@ describe('InventoryPanel', () => {
     expect(screen.queryByTestId('comparison-RUSTY_SWORD')).toBeNull()
     fireEvent.click(screen.getByLabelText(/Iron Axe/))
     expect(screen.getByTestId('comparison-IRON_AXE')).toBeTruthy()
+  })
+
+  it('requires confirmation before salvaging at the Craftsmen Ward', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-ward',
+      code: 'CRAFTSMEN_WARD',
+      name: 'Craftsmen Ward',
+      description: 'Forges and stills.',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'CRAFT', 'CLAIM_CRAFT', 'SALVAGE'],
+    })
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'axe',
+          code: 'IRON_AXE',
+          displayName: 'Iron Axe',
+          rarity: 'RARE',
+          equipped: false,
+        }),
+      ]),
+    )
+    vi.mocked(salvageItem).mockResolvedValue({
+      sourceItemCode: 'IRON_AXE',
+      sourceItemName: 'Iron Axe',
+      results: [{ itemCode: 'WEAPON_COMPONENTS', itemName: 'Weapon Components', quantity: 2 }],
+    })
+
+    renderPanel()
+    fireEvent.click(await screen.findByLabelText(/Iron Axe/))
+    fireEvent.click(screen.getByTestId('inventory-salvage'))
+    expect(screen.getByTestId('salvage-confirm')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('inventory-salvage'))
+    await waitFor(() => expect(salvageItem).toHaveBeenCalled())
+    expect(vi.mocked(salvageItem).mock.calls[0]?.[0]).toBe('axe')
   })
 })

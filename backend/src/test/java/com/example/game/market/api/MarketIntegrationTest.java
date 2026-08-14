@@ -23,10 +23,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import com.example.game.TestcontainersConfiguration;
 import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.item.domain.ItemCodes;
+import com.example.game.market.domain.MarketFeeCalculator;
 import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
@@ -45,6 +47,9 @@ class MarketIntegrationTest {
 
 	@Autowired
 	private InventoryApplicationService inventoryApplicationService;
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
 
 	private Cookie csrfCookie;
 
@@ -131,6 +136,22 @@ class MarketIntegrationTest {
 				.andExpect(jsonPath("$.listings[0].sellerName").isNotEmpty())
 				.andExpect(jsonPath("$.listings[0].price").value(8));
 
+		mockMvc.perform(get("/api/v1/market/listings").param("weaponFamily", "DAGGER").session(buyer))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.listings.length()").value(1))
+				.andExpect(jsonPath("$.listings[0].itemCode").value(ItemCodes.OLD_DAGGER));
+		mockMvc.perform(get("/api/v1/market/listings")
+						.param("sort", "PRICE")
+						.param("direction", "ASC")
+						.session(buyer))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.listings[0].price").value(8))
+				.andExpect(jsonPath("$.listings[1].price").value(12));
+		mockMvc.perform(get("/api/v1/market/listings").param("minPrice", "10").session(buyer))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.listings.length()").value(1))
+				.andExpect(jsonPath("$.listings[0].itemCode").value(ItemCodes.WOLF_PELT));
+
 		mockMvc.perform(get("/api/v1/market/listings").param("mine", "true").session(seller))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.listings.length()").value(2));
@@ -145,7 +166,7 @@ class MarketIntegrationTest {
 		assertThat(itemQuantity(buyerId, ItemCodes.OLD_DAGGER)).isEqualTo(1);
 		assertThat(itemQuantity(sellerId, ItemCodes.OLD_DAGGER)).isEqualTo(0);
 		assertThat(goldOf(buyerId)).isEqualTo(92);
-		assertThat(goldOf(sellerId)).isEqualTo(108);
+		assertThat(goldOf(sellerId)).isEqualTo(105);
 
 		mockMvc.perform(get("/api/v1/activity").session(buyer))
 				.andExpect(status().isOk())
@@ -262,7 +283,7 @@ class MarketIntegrationTest {
 		assertThat(itemInstanceCount(sellerId, ItemCodes.WOLF_PELT)).isEqualTo(1);
 		assertThat(itemInstanceId(buyerId, ItemCodes.WOLF_PELT)).isEqualTo(buyerPeltId);
 		assertThat(goldOf(buyerId)).isEqualTo(93);
-		assertThat(goldOf(sellerId)).isEqualTo(107);
+		assertThat(goldOf(sellerId)).isEqualTo(105);
 	}
 
 	@Test
@@ -298,7 +319,7 @@ class MarketIntegrationTest {
 		assertThat(itemInstanceCount(buyerId, ItemCodes.HEALING_POTION)).isEqualTo(1);
 		assertThat(itemInstanceCount(sellerId, ItemCodes.HEALING_POTION)).isEqualTo(0);
 		assertThat(goldOf(buyerId)).isEqualTo(94);
-		assertThat(goldOf(sellerId)).isEqualTo(106);
+		assertThat(goldOf(sellerId)).isEqualTo(104);
 	}
 
 	@Test
@@ -340,7 +361,7 @@ class MarketIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INSUFFICIENT_GOLD"));
 		assertThat(goldOf(buyerId)).isEqualTo(10);
-		assertThat(goldOf(sellerId)).isEqualTo(100);
+		assertThat(goldOf(sellerId)).isEqualTo(99);
 		assertThat(itemQuantity(sellerId, ItemCodes.WOLF_PELT)).isEqualTo(1);
 	}
 
@@ -512,11 +533,167 @@ class MarketIntegrationTest {
 				.andExpect(jsonPath("$.code").value("INVENTORY_FULL"));
 		assertThat(itemQuantity(sellerId, ItemCodes.OLD_DAGGER)).isEqualTo(1);
 		assertThat(goldOf(buyerId)).isEqualTo(100);
-		assertThat(goldOf(sellerId)).isEqualTo(100);
+		assertThat(goldOf(sellerId)).isEqualTo(99);
 
 		refreshCsrfCookie(mockMvc.perform(withCsrf(delete("/api/v1/market/listings/" + listingId)).session(seller))
 				.andExpect(status().isOk())
 				.andReturn());
+	}
+
+	@Test
+	void listingFeeIsChargedAndSaleFeeIsNotPaidToTheSeller() throws Exception {
+		String sellerEmail = "mkt-fee-s-" + System.nanoTime() + "@greyhaven.test";
+		String buyerEmail = "mkt-fee-b-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession seller = registerWithCharacter(sellerEmail);
+		MockHttpSession buyer = registerWithCharacter(buyerEmail);
+		UUID sellerId = characterIdForEmail(sellerEmail);
+		UUID buyerId = characterIdForEmail(buyerEmail);
+		inventoryApplicationService.grantItems(sellerId, ItemCodes.WOLF_PELT, 1);
+		UUID peltId = itemInstanceId(sellerId, ItemCodes.WOLF_PELT);
+		moveToMarket(seller);
+		moveToMarket(buyer);
+
+		MvcResult listed = mockMvc.perform(withCsrf(post("/api/v1/market/listings"))
+						.session(seller)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemInstanceId":"%s","quantity":1,"price":100}
+								""".formatted(peltId)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.listingFeePaid").value(MarketFeeCalculator.listingFee(100)))
+				.andReturn();
+		refreshCsrfCookie(listed);
+		assertThat(goldOf(sellerId)).isEqualTo(100 - MarketFeeCalculator.listingFee(100));
+		UUID listingId = UUID.fromString(JsonPath.read(listed.getResponse().getContentAsString(), "$.id"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/market/listings/" + listingId + "/buy")).session(buyer))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.saleFeePaid").value(MarketFeeCalculator.saleFee(100)));
+		assertThat(goldOf(buyerId)).isEqualTo(0);
+		assertThat(goldOf(sellerId)).isEqualTo(
+				100 - MarketFeeCalculator.listingFee(100) + MarketFeeCalculator.sellerProceeds(100));
+	}
+
+	@Test
+	void buyOrderReservesGoldSupportsPartialFulfillmentAndRefundsTheRest() throws Exception {
+		String buyerEmail = "mkt-bo-b-" + System.nanoTime() + "@greyhaven.test";
+		String sellerEmail = "mkt-bo-s-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession buyer = registerWithCharacter(buyerEmail);
+		MockHttpSession seller = registerWithCharacter(sellerEmail);
+		UUID buyerId = characterIdForEmail(buyerEmail);
+		UUID sellerId = characterIdForEmail(sellerEmail);
+		UUID peltDefinitionId = jdbcTemplate.queryForObject(
+				"select id from item_definitions where code = ?",
+				UUID.class,
+				ItemCodes.WOLF_PELT);
+		inventoryApplicationService.grantItems(sellerId, ItemCodes.WOLF_PELT, 5);
+		UUID sellerPelt = itemInstanceId(sellerId, ItemCodes.WOLF_PELT);
+		moveToMarket(buyer);
+		moveToMarket(seller);
+
+		MvcResult created = mockMvc.perform(withCsrf(post("/api/v1/market/buy-orders"))
+						.session(buyer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemDefinitionId":"%s","quantity":4,"maxUnitPrice":10}
+								""".formatted(peltDefinitionId)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.reservedGold").value(40))
+				.andExpect(jsonPath("$.postingFeePaid").value(MarketFeeCalculator.buyOrderPostingFee(40)))
+				.andReturn();
+		refreshCsrfCookie(created);
+		assertThat(goldOf(buyerId)).isEqualTo(60 - MarketFeeCalculator.buyOrderPostingFee(40));
+		UUID orderId = UUID.fromString(JsonPath.read(created.getResponse().getContentAsString(), "$.id"));
+
+		MvcResult filled = mockMvc.perform(withCsrf(post("/api/v1/market/buy-orders/" + orderId + "/fulfill"))
+						.session(seller)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemInstanceId":"%s","quantity":1}
+								""".formatted(sellerPelt)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.remainingQuantity").value(3))
+				.andReturn();
+		refreshCsrfCookie(filled);
+		assertThat(itemQuantity(buyerId, ItemCodes.WOLF_PELT)).isEqualTo(1);
+		assertThat(goldOf(sellerId)).isEqualTo(110 - MarketFeeCalculator.saleFee(10));
+
+		mockMvc.perform(withCsrf(delete("/api/v1/market/buy-orders/" + orderId)).session(buyer))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("CANCELLED"));
+		assertThat(goldOf(buyerId)).isEqualTo(90 - MarketFeeCalculator.buyOrderPostingFee(40));
+	}
+
+	@Test
+	void buyOrderCannotFulfillListedQuantityAndTransferRejectsReservedStacks() throws Exception {
+		String buyerEmail = "mkt-res-b-" + System.nanoTime() + "@greyhaven.test";
+		String sellerEmail = "mkt-res-s-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession buyer = registerWithCharacter(buyerEmail);
+		MockHttpSession seller = registerWithCharacter(sellerEmail);
+		UUID buyerId = characterIdForEmail(buyerEmail);
+		UUID sellerId = characterIdForEmail(sellerEmail);
+		UUID peltDefinitionId = jdbcTemplate.queryForObject(
+				"select id from item_definitions where code = ?",
+				UUID.class,
+				ItemCodes.WOLF_PELT);
+		inventoryApplicationService.grantItems(sellerId, ItemCodes.WOLF_PELT, 10);
+		UUID sellerPelt = itemInstanceId(sellerId, ItemCodes.WOLF_PELT);
+		moveToMarket(buyer);
+		moveToMarket(seller);
+
+		MvcResult listed = mockMvc.perform(withCsrf(post("/api/v1/market/listings"))
+						.session(seller)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemInstanceId":"%s","quantity":6,"price":12}
+								""".formatted(sellerPelt)))
+				.andExpect(status().isOk())
+				.andReturn();
+		refreshCsrfCookie(listed);
+
+		MvcResult created = mockMvc.perform(withCsrf(post("/api/v1/market/buy-orders"))
+						.session(buyer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemDefinitionId":"%s","quantity":6,"maxUnitPrice":10}
+								""".formatted(peltDefinitionId)))
+				.andExpect(status().isOk())
+				.andReturn();
+		refreshCsrfCookie(created);
+		UUID orderId = UUID.fromString(JsonPath.read(created.getResponse().getContentAsString(), "$.id"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/market/buy-orders/" + orderId + "/fulfill"))
+						.session(seller)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemInstanceId":"%s","quantity":6}
+								""".formatted(sellerPelt)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_BUY_ORDER_QUANTITY"));
+
+		org.springframework.transaction.support.TransactionTemplate tx =
+				new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+		org.assertj.core.api.Assertions.assertThatThrownBy(() -> tx.executeWithoutResult(status ->
+						inventoryApplicationService.transferListedQuantity(
+								sellerId,
+								buyerId,
+								sellerPelt,
+								6)))
+				.isInstanceOf(com.example.game.shared.api.ApiException.class)
+				.hasFieldOrPropertyWithValue("code", "ITEM_LISTED");
+		assertThat(itemQuantity(sellerId, ItemCodes.WOLF_PELT)).isEqualTo(10);
+		assertThat(itemQuantity(buyerId, ItemCodes.WOLF_PELT)).isEqualTo(0);
+
+		mockMvc.perform(withCsrf(post("/api/v1/market/buy-orders/" + orderId + "/fulfill"))
+						.session(seller)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"itemInstanceId":"%s","quantity":4}
+								""".formatted(sellerPelt)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.remainingQuantity").value(2));
+		assertThat(itemQuantity(sellerId, ItemCodes.WOLF_PELT)).isEqualTo(6);
+		assertThat(itemQuantity(buyerId, ItemCodes.WOLF_PELT)).isEqualTo(4);
 	}
 
 	@Test

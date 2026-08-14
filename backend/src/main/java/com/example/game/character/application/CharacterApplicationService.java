@@ -17,6 +17,7 @@ import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.domain.ExperienceProgress;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
+import com.example.game.crafting.application.CraftingApplicationService;
 import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.infrastructure.ConstraintViolations;
@@ -33,6 +34,7 @@ public class CharacterApplicationService {
 	private final EquippedBonusProvider equippedBonusProvider;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final MasteryApplicationService masteryApplicationService;
+	private final CraftingApplicationService craftingApplicationService;
 	private final Clock clock;
 
 	public CharacterApplicationService(
@@ -42,6 +44,7 @@ public class CharacterApplicationService {
 			EquippedBonusProvider equippedBonusProvider,
 			CharacterStateSyncService characterStateSyncService,
 			MasteryApplicationService masteryApplicationService,
+			CraftingApplicationService craftingApplicationService,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.startingLocationProvider = startingLocationProvider;
@@ -49,6 +52,7 @@ public class CharacterApplicationService {
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.characterStateSyncService = characterStateSyncService;
 		this.masteryApplicationService = masteryApplicationService;
+		this.craftingApplicationService = craftingApplicationService;
 		this.clock = clock;
 	}
 
@@ -97,6 +101,7 @@ public class CharacterApplicationService {
 			CharacterEntity saved = characterRepository.saveAndFlush(character);
 			starterLoadoutGranter.grantStarterLoadout(saved.getId());
 			masteryApplicationService.initializeForCharacter(saved.getId());
+			craftingApplicationService.initializeForCharacter(saved.getId());
 			return toView(saved);
 		}
 		catch (DataIntegrityViolationException exception) {

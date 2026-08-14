@@ -35,7 +35,8 @@ class ExpeditionResolverTest {
 				40,
 				20,
 				10,
-				10);
+				10,
+				90);
 
 		ExpeditionResult result = ExpeditionResolver.resolve(
 				ExpeditionType.FOREST_PATROL,
@@ -52,6 +53,7 @@ class ExpeditionResolverTest {
 	void aggressiveIncreasesRewardRanges() {
 		ScriptedRandomProvider random = new ScriptedRandomProvider(
 				90, 50, 40, 30,
+				90,
 				90,
 				90,
 				90,
@@ -79,7 +81,8 @@ class ExpeditionResolverTest {
 				1, 1,
 				1, 1,
 				1, 1,
-				1, 1);
+				1, 1,
+				1, 2);
 
 		ExpeditionResult result = ExpeditionResolver.resolve(
 				ExpeditionType.FOREST_PATROL,
@@ -94,6 +97,7 @@ class ExpeditionResolverTest {
 				new ExpeditionLootDrop(ItemCodes.HEALING_POTION, 1),
 				new ExpeditionLootDrop(ItemCodes.OLD_DAGGER, 1),
 				new ExpeditionLootDrop(ItemCodes.IRON_AXE, 1),
-				new ExpeditionLootDrop(ItemCodes.LEATHER_ARMOR, 1));
+				new ExpeditionLootDrop(ItemCodes.LEATHER_ARMOR, 1),
+				new ExpeditionLootDrop(ItemCodes.RIVER_HERB, 2));
 	}
 }

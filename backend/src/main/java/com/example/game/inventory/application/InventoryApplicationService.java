@@ -3,6 +3,7 @@ package com.example.game.inventory.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -439,6 +440,118 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
+	public void consumeUnreservedByCode(UUID characterId, String itemCode, int quantity) {
+		if (quantity < 1) {
+			throw new IllegalArgumentException("quantity must be positive");
+		}
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		ItemInstanceEntity instance = itemInstanceRepository
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
+				.orElseThrow(InventoryErrors::missingMaterials);
+		if (unreservedQuantity(instance) < quantity) {
+			throw InventoryErrors.missingMaterials();
+		}
+		instance.decreaseQuantity(quantity);
+		if (instance.getQuantity() == 0) {
+			itemInstanceAffixRepository.deleteAll(
+					itemInstanceAffixRepository.findByItemInstanceIdIn(List.of(instance.getId())));
+			itemInstanceRepository.delete(instance);
+		}
+		else {
+			itemInstanceRepository.saveAndFlush(instance);
+		}
+	}
+
+	@Transactional(readOnly = true)
+	public int unreservedQuantityByCode(UUID characterId, String itemCode) {
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode).orElse(null);
+		if (definition == null) {
+			return 0;
+		}
+		ItemInstanceEntity instance = itemInstanceRepository
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
+				.orElse(null);
+		if (instance == null) {
+			return 0;
+		}
+		return unreservedQuantity(instance);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public SalvageSourceSnapshot requireSalvageSource(UUID characterId, UUID itemInstanceId) {
+		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+		return new SalvageSourceSnapshot(
+				instance.getId(),
+				definition.getId(),
+				definition.getCode(),
+				definition.getType(),
+				instance.getRarity(),
+				equipmentRepository.existsByItemInstanceId(instance.getId()),
+				reservedQuantity(instance.getId()));
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void destroyInstance(UUID characterId, UUID itemInstanceId) {
+		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		if (equipmentRepository.existsByItemInstanceId(instance.getId())) {
+			throw InventoryErrors.itemNotOwned();
+		}
+		if (unreservedQuantity(instance) < instance.getQuantity()) {
+			throw InventoryErrors.itemListed();
+		}
+		itemInstanceAffixRepository.deleteAll(
+				itemInstanceAffixRepository.findByItemInstanceIdIn(List.of(instance.getId())));
+		itemInstanceRepository.delete(instance);
+		itemInstanceRepository.flush();
+	}
+
+	@Transactional(readOnly = true)
+	public int usedCapacity(UUID characterId) {
+		return (int) itemInstanceRepository.countByOwnerCharacterId(characterId);
+	}
+
+	@Transactional(readOnly = true)
+	public Map<UUID, MarketItemDisplay> marketDisplays(Collection<UUID> itemInstanceIds) {
+		if (itemInstanceIds == null || itemInstanceIds.isEmpty()) {
+			return Map.of();
+		}
+		List<ItemInstanceEntity> instances = itemInstanceRepository.findAllById(itemInstanceIds);
+		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		AffixCatalog catalog = affixCatalogService.load();
+		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
+		Map<UUID, MarketItemDisplay> displays = new HashMap<>();
+		for (ItemInstanceEntity instance : instances) {
+			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			if (definition == null) {
+				continue;
+			}
+			List<RolledAffix> rolled = rolledAffixes(affixesByInstance.getOrDefault(instance.getId(), List.of()));
+			List<ItemAffixView> affixViews = rolled.stream()
+					.map(affix -> {
+						var def = catalog.require(affix.affixCode());
+						return new ItemAffixView(
+								def.code(),
+								def.kind(),
+								def.displayName(),
+								def.stat(),
+								affix.magnitude());
+					})
+					.toList();
+			displays.put(instance.getId(), new MarketItemDisplay(
+					instance.getId(),
+					ItemDisplayNames.compose(definition.getName(), rolled, catalog),
+					definition.getType(),
+					instance.getRarity(),
+					definition.getWeaponFamily(),
+					definition.getRequiredLevel(),
+					affixViews));
+		}
+		return displays;
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
 	public OwnedItemSnapshot requireOwnedItemForTrade(UUID characterId, UUID itemInstanceId) {
 		characterVitalsService.lockVitalsByCharacterId(characterId);
 		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
@@ -454,7 +567,8 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	}
 
 	/**
-	 * Moves listed quantity from seller to buyer, merging stackable stacks so uniqueness holds.
+	 * Moves unreserved quantity from seller to buyer, merging stackable stacks so uniqueness holds.
+	 * Active listings must be released before this runs so reserved quantity is not transferred.
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void transferListedQuantity(
@@ -469,8 +583,8 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		if (equipmentRepository.existsByItemInstanceId(instance.getId())) {
 			throw InventoryErrors.itemListed();
 		}
-		if (instance.getQuantity() < quantity) {
-			throw InventoryErrors.itemNotFound();
+		if (unreservedQuantity(instance) < quantity) {
+			throw InventoryErrors.itemListed();
 		}
 
 		if (instance.isStackable()) {

@@ -14,6 +14,7 @@ public record GameBalance(
 		Inventory inventory,
 		Items items,
 		Market market,
+		Crafting crafting,
 		Pvp pvp
 ) {
 
@@ -109,10 +110,26 @@ public record GameBalance(
 			double merchantSellMultiplier,
 			double affixValuePerAffix,
 			int maxMerchantPurchaseQuantity,
+			double listingFeePercent,
+			double saleFeePercent,
+			int listingPageSize,
+			int maxListingPageSize,
 			double commonRarityModifier,
 			double uncommonRarityModifier,
 			double rareRarityModifier,
 			double epicRarityModifier
+	) {
+	}
+
+	public record Crafting(
+			int maxRank,
+			int xpPerRecipe,
+			int rankRarityBonusPerRank,
+			int[] cumulativeXpToReachRank,
+			int commonSalvageMultiplier,
+			int uncommonSalvageMultiplier,
+			int rareSalvageMultiplier,
+			int epicSalvageMultiplier
 	) {
 	}
 

@@ -34,6 +34,11 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   ENTER_DUNGEON: 'Enter dungeon',
   ENTER_ARENA: 'Enter Arena',
   CHALLENGE_DUEL: 'Challenge to a duel',
+  CRAFT: 'Craft',
+  CLAIM_CRAFT: 'Claim finished craft',
+  SALVAGE: 'Salvage equipment',
+  CREATE_BUY_ORDER: 'Create buy order',
+  FULFILL_BUY_ORDER: 'Fulfill buy order',
 }
 
 /** Actions already represented by dedicated UI sections on this screen. */
@@ -44,6 +49,8 @@ const IMPLIED_ACTIONS = new Set<LocationAction>([
   'ENTER_DUNGEON',
   'ENTER_ARENA',
   'CHALLENGE_DUEL',
+  'CREATE_BUY_ORDER',
+  'FULFILL_BUY_ORDER',
 ])
 
 type Props = {
@@ -55,6 +62,7 @@ type Props = {
   onOpenChat?: () => void
   onOpenWorld?: () => void
   onOpenArena?: () => void
+  onOpenCrafting?: () => void
   variant?: 'full' | 'hero'
 }
 
@@ -86,6 +94,7 @@ export function LocationPanel({
   onOpenChat,
   onOpenWorld,
   onOpenArena,
+  onOpenCrafting,
   variant = 'full',
 }: Props) {
   const queryClient = useQueryClient()
@@ -188,6 +197,7 @@ export function LocationPanel({
           onOpenChat={onOpenChat}
           onOpenExpedition={onOpenExpedition}
           onOpenArena={onOpenArena}
+          onOpenCrafting={onOpenCrafting}
           onMove={(id) => void handleMove(id)}
         />
       ) : (
@@ -300,12 +310,23 @@ export function LocationPanel({
                     ) : action === 'BROWSE_MARKET' ||
                       action === 'CREATE_LISTING' ||
                       action === 'BUY_ITEM' ||
-                      action === 'CANCEL_LISTING' ? (
+                      action === 'CANCEL_LISTING' ||
+                      action === 'CREATE_BUY_ORDER' ||
+                      action === 'FULFILL_BUY_ORDER' ? (
                       <Button
                         type="button"
                         data-testid={`open-market-${action}`}
                         disabled={!onOpenMarket}
                         onClick={() => onOpenMarket?.()}
+                      >
+                        Open
+                      </Button>
+                    ) : action === 'CRAFT' || action === 'CLAIM_CRAFT' || action === 'SALVAGE' ? (
+                      <Button
+                        type="button"
+                        data-testid={action === 'CRAFT' ? 'open-crafting-action' : `open-crafting-${action}`}
+                        disabled={!onOpenCrafting}
+                        onClick={() => onOpenCrafting?.()}
                       >
                         Open
                       </Button>
@@ -399,6 +420,7 @@ type HeroProps = {
   onOpenChat?: () => void
   onOpenExpedition?: () => void
   onOpenArena?: () => void
+  onOpenCrafting?: () => void
   onMove: (destinationLocationId: string) => void
 }
 
@@ -423,6 +445,7 @@ function heroActionTiles({
   onOpenChat,
   onOpenExpedition,
   onOpenArena,
+  onOpenCrafting,
   onMove,
 }: Pick<
   HeroProps,
@@ -436,6 +459,7 @@ function heroActionTiles({
   | 'onOpenChat'
   | 'onOpenExpedition'
   | 'onOpenArena'
+  | 'onOpenCrafting'
   | 'onMove'
 >): HeroTileModel[] {
   const actions = new Set(location.actions)
@@ -479,6 +503,16 @@ function heroActionTiles({
       title: 'Expeditions',
       subtitle: 'Send a party',
       onClick: () => onOpenExpedition?.(),
+    })
+  }
+
+  if (actions.has('CRAFT') || actions.has('CLAIM_CRAFT') || actions.has('SALVAGE')) {
+    tiles.push({
+      testId: 'open-crafting-action',
+      icon: 'market',
+      title: 'Crafting',
+      subtitle: 'Jobs & salvage',
+      onClick: () => onOpenCrafting?.(),
     })
   }
 
@@ -572,6 +606,7 @@ function LocationHero({
   onOpenChat,
   onOpenExpedition,
   onOpenArena,
+  onOpenCrafting,
   onMove,
 }: HeroProps) {
   const clock = useGreyhavenClock()
@@ -588,6 +623,7 @@ function LocationHero({
     onOpenChat,
     onOpenExpedition,
     onOpenArena,
+    onOpenCrafting,
     onMove,
   })
 

@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchInventory } from '../api/inventory'
-import { fetchMarketListings, fetchMerchants, fetchOwnMarketListings } from '../api/market'
+import { fetchBuyOrders, fetchMarketListings, fetchMerchants, fetchOwnMarketListings } from '../api/market'
 import type { InventoryItemResponse, InventoryResponse, LocationResponse, MarketListingResponse } from '../api/types'
 import { fetchCurrentLocation } from '../api/world'
 import { MarketPanel } from './MarketPanel'
@@ -17,9 +17,14 @@ vi.mock('../api/inventory', () => ({
 vi.mock('../api/market', () => ({
   fetchMarketListings: vi.fn(),
   fetchOwnMarketListings: vi.fn(),
+  fetchMarketListingHistory: vi.fn(),
+  fetchBuyOrders: vi.fn(),
   createMarketListing: vi.fn(),
   buyMarketListing: vi.fn(),
   cancelMarketListing: vi.fn(),
+  createBuyOrder: vi.fn(),
+  fulfillBuyOrder: vi.fn(),
+  cancelBuyOrder: vi.fn(),
   fetchMerchants: vi.fn(),
   buyMerchantItem: vi.fn(),
 }))
@@ -40,7 +45,17 @@ const marketLocation: LocationResponse = {
   description: 'Safe market',
   safety: 'SAFE',
   region: 'Greyhaven',
-  actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'BROWSE_MARKET', 'CREATE_LISTING', 'BUY_ITEM', 'CANCEL_LISTING'],
+  actions: [
+    'INSPECT',
+    'MOVE',
+    'VIEW_NEARBY',
+    'BROWSE_MARKET',
+    'CREATE_LISTING',
+    'BUY_ITEM',
+    'CANCEL_LISTING',
+    'CREATE_BUY_ORDER',
+    'FULFILL_BUY_ORDER',
+  ],
 }
 
 const squareLocation: LocationResponse = {
@@ -59,6 +74,7 @@ function listing(overrides: Partial<MarketListingResponse> = {}): MarketListingR
     sellerCharacterId: 'seller-1',
     sellerName: 'Bram',
     itemInstanceId: 'item-1',
+    itemDefinitionId: 'def-leather',
     itemCode: 'LEATHER_ARMOR',
     itemName: 'Leather Armor',
     itemType: 'ARMOR',
@@ -190,10 +206,10 @@ describe('MarketPanel', () => {
     expect(await screen.findByTestId('inspector-buy-LEATHER_ARMOR')).toBeTruthy()
     expect(screen.getByTestId('listing-seller').textContent).toContain('Bram')
     expect(screen.getByTestId('listing-seller').className).toContain('market-seller')
-    expect(screen.getByTestId('market-buy-order')).toHaveProperty('disabled', true)
+    expect(screen.getByTestId('market-buy-order')).toHaveProperty('disabled', false)
     expect(screen.getByTestId('market-watchlist')).toHaveProperty('disabled', true)
-    expect(screen.getByTestId('market-tab-orders')).toHaveProperty('disabled', true)
-    expect(screen.getByTestId('market-tab-history')).toHaveProperty('disabled', true)
+    expect(screen.getByTestId('market-tab-orders')).toHaveProperty('disabled', false)
+    expect(screen.getByTestId('market-tab-history')).toHaveProperty('disabled', false)
     expect(screen.getByText('List price')).toBeTruthy()
     expect(screen.queryByText('23h')).toBeNull()
   })
@@ -241,8 +257,52 @@ describe('MarketPanel', () => {
     fireEvent.change(screen.getByTestId('market-search'), { target: { value: 'iron' } })
     expect(screen.queryByText('Leather Armor')).toBeNull()
     expect(screen.getAllByText('Iron Ore').length).toBeGreaterThan(0)
-    expect(screen.getByTestId('market-rarity-filter')).toHaveProperty('disabled', true)
+    expect(screen.getByTestId('market-rarity-filter')).toHaveProperty('disabled', false)
     expect(screen.queryByTestId('market-listings-empty')).toBeNull()
+  })
+
+  it('opens the buy-order board with reserved gold', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(marketLocation)
+    vi.mocked(fetchMarketListings).mockResolvedValue({ truncated: false, listings: [] })
+    vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
+    vi.mocked(fetchInventory).mockResolvedValue(inventory([axeItem()]))
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
+    vi.mocked(fetchBuyOrders).mockResolvedValue({
+      truncated: false,
+      page: 0,
+      size: 20,
+      total: 1,
+      orders: [
+        {
+          id: 'order-1',
+          buyerCharacterId: 'buyer-1',
+          buyerName: 'Nira',
+          itemDefinitionId: 'def-1',
+          itemCode: 'IRON_ORE',
+          itemName: 'Iron Ore',
+          itemType: 'MATERIAL',
+          remainingQuantity: 8,
+          originalQuantity: 10,
+          maxUnitPrice: 12,
+          reservedGold: 96,
+          postingFeePaid: 2,
+          status: 'ACTIVE',
+          createdAt: '2026-08-15T10:00:00Z',
+          ownOrder: false,
+        },
+      ],
+    })
+
+    renderPanel()
+    await openPlayerMarket()
+    fireEvent.click(await screen.findByTestId('market-tab-orders'))
+
+    expect(await screen.findByTestId('buy-orders')).toBeTruthy()
+    expect(screen.getByTestId('buy-orders').textContent).toContain('Iron Ore')
+    expect(screen.getByTestId('buy-orders').textContent).toContain('96g')
+    expect(screen.getByTestId('create-buy-order')).toHaveProperty('disabled', true)
+    fireEvent.change(screen.getByTestId('buy-order-item-select'), { target: { value: 'def-1' } })
+    expect(screen.getByTestId('create-buy-order')).toHaveProperty('disabled', false)
   })
 
   it('preselects an inventory item from the listItem query', async () => {

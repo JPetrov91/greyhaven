@@ -49,6 +49,7 @@ public final class ExpeditionResolver {
 		maybeAdd(drops, ItemCodes.OLD_DAGGER, ExpeditionBalance.commonGearChancePercent(strategy), 1, 1, random);
 		maybeAdd(drops, ItemCodes.IRON_AXE, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
 		maybeAdd(drops, ItemCodes.LEATHER_ARMOR, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.RIVER_HERB, ExpeditionBalance.herbChancePercent(strategy), 1, 3, random);
 		return List.copyOf(drops);
 	}
 

@@ -184,6 +184,7 @@ These tests start Spring Boot on a random port, launch Vite against that API, an
 - Task 6: expeditions and activity feed (API coverage in backend integration tests)
 - Task 7: marketplace (API coverage in backend integration tests)
 - Task 8: global chat, office mode, and layout polish (API + frontend unit tests)
+- Phase 2 Task 9: professions, timestamp crafting, salvage, marketplace fees, and buy orders
 
 ### Combat API (Task 5)
 
@@ -235,6 +236,33 @@ Authenticated session + CSRF required:
 Purchases are transactional and concurrency-safe. Listings can be created only at the Market,
 and equipped items cannot be sold.
 
+### Crafting, professions & Economy 2.0 (Phase 2 Task 9)
+
+Authenticated session + CSRF required:
+
+- `GET /api/v1/crafting/professions`
+- `GET /api/v1/crafting/recipes`
+- `GET /api/v1/crafting/jobs/current` (ACTIVE or unclaimed COMPLETED; 204 when none)
+- `POST /api/v1/crafting/jobs` body `{ "recipeCode": "SMELT_IRON_INGOT" }`
+- `POST /api/v1/crafting/jobs/{id}/claim`
+- `POST /api/v1/items/{itemId}/salvage`
+- `GET /api/v1/market/listings` query: `itemType`, `rarity`, `weaponFamily`, `minLevel`, `maxLevel`, `minPrice`, `maxPrice`, `sort` (`CREATED_AT` | `PRICE`), `direction`, `page`, `size`, `mine`
+- `GET /api/v1/market/listings/history`
+- `GET /api/v1/market/buy-orders`
+- `POST /api/v1/market/buy-orders` body `{ "itemDefinitionId", "quantity", "maxUnitPrice" }`
+- `POST /api/v1/market/buy-orders/{id}/fulfill` body `{ "itemInstanceId", "quantity" }`
+- `DELETE /api/v1/market/buy-orders/{id}`
+
+Characters start with Blacksmith, Alchemist, and Hunter at rank 1. Crafting jobs complete from
+`startedAt` / `completesAt` (no sleeping worker threads). The rolled output, including rarity, is
+persisted when the job starts so refresh cannot reroll quality. Claim grants the item and profession
+XP exactly once. Salvage is allowed only at the Craftsmen Ward and rejects equipped or market-listed
+items.
+
+Player-market listings charge a configurable listing fee (1%) and sale fee (5%). Buy orders escrow
+`quantity × maxUnitPrice` gold until partial fills, a complete fill, or cancel. Concurrent fills
+lock the order row first.
+
 ### Global chat & office mode (Task 8)
 
 Authenticated session required. CSRF is required for POST only.
@@ -275,8 +303,9 @@ Known technical debt:
 - `chat_messages` is append-only; old rows are not pruned (reads still cap at 100).
 - Compact mode does not yet collapse the three-column layout on very short viewports.
 
-Intentionally deferred (post-MVP / Phase 2): clans, realtime PvP, WebSockets, skill trees,
-crafting, multiple characters/regions, raids, world bosses, Redis, Kafka, Kubernetes.
+Intentionally deferred (post-MVP / later Phase 2): clans, realtime PvP WebSockets, skill trees,
+shared/clan professions, durability, multiple characters/regions, raids, world bosses, Redis, Kafka,
+Kubernetes.
 
 Phase 2 recommendations: migrate chat to WebSockets only if PvP or presence needs bidirectional
 frames; add chat retention; keep marketplace and combat on the modular monolith until a real
@@ -342,9 +371,20 @@ and actuator health.
 | POST | `/api/v1/expeditions` |
 | POST | `/api/v1/expeditions/{id}/claim` |
 | GET | `/api/v1/market/listings` |
+| GET | `/api/v1/market/listings/history` |
 | POST | `/api/v1/market/listings` |
 | POST | `/api/v1/market/listings/{id}/buy` |
 | DELETE | `/api/v1/market/listings/{id}` |
+| GET | `/api/v1/market/buy-orders` |
+| POST | `/api/v1/market/buy-orders` |
+| POST | `/api/v1/market/buy-orders/{id}/fulfill` |
+| DELETE | `/api/v1/market/buy-orders/{id}` |
+| GET | `/api/v1/crafting/professions` |
+| GET | `/api/v1/crafting/recipes` |
+| GET | `/api/v1/crafting/jobs/current` |
+| POST | `/api/v1/crafting/jobs` |
+| POST | `/api/v1/crafting/jobs/{id}/claim` |
+| POST | `/api/v1/items/{itemId}/salvage` |
 | GET | `/api/v1/activity` |
 | GET | `/api/v1/chat/messages` |
 | POST | `/api/v1/chat/messages` |
@@ -359,7 +399,9 @@ Managed by Flyway (`backend/src/main/resources/db/migration`):
 `item_definitions`, `item_instances`, `equipment`, `monster_definitions`,
 `monster_loot_entries`, `location_encounter_weights`, `encounters`, `combat_sessions`,
 `combat_events`, `combat_reward_items`, `expeditions`, `expedition_reward_items`,
-`market_listings`, `activity_entries`, `chat_messages`, `flyway_schema_history`.
+`market_listings`, `market_buy_orders`, `market_buy_order_fills`, `character_professions`,
+`crafting_recipes`, `crafting_recipe_inputs`, `crafting_jobs`, `salvage_outputs`,
+`activity_entries`, `chat_messages`, `flyway_schema_history`.
 
 ## Profiles
 

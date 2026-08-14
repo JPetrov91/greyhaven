@@ -32,6 +32,15 @@ public final class ItemCodes {
 	public static final String MILITIA_SHORTSWORD = "MILITIA_SHORTSWORD";
 	public static final String ARMING_SWORD = "ARMING_SWORD";
 	public static final String WARDENS_SIGNET = "WARDENS_SIGNET";
+	public static final String IRON_ORE = "IRON_ORE";
+	public static final String VENOM_GLAND = "VENOM_GLAND";
+	public static final String IRON_INGOT = "IRON_INGOT";
+	public static final String CURED_LEATHER = "CURED_LEATHER";
+	public static final String LEATHER_STRIPS = "LEATHER_STRIPS";
+	public static final String WEAPON_COMPONENTS = "WEAPON_COMPONENTS";
+	public static final String ARMOR_SCRAPS = "ARMOR_SCRAPS";
+	public static final String RIVER_HERB = "RIVER_HERB";
+	public static final String GREATER_HEALING_POTION = "GREATER_HEALING_POTION";
 
 	private ItemCodes() {
 	}

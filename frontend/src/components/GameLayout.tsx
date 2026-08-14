@@ -13,6 +13,7 @@ import { CombatPanel } from './CombatPanel'
 import { EncounterPrompt } from './EncounterPrompt'
 import { EquipmentOverviewCard } from './EquipmentOverviewCard'
 import { ExpeditionPanel } from './ExpeditionPanel'
+import { CraftingPanel } from './CraftingPanel'
 import { GameLeftNav } from './GameLeftNav'
 import { GameTopBar } from './GameTopBar'
 import { GuildPlaceholder } from './GuildPlaceholder'
@@ -143,6 +144,7 @@ export function GameLayout() {
     onOpenChat: () => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' }),
     onOpenWorld: () => navigate(gameLink('world')),
     onOpenArena: () => navigate(gameLink('pvp')),
+    onOpenCrafting: () => navigate(gameLink('crafting')),
   }
 
   let mainContent
@@ -207,6 +209,8 @@ export function GameLayout() {
     mainContent = <MarketPanel onClose={() => toggleMarket(false)} />
   } else if (view === 'expeditions') {
     mainContent = <ExpeditionPanel />
+  } else if (view === 'crafting') {
+    mainContent = <CraftingPanel />
   } else if (view === 'world') {
     mainContent = <LocationPanel variant="full" {...locationHandlers} />
   } else {

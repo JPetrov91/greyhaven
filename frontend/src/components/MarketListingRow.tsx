@@ -51,7 +51,9 @@ export function MarketListingRow({
       <td>
         <button type="button" className="market-row-select" onClick={onSelect}>
           <ItemIcon item={listingIconSource(listing.itemType, listing.itemCode)} className="item-icon item-icon-row" />
-          <span className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</span>
+          <span className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>
+            {listing.displayName ?? listing.itemName}
+          </span>
         </button>
       </td>
       <td>
@@ -59,9 +61,7 @@ export function MarketListingRow({
       </td>
       <td>{formatItemType(listing.itemType)}</td>
       <td>{listing.quantity}</td>
-      <td className="market-col-locked" title="Coming later">
-        —
-      </td>
+      <td>{listing.requiredLevel ?? '—'}</td>
       <td className="market-col-locked" title="Coming later">
         —
       </td>

@@ -5,12 +5,12 @@ import java.util.Set;
 
 import com.example.game.inventory.domain.EquipmentSlot;
 
-final class TestAffixCatalogs {
+public final class TestAffixCatalogs {
 
 	private TestAffixCatalogs() {
 	}
 
-	static AffixCatalog standard() {
+	public static AffixCatalog standard() {
 		return new AffixCatalog(List.of(
 				prefix("SHARP", AffixStat.DAMAGE_PERCENT, 4, 8, Set.of(ItemType.WEAPON), Set.of(), Set.of(), Set.of()),
 				prefix("BALANCED", AffixStat.ACCURACY, 3, 6, Set.of(ItemType.WEAPON), Set.of(), Set.of(), Set.of()),

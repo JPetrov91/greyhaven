@@ -100,7 +100,7 @@ class MarketPurchaseConcurrencyIntegrationTest {
 
 		int buyerGold = goldOf(buyerA.characterId) + goldOf(buyerB.characterId);
 		assertThat(buyerGold).isEqualTo(190);
-		assertThat(goldOf(seller.characterId)).isEqualTo(110);
+		assertThat(goldOf(seller.characterId)).isEqualTo(108);
 	}
 
 	@Test
@@ -149,13 +149,13 @@ class MarketPurchaseConcurrencyIntegrationTest {
 			assertThat(itemQuantity(buyer.characterId, ItemCodes.OLD_DAGGER)).isEqualTo(1);
 			assertThat(itemQuantity(seller.characterId, ItemCodes.OLD_DAGGER)).isEqualTo(0);
 			assertThat(goldOf(buyer.characterId)).isEqualTo(90);
-			assertThat(goldOf(seller.characterId)).isEqualTo(110);
+			assertThat(goldOf(seller.characterId)).isEqualTo(108);
 		}
 		else {
 			assertThat(itemQuantity(buyer.characterId, ItemCodes.OLD_DAGGER)).isEqualTo(0);
 			assertThat(itemQuantity(seller.characterId, ItemCodes.OLD_DAGGER)).isEqualTo(1);
 			assertThat(goldOf(buyer.characterId)).isEqualTo(100);
-			assertThat(goldOf(seller.characterId)).isEqualTo(100);
+			assertThat(goldOf(seller.characterId)).isEqualTo(99);
 		}
 	}
 

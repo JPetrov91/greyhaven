@@ -40,6 +40,7 @@ public final class GameBalanceCatalog {
 				parseInventory(map(root, "inventory")),
 				parseItems(map(root, "items")),
 				parseMarket(map(root, "market")),
+				parseCrafting(map(root, "crafting")),
 				parsePvp(map(root, "pvp")));
 	}
 
@@ -160,10 +161,27 @@ public final class GameBalanceCatalog {
 				doubleValue(node, "merchantSellMultiplier"),
 				doubleValue(node, "affixValuePerAffix"),
 				intValue(node, "maxMerchantPurchaseQuantity"),
+				doubleValue(node, "listingFeePercent"),
+				doubleValue(node, "saleFeePercent"),
+				intValue(node, "listingPageSize"),
+				intValue(node, "maxListingPageSize"),
 				doubleValue(rarityModifiers, "COMMON"),
 				doubleValue(rarityModifiers, "UNCOMMON"),
 				doubleValue(rarityModifiers, "RARE"),
 				doubleValue(rarityModifiers, "EPIC"));
+	}
+
+	private static GameBalance.Crafting parseCrafting(Map<String, Object> node) {
+		Map<String, Object> salvage = map(node, "salvageRarityMultipliers");
+		return new GameBalance.Crafting(
+				intValue(node, "maxRank"),
+				intValue(node, "xpPerRecipe"),
+				intValue(node, "rankRarityBonusPerRank"),
+				intArray(node, "cumulativeXpToReachRank"),
+				intValue(salvage, "COMMON"),
+				intValue(salvage, "UNCOMMON"),
+				intValue(salvage, "RARE"),
+				intValue(salvage, "EPIC"));
 	}
 
 	private static GameBalance.Pvp parsePvp(Map<String, Object> node) {

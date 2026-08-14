@@ -9,11 +9,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.game.activity.application.ActivityApplicationService;
+import com.example.game.activity.domain.ActivityType;
 import com.example.game.character.application.CharacterCombatGuard;
 import com.example.game.character.application.CharacterIdentityService;
 import com.example.game.character.application.CharacterLocationService;
@@ -22,12 +26,24 @@ import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.application.InventoryFullException;
+import com.example.game.inventory.application.MarketItemDisplay;
 import com.example.game.inventory.application.OwnedItemSnapshot;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
+import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.ItemType;
+import com.example.game.item.domain.WeaponFamily;
+import com.example.game.market.domain.BuyOrderRules;
+import com.example.game.market.domain.MarketBalance;
+import com.example.game.market.domain.MarketBuyOrderStatus;
+import com.example.game.market.domain.MarketFeeCalculator;
+import com.example.game.market.domain.MarketListingSort;
 import com.example.game.market.domain.MarketListingStatus;
 import com.example.game.market.domain.MarketRules;
+import com.example.game.market.infrastructure.MarketBuyOrderEntity;
+import com.example.game.market.infrastructure.MarketBuyOrderFillEntity;
+import com.example.game.market.infrastructure.MarketBuyOrderFillRepository;
+import com.example.game.market.infrastructure.MarketBuyOrderRepository;
 import com.example.game.market.infrastructure.MarketListingEntity;
 import com.example.game.market.infrastructure.MarketListingRepository;
 import com.example.game.world.application.LocationView;
@@ -38,19 +54,12 @@ import com.example.game.world.domain.LocationActions;
 /**
  * Marketplace flows.
  *
- * <p>Every write here takes row locks in one fixed order: the listing row first, then character
- * rows in id order, then item instances. Locking the listing before any character row is what
- * keeps a purchase and a concurrent cancellation of the same listing from deadlocking, because no
- * transaction ever waits for a listing while already holding a character row.
+ * <p>Every write here takes row locks in one fixed order: the listing or buy-order row first, then
+ * character rows in id order, then item instances. Locking the order/listing before any character
+ * row keeps a purchase and a concurrent cancellation from deadlocking.
  */
 @Service
 public class MarketApplicationService {
-
-	/**
-	 * The market is browsed as a page of the newest listings rather than the whole table, which
-	 * would otherwise grow with every unsold offer in the world.
-	 */
-	static final int ACTIVE_LISTING_LIMIT = 100;
 
 	private final CharacterVitalsService characterVitalsService;
 	private final CharacterLocationService characterLocationService;
@@ -61,6 +70,8 @@ public class MarketApplicationService {
 	private final ItemCatalogService itemCatalogService;
 	private final ActivityApplicationService activityApplicationService;
 	private final MarketListingRepository marketListingRepository;
+	private final MarketBuyOrderRepository marketBuyOrderRepository;
+	private final MarketBuyOrderFillRepository marketBuyOrderFillRepository;
 	private final Clock clock;
 
 	public MarketApplicationService(
@@ -73,6 +84,8 @@ public class MarketApplicationService {
 			ItemCatalogService itemCatalogService,
 			ActivityApplicationService activityApplicationService,
 			MarketListingRepository marketListingRepository,
+			MarketBuyOrderRepository marketBuyOrderRepository,
+			MarketBuyOrderFillRepository marketBuyOrderFillRepository,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
 		this.characterLocationService = characterLocationService;
@@ -83,26 +96,70 @@ public class MarketApplicationService {
 		this.itemCatalogService = itemCatalogService;
 		this.activityApplicationService = activityApplicationService;
 		this.marketListingRepository = marketListingRepository;
+		this.marketBuyOrderRepository = marketBuyOrderRepository;
+		this.marketBuyOrderFillRepository = marketBuyOrderFillRepository;
 		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
-	public MarketListingPage listActive(UUID accountId, ItemType itemType, boolean mine) {
-		CharacterLocationView locationView = characterLocationService.locationOf(accountId);
+	public MarketFeesView fees() {
+		return new MarketFeesView(MarketBalance.LISTING_FEE_PERCENT, MarketBalance.SALE_FEE_PERCENT);
+	}
 
-		Set<UUID> typeDefinitionIds = null;
-		if (itemType != null) {
-			typeDefinitionIds = itemCatalogService.idsOfType(itemType);
-			if (typeDefinitionIds.isEmpty()) {
-				return new MarketListingPage(List.of(), false);
-			}
-		}
-		List<MarketListingEntity> found = findActive(locationView.characterId(), mine, typeDefinitionIds);
-		boolean truncated = found.size() > ACTIVE_LISTING_LIMIT;
-		if (truncated) {
-			found = found.subList(0, ACTIVE_LISTING_LIMIT);
-		}
-		return new MarketListingPage(toViews(found, locationView.characterId()), truncated);
+	@Transactional(readOnly = true)
+	public MarketListingPage listActive(
+			UUID accountId,
+			boolean mine,
+			ItemType itemType,
+			ItemRarity rarity,
+			WeaponFamily weaponFamily,
+			Integer minLevel,
+			Integer maxLevel,
+			Integer minPrice,
+			Integer maxPrice,
+			MarketListingSort sort,
+			Sort.Direction direction,
+			int page,
+			int size) {
+		CharacterLocationView locationView = characterLocationService.locationOf(accountId);
+		Pageable pageable = listingPageable(page, size, sort, direction);
+		UUID sellerId = mine ? locationView.characterId() : null;
+		Page<MarketListingEntity> found = marketListingRepository.search(
+				MarketListingStatus.ACTIVE,
+				sellerId,
+				itemType,
+				rarity,
+				weaponFamily,
+				minLevel,
+				maxLevel,
+				minPrice,
+				maxPrice,
+				pageable);
+		return new MarketListingPage(
+				toListingViews(found.getContent(), locationView.characterId()),
+				found.getNumber(),
+				found.getSize(),
+				found.getTotalElements(),
+				found.hasNext());
+	}
+
+	@Transactional(readOnly = true)
+	public MarketListingPage history(UUID accountId, int page, int size) {
+		CharacterLocationView locationView = characterLocationService.locationOf(accountId);
+		Pageable pageable = PageRequest.of(
+				Math.max(0, page),
+				clampSize(size),
+				Sort.by(Sort.Direction.DESC, "createdAt"));
+		Page<MarketListingEntity> found = marketListingRepository.findHistory(
+				locationView.characterId(),
+				List.of(MarketListingStatus.SOLD, MarketListingStatus.CANCELLED),
+				pageable);
+		return new MarketListingPage(
+				toListingViews(found.getContent(), locationView.characterId()),
+				found.getNumber(),
+				found.getSize(),
+				found.getTotalElements(),
+				found.hasNext());
 	}
 
 	@Transactional
@@ -123,6 +180,14 @@ public class MarketApplicationService {
 		if (!MarketRules.isValidQuantity(quantity, item.unreservedQuantity())) {
 			throw MarketErrors.invalidListingQuantity();
 		}
+		ItemDefinitionView definition = requireDefinition(item.itemDefinitionId());
+		int listingFee = MarketFeeCalculator.listingFee(price);
+		if (vitals.gold() < listingFee) {
+			throw MarketErrors.insufficientGoldForListingFee();
+		}
+		if (listingFee > 0) {
+			characterVitalsService.spendGold(vitals.characterId(), listingFee);
+		}
 
 		MarketListingEntity listing = new MarketListingEntity(
 				UUID.randomUUID(),
@@ -131,9 +196,20 @@ public class MarketApplicationService {
 				item.itemDefinitionId(),
 				quantity,
 				price,
+				listingFee,
+				item.rarity(),
+				definition.type(),
+				definition.weaponFamily(),
+				definition.requiredLevel(),
 				Instant.now(clock));
 		marketListingRepository.saveAndFlush(listing);
-		return toView(listing, vitals.characterId(), requireDefinition(item.itemDefinitionId()));
+		if (listingFee > 0) {
+			activityApplicationService.record(
+					vitals.characterId(),
+					ActivityType.MARKET_LISTING_FEE,
+					"You paid a " + listingFee + " gold listing fee.");
+		}
+		return toListingView(listing, vitals.characterId(), definition);
 	}
 
 	@Transactional
@@ -164,8 +240,10 @@ public class MarketApplicationService {
 			throw MarketErrors.listingNotActive();
 		}
 
+		int saleFee = MarketFeeCalculator.saleFee(listing.getPrice());
+		int proceeds = MarketFeeCalculator.sellerProceeds(listing.getPrice());
 		Instant now = Instant.now(clock);
-		listing.markSold(buyerId, now);
+		listing.markSold(buyerId, now, saleFee);
 		marketListingRepository.saveAndFlush(listing);
 
 		try {
@@ -180,12 +258,18 @@ public class MarketApplicationService {
 		}
 
 		characterVitalsService.spendGold(buyerId, listing.getPrice());
-		characterVitalsService.addGold(sellerId, listing.getPrice());
+		if (proceeds > 0) {
+			characterVitalsService.addGold(sellerId, proceeds);
+		}
 
 		ItemDefinitionView definition = requireDefinition(listing.getItemDefinitionId());
 		activityApplicationService.recordMarketSold(sellerId, listing.getPrice());
+		activityApplicationService.record(
+				sellerId,
+				ActivityType.MARKET_SALE,
+				"Sale fee of " + saleFee + " gold was collected.");
 		activityApplicationService.recordMarketBought(buyerId, definition.name());
-		return toView(listing, buyerId, definition);
+		return toListingView(listing, buyerId, definition);
 	}
 
 	@Transactional
@@ -206,14 +290,179 @@ public class MarketApplicationService {
 		listing.markCancelled(Instant.now(clock));
 		marketListingRepository.saveAndFlush(listing);
 		activityApplicationService.recordMarketCancelled(vitals.characterId());
-		return toView(listing, vitals.characterId(), requireDefinition(listing.getItemDefinitionId()));
+		return toListingView(listing, vitals.characterId(), requireDefinition(listing.getItemDefinitionId()));
 	}
 
-	/**
-	 * Locks both sides of a trade in character-id order and returns the buyer's locked state. The
-	 * order matters when two characters buy from each other at the same moment: without it each
-	 * transaction could hold the row the other one is waiting for.
-	 */
+	@Transactional(readOnly = true)
+	public MarketBuyOrderPage listBuyOrders(
+			UUID accountId,
+			boolean mine,
+			UUID itemDefinitionId,
+			int page,
+			int size) {
+		CharacterLocationView locationView = characterLocationService.locationOf(accountId);
+		Pageable pageable = PageRequest.of(
+				Math.max(0, page),
+				clampSize(size),
+				Sort.by(Sort.Direction.DESC, "createdAt"));
+		UUID buyerId = mine ? locationView.characterId() : null;
+		Page<MarketBuyOrderEntity> found = marketBuyOrderRepository.search(
+				MarketBuyOrderStatus.ACTIVE,
+				buyerId,
+				itemDefinitionId,
+				pageable);
+		return new MarketBuyOrderPage(
+				toBuyOrderViews(found.getContent(), locationView.characterId()),
+				found.getNumber(),
+				found.getSize(),
+				found.getTotalElements(),
+				found.hasNext());
+	}
+
+	@Transactional
+	public MarketBuyOrderView createBuyOrder(
+			UUID accountId,
+			UUID itemDefinitionId,
+			int quantity,
+			int maxUnitPrice) {
+		if (!MarketRules.isValidPrice(maxUnitPrice) || quantity < 1) {
+			throw MarketErrors.invalidPrice();
+		}
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		assertAtMarket(accountId, LocationAction.CREATE_BUY_ORDER);
+		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
+		ItemDefinitionView definition = itemCatalogService.findByIds(List.of(itemDefinitionId)).get(itemDefinitionId);
+		if (definition == null) {
+			throw MarketErrors.itemDefinitionNotFound();
+		}
+		int escrow = BuyOrderRules.escrowGold(quantity, maxUnitPrice);
+		int postingFee = MarketFeeCalculator.buyOrderPostingFee(escrow);
+		if (vitals.gold() < Math.addExact(escrow, postingFee)) {
+			throw MarketErrors.insufficientGold();
+		}
+		if (postingFee > 0) {
+			characterVitalsService.spendGold(vitals.characterId(), postingFee);
+		}
+		characterVitalsService.spendGold(vitals.characterId(), escrow);
+		MarketBuyOrderEntity order = new MarketBuyOrderEntity(
+				UUID.randomUUID(),
+				vitals.characterId(),
+				itemDefinitionId,
+				quantity,
+				maxUnitPrice,
+				escrow,
+				postingFee,
+				Instant.now(clock));
+		marketBuyOrderRepository.saveAndFlush(order);
+		if (postingFee > 0) {
+			activityApplicationService.record(
+					vitals.characterId(),
+					ActivityType.MARKET_LISTING_FEE,
+					"You paid a " + postingFee + " gold buy-order posting fee.");
+		}
+		activityApplicationService.record(
+				vitals.characterId(),
+				ActivityType.BUY_ORDER_CREATED,
+				"You posted a buy order for " + definition.name() + ".");
+		return toBuyOrderView(order, vitals.characterId(), definition, characterIdentityService.requireName(vitals.characterId()));
+	}
+
+	@Transactional
+	public MarketBuyOrderView fulfillBuyOrder(UUID accountId, UUID orderId, UUID itemInstanceId, int quantity) {
+		UUID sellerId = characterLocationService.locationOf(accountId).characterId();
+		MarketBuyOrderEntity order = marketBuyOrderRepository.findWithLockById(orderId)
+				.orElseThrow(MarketErrors::buyOrderNotFound);
+		if (order.getStatus() != MarketBuyOrderStatus.ACTIVE || order.getRemainingQuantity() < 1) {
+			throw MarketErrors.buyOrderNotActive();
+		}
+		UUID buyerId = order.getBuyerCharacterId();
+		if (BuyOrderRules.isOwnOrder(buyerId, sellerId)) {
+			throw MarketErrors.cannotFulfillOwnOrder();
+		}
+
+		lockBuyerAndSeller(buyerId, sellerId);
+		assertAtMarket(accountId, LocationAction.FULFILL_BUY_ORDER);
+		characterCombatGuard.assertNotInActiveCombat(sellerId);
+
+		OwnedItemSnapshot item = inventoryApplicationService.requireOwnedItemForTrade(sellerId, itemInstanceId);
+		if (item.equipped()) {
+			throw MarketErrors.cannotSellEquippedItem();
+		}
+		if (!item.itemDefinitionId().equals(order.getItemDefinitionId())) {
+			throw MarketErrors.buyOrderItemMismatch();
+		}
+		if (quantity < 1 || quantity > order.getRemainingQuantity() || quantity > item.unreservedQuantity()) {
+			throw MarketErrors.invalidBuyOrderQuantity();
+		}
+
+		BuyOrderRules.Fill fill = BuyOrderRules.applyFill(
+				order.getRemainingQuantity(),
+				order.getReservedGold(),
+				order.getMaxUnitPrice(),
+				quantity);
+		int saleFee = MarketFeeCalculator.saleFee(fill.grossGold());
+		int proceeds = MarketFeeCalculator.sellerProceeds(fill.grossGold());
+		Instant now = Instant.now(clock);
+		order.applyFill(fill.remainingQuantity(), fill.reservedGoldAfter(), fill.completed(), now);
+		marketBuyOrderRepository.saveAndFlush(order);
+		marketBuyOrderFillRepository.saveAndFlush(new MarketBuyOrderFillEntity(
+				UUID.randomUUID(),
+				order.getId(),
+				sellerId,
+				itemInstanceId,
+				quantity,
+				fill.grossGold(),
+				saleFee,
+				now));
+
+		try {
+			inventoryApplicationService.transferListedQuantity(sellerId, buyerId, itemInstanceId, quantity);
+		}
+		catch (InventoryFullException exception) {
+			throw MarketErrors.buyerInventoryFull();
+		}
+		if (proceeds > 0) {
+			characterVitalsService.addGold(sellerId, proceeds);
+		}
+
+		ItemDefinitionView definition = requireDefinition(order.getItemDefinitionId());
+		activityApplicationService.record(
+				sellerId,
+				ActivityType.BUY_ORDER_FILLED,
+				"You filled a buy order for " + definition.name() + ".");
+		activityApplicationService.record(
+				buyerId,
+				ActivityType.BUY_ORDER_FILLED,
+				"Your buy order for " + definition.name() + " was filled.");
+		return toBuyOrderView(order, sellerId, definition, characterIdentityService.requireName(buyerId));
+	}
+
+	@Transactional
+	public MarketBuyOrderView cancelBuyOrder(UUID accountId, UUID orderId) {
+		MarketBuyOrderEntity order = marketBuyOrderRepository.findWithLockById(orderId)
+				.orElseThrow(MarketErrors::buyOrderNotFound);
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		assertAtMarket(accountId, LocationAction.CREATE_BUY_ORDER);
+		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
+		if (!order.getBuyerCharacterId().equals(vitals.characterId())) {
+			throw MarketErrors.buyOrderNotOwned();
+		}
+		if (order.getStatus() != MarketBuyOrderStatus.ACTIVE) {
+			throw MarketErrors.buyOrderNotActive();
+		}
+		int refund = order.cancel(Instant.now(clock));
+		marketBuyOrderRepository.saveAndFlush(order);
+		if (refund > 0) {
+			characterVitalsService.addGold(vitals.characterId(), refund);
+		}
+		ItemDefinitionView definition = requireDefinition(order.getItemDefinitionId());
+		activityApplicationService.record(
+				vitals.characterId(),
+				ActivityType.BUY_ORDER_CANCELLED,
+				"You cancelled your buy order for " + definition.name() + ".");
+		return toBuyOrderView(order, vitals.characterId(), definition, characterIdentityService.requireName(vitals.characterId()));
+	}
+
 	private CharacterVitalsView lockBuyerAndSeller(UUID buyerId, UUID sellerId) {
 		if (buyerId.compareTo(sellerId) < 0) {
 			CharacterVitalsView buyer = characterVitalsService.lockVitalsByCharacterId(buyerId);
@@ -224,32 +473,6 @@ public class MarketApplicationService {
 		return characterVitalsService.lockVitalsByCharacterId(buyerId);
 	}
 
-	private List<MarketListingEntity> findActive(
-			UUID viewerCharacterId,
-			boolean mine,
-			Set<UUID> typeDefinitionIds) {
-		Limit limit = Limit.of(ACTIVE_LISTING_LIMIT + 1);
-		if (mine) {
-			return typeDefinitionIds == null
-					? marketListingRepository.findBySellerCharacterIdAndStatusOrderByCreatedAtDesc(
-							viewerCharacterId,
-							MarketListingStatus.ACTIVE,
-							limit)
-					: marketListingRepository
-							.findBySellerCharacterIdAndStatusAndItemDefinitionIdInOrderByCreatedAtDesc(
-									viewerCharacterId,
-									MarketListingStatus.ACTIVE,
-									typeDefinitionIds,
-									limit);
-		}
-		return typeDefinitionIds == null
-				? marketListingRepository.findByStatusOrderByCreatedAtDesc(MarketListingStatus.ACTIVE, limit)
-				: marketListingRepository.findByStatusAndItemDefinitionIdInOrderByCreatedAtDesc(
-						MarketListingStatus.ACTIVE,
-						typeDefinitionIds,
-						limit);
-	}
-
 	private void assertAtMarket(UUID accountId, LocationAction action) {
 		LocationView location = worldApplicationService.currentLocation(accountId);
 		if (!LocationActions.forCode(location.code()).contains(action)) {
@@ -257,61 +480,134 @@ public class MarketApplicationService {
 		}
 	}
 
-	private List<MarketListingView> toViews(List<MarketListingEntity> listings, UUID viewerCharacterId) {
+	private List<MarketListingView> toListingViews(List<MarketListingEntity> listings, UUID viewerCharacterId) {
 		if (listings.isEmpty()) {
 			return List.of();
 		}
 		Set<UUID> definitionIds = new HashSet<>();
 		Set<UUID> sellerIds = new HashSet<>();
+		Set<UUID> instanceIds = new HashSet<>();
 		for (MarketListingEntity listing : listings) {
 			definitionIds.add(listing.getItemDefinitionId());
 			sellerIds.add(listing.getSellerCharacterId());
+			if (listing.getItemInstanceId() != null) {
+				instanceIds.add(listing.getItemInstanceId());
+			}
 		}
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(definitionIds);
 		Map<UUID, String> sellerNames = characterIdentityService.namesOf(sellerIds);
+		Map<UUID, MarketItemDisplay> displays = inventoryApplicationService.marketDisplays(instanceIds);
 		List<MarketListingView> views = new ArrayList<>();
 		for (MarketListingEntity listing : listings) {
 			ItemDefinitionView definition = definitions.get(listing.getItemDefinitionId());
 			if (definition == null) {
 				continue;
 			}
-			views.add(toView(
+			views.add(toListingView(
 					listing,
 					viewerCharacterId,
 					definition,
-					sellerNames.getOrDefault(listing.getSellerCharacterId(), "Unknown")));
+					sellerNames.getOrDefault(listing.getSellerCharacterId(), "Unknown"),
+					displays.get(listing.getItemInstanceId())));
 		}
 		return views;
 	}
 
-	private MarketListingView toView(MarketListingEntity listing, UUID viewerCharacterId, ItemDefinitionView definition) {
-		return toView(
+	private MarketListingView toListingView(
+			MarketListingEntity listing,
+			UUID viewerCharacterId,
+			ItemDefinitionView definition) {
+		MarketItemDisplay display = listing.getItemInstanceId() == null
+				? null
+				: inventoryApplicationService.marketDisplays(List.of(listing.getItemInstanceId()))
+						.get(listing.getItemInstanceId());
+		return toListingView(
 				listing,
 				viewerCharacterId,
 				definition,
-				characterIdentityService.requireName(listing.getSellerCharacterId()));
+				characterIdentityService.requireName(listing.getSellerCharacterId()),
+				display);
 	}
 
-	private static MarketListingView toView(
+	private static MarketListingView toListingView(
 			MarketListingEntity listing,
 			UUID viewerCharacterId,
 			ItemDefinitionView definition,
-			String sellerName) {
+			String sellerName,
+			MarketItemDisplay display) {
+		String displayName = display == null ? definition.name() : display.displayName();
 		return new MarketListingView(
 				listing.getId(),
 				listing.getSellerCharacterId(),
 				sellerName,
 				listing.getItemInstanceId(),
+				definition.id(),
 				definition.code(),
 				definition.name(),
-				definition.type(),
-				definition.rarity(),
+				displayName,
+				listing.getItemType(),
+				listing.getInstanceRarity(),
+				listing.getWeaponFamily(),
+				listing.getRequiredLevel(),
 				listing.getQuantity(),
 				listing.getPrice(),
+				listing.getListingFeePaid(),
+				listing.getSaleFeePaid(),
 				listing.getStatus(),
 				listing.getCreatedAt(),
 				listing.getSoldAt(),
-				listing.getSellerCharacterId().equals(viewerCharacterId));
+				listing.getSellerCharacterId().equals(viewerCharacterId),
+				display == null ? List.of() : display.affixes());
+	}
+
+	private List<MarketBuyOrderView> toBuyOrderViews(List<MarketBuyOrderEntity> orders, UUID viewerCharacterId) {
+		if (orders.isEmpty()) {
+			return List.of();
+		}
+		Set<UUID> definitionIds = new HashSet<>();
+		Set<UUID> buyerIds = new HashSet<>();
+		for (MarketBuyOrderEntity order : orders) {
+			definitionIds.add(order.getItemDefinitionId());
+			buyerIds.add(order.getBuyerCharacterId());
+		}
+		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(definitionIds);
+		Map<UUID, String> names = characterIdentityService.namesOf(buyerIds);
+		List<MarketBuyOrderView> views = new ArrayList<>();
+		for (MarketBuyOrderEntity order : orders) {
+			ItemDefinitionView definition = definitions.get(order.getItemDefinitionId());
+			if (definition == null) {
+				continue;
+			}
+			views.add(toBuyOrderView(
+					order,
+					viewerCharacterId,
+					definition,
+					names.getOrDefault(order.getBuyerCharacterId(), "Unknown")));
+		}
+		return views;
+	}
+
+	private static MarketBuyOrderView toBuyOrderView(
+			MarketBuyOrderEntity order,
+			UUID viewerCharacterId,
+			ItemDefinitionView definition,
+			String buyerName) {
+		return new MarketBuyOrderView(
+				order.getId(),
+				order.getBuyerCharacterId(),
+				buyerName,
+				order.getItemDefinitionId(),
+				definition.code(),
+				definition.name(),
+				definition.type(),
+				order.getRemainingQuantity(),
+				order.getOriginalQuantity(),
+				order.getMaxUnitPrice(),
+				order.getReservedGold(),
+				order.getPostingFeePaid(),
+				order.getStatus(),
+				order.getCreatedAt(),
+				order.getBuyerCharacterId().equals(viewerCharacterId));
 	}
 
 	private ItemDefinitionView requireDefinition(UUID itemDefinitionId) {
@@ -320,5 +616,22 @@ public class MarketApplicationService {
 			throw new IllegalStateException("Missing item definition: " + itemDefinitionId);
 		}
 		return definition;
+	}
+
+	private static Pageable listingPageable(
+			int page,
+			int size,
+			MarketListingSort sort,
+			Sort.Direction direction) {
+		String property = sort == MarketListingSort.PRICE ? "price" : "createdAt";
+		Sort.Direction dir = direction == null ? Sort.Direction.DESC : direction;
+		return PageRequest.of(Math.max(0, page), clampSize(size), Sort.by(dir, property));
+	}
+
+	private static int clampSize(int size) {
+		if (size < 1) {
+			return MarketBalance.LISTING_PAGE_SIZE;
+		}
+		return Math.min(size, MarketBalance.MAX_LISTING_PAGE_SIZE);
 	}
 }

@@ -113,4 +113,60 @@ final class MarketErrors {
 				"Free inventory space before buying from this merchant.",
 				HttpStatus.CONFLICT);
 	}
+
+	static ApiException insufficientGoldForListingFee() {
+		return new ApiException(
+				"INSUFFICIENT_GOLD",
+				"You do not have enough gold to pay the listing fee.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException buyOrderNotFound() {
+		return new ApiException(
+				"BUY_ORDER_NOT_FOUND",
+				"That buy order does not exist.",
+				HttpStatus.NOT_FOUND);
+	}
+
+	static ApiException buyOrderNotActive() {
+		return new ApiException(
+				"BUY_ORDER_NOT_ACTIVE",
+				"That buy order is no longer available.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException cannotFulfillOwnOrder() {
+		return new ApiException(
+				"CANNOT_FULFILL_OWN_ORDER",
+				"You cannot fulfill your own buy order.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException buyOrderNotOwned() {
+		return new ApiException(
+				"BUY_ORDER_NOT_OWNED",
+				"You can only cancel your own buy orders.",
+				HttpStatus.FORBIDDEN);
+	}
+
+	static ApiException invalidBuyOrderQuantity() {
+		return new ApiException(
+				"INVALID_BUY_ORDER_QUANTITY",
+				"That quantity cannot be fulfilled against this buy order.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException buyOrderItemMismatch() {
+		return new ApiException(
+				"BUY_ORDER_ITEM_MISMATCH",
+				"That item does not match the buy order.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException itemDefinitionNotFound() {
+		return new ApiException(
+				"ITEM_DEFINITION_NOT_FOUND",
+				"That item does not exist.",
+				HttpStatus.NOT_FOUND);
+	}
 }

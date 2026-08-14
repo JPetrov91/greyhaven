@@ -6,20 +6,30 @@ import { fetchInventory } from '../api/inventory'
 import {
   buyMarketListing,
   buyMerchantItem,
+  cancelBuyOrder,
   cancelMarketListing,
+  createBuyOrder,
   createMarketListing,
+  fetchBuyOrders,
+  fetchMarketListingHistory,
   fetchMarketListings,
   fetchMerchants,
   fetchOwnMarketListings,
+  fulfillBuyOrder,
+  type MarketListingSort,
+  type SortDirection,
 } from '../api/market'
 import { fetchCurrentLocation } from '../api/world'
 import type {
   InventoryItemResponse,
+  ItemRarity,
   ItemType,
   LocationAction,
+  MarketBuyOrderResponse,
   MarketListingResponse,
   MerchantResponse,
   MerchantStockItemResponse,
+  WeaponFamily,
 } from '../api/types'
 import { Button } from '../ui/Button'
 import { ComingLaterButton } from '../ui/ComingLater'
@@ -47,7 +57,24 @@ const ITEM_TYPES: { value: ItemType | ''; label: string }[] = [
   { value: 'MATERIAL', label: 'Materials' },
 ]
 
-type MarketTab = 'all' | 'mine'
+const RARITIES: { value: ItemRarity | ''; label: string }[] = [
+  { value: '', label: 'All rarities' },
+  { value: 'COMMON', label: 'Common' },
+  { value: 'UNCOMMON', label: 'Uncommon' },
+  { value: 'RARE', label: 'Rare' },
+  { value: 'EPIC', label: 'Epic' },
+]
+
+const WEAPON_FAMILIES: { value: WeaponFamily | ''; label: string }[] = [
+  { value: '', label: 'All families' },
+  { value: 'SWORD', label: 'Sword' },
+  { value: 'AXE', label: 'Axe' },
+  { value: 'MACE', label: 'Mace' },
+  { value: 'DAGGER', label: 'Dagger' },
+  { value: 'BOW', label: 'Bow' },
+]
+
+type MarketTab = 'all' | 'mine' | 'orders' | 'history'
 type MarketHub = 'merchants' | 'player' | 'listings'
 
 type Props = {
@@ -59,21 +86,49 @@ export function MarketPanel({ onClose }: Props) {
   const [searchParams] = useSearchParams()
   const initialHub = hubFromSearch(searchParams)
   const [itemType, setItemType] = useState<ItemType | ''>('')
+  const [rarity, setRarity] = useState<ItemRarity | ''>('')
+  const [weaponFamily, setWeaponFamily] = useState<WeaponFamily | ''>('')
+  const [minLevel, setMinLevel] = useState('')
+  const [maxLevel, setMaxLevel] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [sort, setSort] = useState<MarketListingSort>('CREATED_AT')
+  const [direction, setDirection] = useState<SortDirection>('DESC')
+  const [page, setPage] = useState(0)
   const [search, setSearch] = useState('')
   const [hub, setHub] = useState<MarketHub>(initialHub)
   const [tab, setTab] = useState<MarketTab>(initialHub === 'listings' ? 'mine' : 'all')
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [selectedItemId, setSelectedItemId] = useState(searchParams.get('listItem') ?? '')
   const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null)
   const [selectedStockCode, setSelectedStockCode] = useState<string | null>(null)
   const [merchantQuantity, setMerchantQuantity] = useState(1)
   const [quantity, setQuantity] = useState(1)
   const [price, setPrice] = useState(10)
+  const [orderDefinitionId, setOrderDefinitionId] = useState('')
+  const [orderQuantity, setOrderQuantity] = useState(1)
+  const [orderMaxPrice, setOrderMaxPrice] = useState(10)
+  const [fulfillItemId, setFulfillItemId] = useState('')
+  const [fulfillQuantity, setFulfillQuantity] = useState(1)
   const [error, setError] = useState<string | null>(null)
 
   const listingsQuery = useQuery({
-    queryKey: ['market-listings', itemType],
-    queryFn: () => fetchMarketListings(itemType),
+    queryKey: ['market-listings', itemType, rarity, weaponFamily, minLevel, maxLevel, minPrice, maxPrice, sort, direction, page],
+    queryFn: () =>
+      fetchMarketListings({
+        itemType,
+        rarity,
+        weaponFamily,
+        minLevel: minLevel === '' ? '' : Number(minLevel),
+        maxLevel: maxLevel === '' ? '' : Number(maxLevel),
+        minPrice: minPrice === '' ? '' : Number(minPrice),
+        maxPrice: maxPrice === '' ? '' : Number(maxPrice),
+        sort,
+        direction,
+        page,
+        size: 20,
+      }),
     retry: false,
   })
 
@@ -99,6 +154,20 @@ export function MarketPanel({ onClose }: Props) {
     queryKey: ['market-merchants'],
     queryFn: fetchMerchants,
     retry: false,
+  })
+
+  const historyQuery = useQuery({
+    queryKey: ['market-history', page],
+    queryFn: () => fetchMarketListingHistory(page, 20),
+    retry: false,
+    enabled: tab === 'history',
+  })
+
+  const buyOrdersQuery = useQuery({
+    queryKey: ['market-buy-orders'],
+    queryFn: () => fetchBuyOrders(false, 0, 20),
+    retry: false,
+    enabled: tab === 'orders',
   })
 
   const atMarket = (locationQuery.data?.actions ?? []).includes('BUY_ITEM' satisfies LocationAction)
@@ -157,6 +226,8 @@ export function MarketPanel({ onClose }: Props) {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['market-listings'] }),
       queryClient.invalidateQueries({ queryKey: ['market-own-listings'] }),
+      queryClient.invalidateQueries({ queryKey: ['market-history'] }),
+      queryClient.invalidateQueries({ queryKey: ['market-buy-orders'] }),
       queryClient.invalidateQueries({ queryKey: ['market-merchants'] }),
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['character'] }),
@@ -198,6 +269,39 @@ export function MarketPanel({ onClose }: Props) {
     },
   })
 
+  const createOrderMutation = useMutation({
+    mutationFn: () => createBuyOrder(orderDefinitionId, orderQuantity, orderMaxPrice),
+    onSuccess: async () => {
+      setError(null)
+      await refreshAfterChange()
+    },
+    onError: (cause) => {
+      setError(cause instanceof ApiError ? cause.message : 'Unable to create that buy order.')
+    },
+  })
+
+  const fulfillOrderMutation = useMutation({
+    mutationFn: (orderId: string) => fulfillBuyOrder(orderId, fulfillItemId, fulfillQuantity),
+    onSuccess: async () => {
+      setError(null)
+      await refreshAfterChange()
+    },
+    onError: (cause) => {
+      setError(cause instanceof ApiError ? cause.message : 'Unable to fulfill that buy order.')
+    },
+  })
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: cancelBuyOrder,
+    onSuccess: async () => {
+      setError(null)
+      await refreshAfterChange()
+    },
+    onError: (cause) => {
+      setError(cause instanceof ApiError ? cause.message : 'Unable to cancel that buy order.')
+    },
+  })
+
   const merchantBuyMutation = useMutation({
     mutationFn: () => {
       if (!selectedMerchant || !selectedStock) {
@@ -216,18 +320,29 @@ export function MarketPanel({ onClose }: Props) {
 
   const listings = listingsQuery.data?.listings ?? []
   const listingsTruncated = listingsQuery.data?.truncated ?? false
+  const listingTotal = listingsQuery.data?.total ?? listings.length
+  const listingFeePercent = listingsQuery.data?.listingFeePercent ?? 0.02
+  const saleFeePercent = listingsQuery.data?.saleFeePercent ?? 0.08
   const ownListings = ownListingsQuery.data?.listings ?? []
+  const historyListings = historyQuery.data?.listings ?? []
+  const buyOrders = buyOrdersQuery.data?.orders ?? []
   const busy =
     createMutation.isPending ||
     buyMutation.isPending ||
     cancelMutation.isPending ||
-    merchantBuyMutation.isPending
+    merchantBuyMutation.isPending ||
+    createOrderMutation.isPending ||
+    fulfillOrderMutation.isPending ||
+    cancelOrderMutation.isPending
   const tradeDisabled = busy || !atMarket
   const travelReason = 'Travel to the Market to buy, sell, or cancel listings.'
 
   const visibleListings = useMemo(() => filterListings(listings, search), [listings, search])
   const visibleOwnListings = useMemo(() => filterListings(ownListings, search), [ownListings, search])
-  const tableListings = tab === 'mine' ? visibleOwnListings : visibleListings
+  const visibleHistory = useMemo(() => filterListings(historyListings, search), [historyListings, search])
+  const tableListings =
+    tab === 'mine' ? visibleOwnListings : tab === 'history' ? visibleHistory : visibleListings
+  const pageCount = Math.max(1, Math.ceil(listingTotal / 20))
 
   useEffect(() => {
     if (tableListings.some((listing) => listing.id === selectedListingId)) {
@@ -254,7 +369,12 @@ export function MarketPanel({ onClose }: Props) {
       : 'Unable to load your marketplace listings.'
     : null
 
-  const filterActive = Boolean(itemType || search.trim())
+  const selectedOrder = buyOrders.find((order) => order.id === selectedOrderId) ?? buyOrders[0] ?? null
+  const listingFeePreview = Math.ceil(Math.max(0, price) * listingFeePercent)
+  const reservedPreview = orderQuantity * orderMaxPrice
+  const buyOrderFeePreview = Math.ceil(Math.max(0, reservedPreview) * listingFeePercent)
+
+  const filterActive = Boolean(itemType || rarity || weaponFamily || minLevel || maxLevel || minPrice || maxPrice || search.trim())
   const listingsEmptyCopy = filterActive
     ? 'No listings match this filter.'
     : 'No player listings yet. Travel to the Market and list an item from My listings.'
@@ -389,7 +509,10 @@ export function MarketPanel({ onClose }: Props) {
           <select
             data-testid="market-type-filter"
             value={itemType}
-            onChange={(event) => setItemType(event.target.value as ItemType | '')}
+            onChange={(event) => {
+              setItemType(event.target.value as ItemType | '')
+              setPage(0)
+            }}
           >
             {ITEM_TYPES.map((option) => (
               <option key={option.label} value={option.value}>
@@ -398,12 +521,106 @@ export function MarketPanel({ onClose }: Props) {
             ))}
           </select>
         </Field>
-        <LockedFilter testId="market-rarity-filter" label="Rarity" value="All rarities" />
-        <LockedFilter testId="market-family-filter" label="Weapon family" value="All families" />
-        <LockedFilter testId="market-level-filter" label="Level range" value="1 – 60" />
-        <LockedFilter testId="market-price-filter" label="Price range" value="Min – Max" />
+        <Field label="Rarity">
+          <select
+            data-testid="market-rarity-filter"
+            value={rarity}
+            onChange={(event) => {
+              setRarity(event.target.value as ItemRarity | '')
+              setPage(0)
+            }}
+          >
+            {RARITIES.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Weapon family">
+          <select
+            data-testid="market-family-filter"
+            value={weaponFamily}
+            onChange={(event) => {
+              setWeaponFamily(event.target.value as WeaponFamily | '')
+              setPage(0)
+            }}
+          >
+            {WEAPON_FAMILIES.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Min level">
+          <input
+            data-testid="market-level-filter"
+            type="number"
+            min={1}
+            value={minLevel}
+            placeholder="Min"
+            onChange={(event) => {
+              setMinLevel(event.target.value)
+              setPage(0)
+            }}
+          />
+        </Field>
+        <Field label="Max level">
+          <input
+            type="number"
+            min={1}
+            value={maxLevel}
+            placeholder="Max"
+            onChange={(event) => {
+              setMaxLevel(event.target.value)
+              setPage(0)
+            }}
+          />
+        </Field>
+        <Field label="Min price">
+          <input
+            data-testid="market-price-filter"
+            type="number"
+            min={1}
+            value={minPrice}
+            placeholder="Min"
+            onChange={(event) => {
+              setMinPrice(event.target.value)
+              setPage(0)
+            }}
+          />
+        </Field>
+        <Field label="Max price">
+          <input
+            type="number"
+            min={1}
+            value={maxPrice}
+            placeholder="Max"
+            onChange={(event) => {
+              setMaxPrice(event.target.value)
+              setPage(0)
+            }}
+          />
+        </Field>
         <LockedFilter testId="market-seller-filter" label="Seller" value="All sellers" />
-        <LockedFilter testId="market-sort" label="Sort by" value="Price: Low to High" />
+        <Field label="Sort by">
+          <select
+            data-testid="market-sort"
+            value={`${sort}:${direction}`}
+            onChange={(event) => {
+              const [nextSort, nextDirection] = event.target.value.split(':') as [MarketListingSort, SortDirection]
+              setSort(nextSort)
+              setDirection(nextDirection)
+              setPage(0)
+            }}
+          >
+            <option value="CREATED_AT:DESC">Newest</option>
+            <option value="CREATED_AT:ASC">Oldest</option>
+            <option value="PRICE:ASC">Price: Low to High</option>
+            <option value="PRICE:DESC">Price: High to Low</option>
+          </select>
+        </Field>
         <button
           type="button"
           className="btn btn-secondary market-refresh"
@@ -429,9 +646,16 @@ export function MarketPanel({ onClose }: Props) {
         >
           All listings ({visibleListings.length})
         </button>
-        <ComingLaterButton className="tab" role="tab" aria-selected={false} data-testid="market-tab-orders">
+        <button
+          type="button"
+          role="tab"
+          className={tab === 'orders' ? 'tab tab-active' : 'tab'}
+          aria-selected={tab === 'orders'}
+          data-testid="market-tab-orders"
+          onClick={() => setTab('orders')}
+        >
           Buy orders
-        </ComingLaterButton>
+        </button>
         <button
           type="button"
           role="tab"
@@ -442,9 +666,16 @@ export function MarketPanel({ onClose }: Props) {
         >
           My listings ({ownListings.length})
         </button>
-        <ComingLaterButton className="tab" role="tab" aria-selected={false} data-testid="market-tab-history">
+        <button
+          type="button"
+          role="tab"
+          className={tab === 'history' ? 'tab tab-active' : 'tab'}
+          aria-selected={tab === 'history'}
+          data-testid="market-tab-history"
+          onClick={() => setTab('history')}
+        >
           My sales history
-        </ComingLaterButton>
+        </button>
       </div>
 
       <div className="market-workspace">
@@ -505,6 +736,10 @@ export function MarketPanel({ onClose }: Props) {
                       onChange={(event) => setPrice(Number(event.target.value))}
                     />
                   </Field>
+                  <p className="muted" data-testid="listing-fee-preview">
+                    Listing fee: {listingFeePreview} gold ({Math.round(listingFeePercent * 100)}%). Sale fee is{' '}
+                    {Math.round(saleFeePercent * 100)}% when the item sells.
+                  </p>
                   <Button
                     type="submit"
                     data-testid="create-listing-button"
@@ -538,6 +773,61 @@ export function MarketPanel({ onClose }: Props) {
                 onAction={(listing) => buyMutation.mutate(listing.id)}
               />
             )
+          ) : tab === 'history' ? (
+            historyQuery.isLoading ? (
+              <LoadingState>Loading history…</LoadingState>
+            ) : visibleHistory.length === 0 ? (
+              <EmptyState testId="market-history-empty">No sold or cancelled listings yet.</EmptyState>
+            ) : (
+              <ListingTable
+                listings={visibleHistory}
+                selectedId={selectedListingId}
+                actionLabel="Closed"
+                actionTestId={(listing) => `history-listing-${listing.itemCode}`}
+                disabled={() => true}
+                disabledReason={() => 'This listing is closed.'}
+                testId="market-history"
+                onSelect={setSelectedListingId}
+                onAction={() => undefined}
+              />
+            )
+          ) : tab === 'orders' ? (
+            <BuyOrdersBoard
+              orders={buyOrders}
+              selectedId={selectedOrder?.id ?? null}
+              listableItems={listableItems}
+              orderDefinitionId={orderDefinitionId}
+              orderQuantity={orderQuantity}
+              orderMaxPrice={orderMaxPrice}
+              reservedPreview={reservedPreview}
+              buyOrderFeePreview={buyOrderFeePreview}
+              listingFeePercent={listingFeePercent}
+              fulfillItemId={fulfillItemId}
+              fulfillQuantity={fulfillQuantity}
+              tradeDisabled={tradeDisabled}
+              travelReason={travelReason}
+              onSelect={setSelectedOrderId}
+              onDefinitionId={setOrderDefinitionId}
+              onQuantity={setOrderQuantity}
+              onMaxPrice={setOrderMaxPrice}
+              onFulfillItemId={setFulfillItemId}
+              onFulfillQuantity={setFulfillQuantity}
+              onCreate={() => {
+                if (!orderDefinitionId) {
+                  setError('Choose an item definition to bid on.')
+                  return
+                }
+                createOrderMutation.mutate()
+              }}
+              onFulfill={(orderId) => {
+                if (!fulfillItemId) {
+                  setError('Choose an item to sell into this order.')
+                  return
+                }
+                fulfillOrderMutation.mutate(orderId)
+              }}
+              onCancel={(orderId) => cancelOrderMutation.mutate(orderId)}
+            />
           ) : ownListingsQuery.isLoading ? (
             <LoadingState>Loading your listings…</LoadingState>
           ) : ownLoadError ? (
@@ -560,36 +850,50 @@ export function MarketPanel({ onClose }: Props) {
 
           <div className="market-footer">
             <p className="muted" data-testid="market-listing-count">
-              {listingsTruncated && tab === 'all'
-                ? `Showing the ${listings.length} newest listings.`
+              {tab === 'all'
+                ? `Showing ${visibleListings.length} of ${listingTotal} listing${listingTotal === 1 ? '' : 's'}.`
                 : `Showing ${tableListings.length} listing${tableListings.length === 1 ? '' : 's'}.`}
+              {listingsTruncated && tab === 'all' ? ' More pages available.' : ''}
             </p>
-            <div className="market-pagination" aria-label="Listing pages">
-              <ComingLaterButton className="tab" data-testid="market-page-1">
-                1
-              </ComingLaterButton>
-              <ComingLaterButton className="tab" data-testid="market-page-2">
-                2
-              </ComingLaterButton>
-              <ComingLaterButton className="tab" data-testid="market-page-3">
-                3
-              </ComingLaterButton>
-            </div>
+            {tab === 'all' ? (
+              <div className="market-pagination" aria-label="Listing pages">
+                {Array.from({ length: Math.min(pageCount, 8) }, (_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className={page === index ? 'tab tab-active' : 'tab'}
+                    data-testid={`market-page-${index + 1}`}
+                    onClick={() => setPage(index)}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
 
         <aside className="market-inspector" aria-label="Selected listing">
-          {selectedListing ? (
+          {tab === 'orders' && selectedOrder ? (
+            <OrderInspector order={selectedOrder} />
+          ) : selectedListing ? (
             <ListingInspector
               listing={selectedListing}
               inventoryItem={inspectedInventoryItem}
               tab={tab}
               tradeDisabled={tradeDisabled}
               travelReason={travelReason}
+              saleFeePercent={saleFeePercent}
               buyPending={buyMutation.isPending}
               cancelPending={cancelMutation.isPending}
               onBuy={() => buyMutation.mutate(selectedListing.id)}
               onCancel={() => cancelMutation.mutate(selectedListing.id)}
+              onPlaceBuyOrder={() => {
+                if (selectedListing.itemDefinitionId) {
+                  setOrderDefinitionId(selectedListing.itemDefinitionId)
+                }
+                setTab('orders')
+              }}
             />
           ) : tab === 'mine' && selectedItem ? (
             <article className="market-item-card">
@@ -643,7 +947,7 @@ function ListingTable({
             <th>Rarity</th>
             <th>Type</th>
             <th>Qty</th>
-            <th title="Coming later">Lvl</th>
+            <th>Lvl</th>
             <th title="Coming later">Stats</th>
             <th>Price</th>
             <th>Seller</th>
@@ -679,20 +983,24 @@ function ListingInspector({
   tab,
   tradeDisabled,
   travelReason,
+  saleFeePercent,
   buyPending,
   cancelPending,
   onBuy,
   onCancel,
+  onPlaceBuyOrder,
 }: {
   listing: MarketListingResponse
   inventoryItem: InventoryItemResponse | null
   tab: MarketTab
   tradeDisabled: boolean
   travelReason: string
+  saleFeePercent: number
   buyPending: boolean
   cancelPending: boolean
   onBuy: () => void
   onCancel: () => void
+  onPlaceBuyOrder: () => void
 }) {
   const buyDisabled = tradeDisabled || listing.ownListing || buyPending
   const buyReason = !listing.ownListing && tradeDisabled ? travelReason : listing.ownListing ? 'You cannot buy your own listing.' : undefined
@@ -717,7 +1025,9 @@ function ListingInspector({
               </span>
               <div className="item-detail-heading">
                 <div className="item-detail-title-row">
-                  <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</strong>
+                  <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>
+                    {listing.displayName ?? listing.itemName}
+                  </strong>
                   <RarityBadge rarity={listing.rarity} />
                 </div>
                 <p className="item-detail-kicker">
@@ -742,7 +1052,10 @@ function ListingInspector({
               </span>
             }
           />
-          <StatRow label="Durability" value="—" />
+          <StatRow
+            label="Sale fee"
+            value={`${Math.ceil(listing.price * saleFeePercent)} gold (${Math.round(saleFeePercent * 100)}%)`}
+          />
           <StatRow label="Time left" value="—" />
         </dl>
         <div className="inventory-inspector-actions">
@@ -768,14 +1081,20 @@ function ListingInspector({
               onClick={onBuy}
             />
           )}
-          <ComingLaterButton className="market-action-row" data-testid="market-buy-order">
+          <Button
+            type="button"
+            className="market-action-row"
+            data-testid="market-buy-order"
+            disabled={tradeDisabled || !listing.itemDefinitionId}
+            onClick={onPlaceBuyOrder}
+          >
             <ActionGlyph name="order" />
             <span className="market-action-copy">
               <strong>Place buy order</strong>
-              <small>Buy this item at your price.</small>
+              <small>Bid on this item definition.</small>
             </span>
             <ActionChevron />
-          </ComingLaterButton>
+          </Button>
           <ComingLaterButton className="market-action-row" data-testid="market-watchlist">
             <ActionGlyph name="watch" />
             <span className="market-action-copy">
@@ -794,11 +1113,212 @@ function ListingInspector({
           </ComingLaterButton>
         </div>
         <p className="muted" data-testid="market-orders-count">
-          0 / —
+          Open the Buy orders tab to post or fill bids. Gold is escrowed when you create an order.
         </p>
-        <EmptyState>No active buy orders.</EmptyState>
       </section>
     </>
+  )
+}
+
+function BuyOrdersBoard({
+  orders,
+  selectedId,
+  listableItems,
+  orderDefinitionId,
+  orderQuantity,
+  orderMaxPrice,
+  reservedPreview,
+  buyOrderFeePreview,
+  listingFeePercent,
+  fulfillItemId,
+  fulfillQuantity,
+  tradeDisabled,
+  travelReason,
+  onSelect,
+  onDefinitionId,
+  onQuantity,
+  onMaxPrice,
+  onFulfillItemId,
+  onFulfillQuantity,
+  onCreate,
+  onFulfill,
+  onCancel,
+}: {
+  orders: MarketBuyOrderResponse[]
+  selectedId: string | null
+  listableItems: InventoryItemResponse[]
+  orderDefinitionId: string
+  orderQuantity: number
+  orderMaxPrice: number
+  reservedPreview: number
+  buyOrderFeePreview: number
+  listingFeePercent: number
+  fulfillItemId: string
+  fulfillQuantity: number
+  tradeDisabled: boolean
+  travelReason: string
+  onSelect: (id: string) => void
+  onDefinitionId: (id: string) => void
+  onQuantity: (value: number) => void
+  onMaxPrice: (value: number) => void
+  onFulfillItemId: (id: string) => void
+  onFulfillQuantity: (value: number) => void
+  onCreate: () => void
+  onFulfill: (orderId: string) => void
+  onCancel: (orderId: string) => void
+}) {
+  const definitionChoices = listableItems.filter(
+    (item, index, all) => all.findIndex((candidate) => candidate.definitionId === item.definitionId) === index,
+  )
+  const selectedOrder = orders.find((order) => order.id === selectedId) ?? null
+  const fulfillChoices = listableItems.filter((item) => !selectedOrder || item.code === selectedOrder.itemCode)
+
+  return (
+    <section className="market-sell" data-testid="buy-orders-board">
+      <h3>Create buy order</h3>
+      <form
+        className="market-create-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onCreate()
+        }}
+      >
+        <Field label="Item">
+          <select
+            data-testid="buy-order-item-select"
+            value={orderDefinitionId}
+            onChange={(event) => onDefinitionId(event.target.value)}
+          >
+            <option value="">Select an item you know</option>
+            {definitionChoices.map((item) => (
+              <option key={item.definitionId} value={item.definitionId}>
+                {item.displayName}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Quantity">
+          <input
+            data-testid="buy-order-quantity"
+            type="number"
+            min={1}
+            value={orderQuantity}
+            onChange={(event) => onQuantity(Number(event.target.value))}
+          />
+        </Field>
+        <Field label="Max unit price">
+          <input
+            data-testid="buy-order-price"
+            type="number"
+            min={1}
+            value={orderMaxPrice}
+            onChange={(event) => onMaxPrice(Number(event.target.value))}
+          />
+        </Field>
+        <p className="muted" data-testid="buy-order-fee-preview">
+          Escrow {reservedPreview} gold plus a {buyOrderFeePreview} gold posting fee (
+          {Math.round(listingFeePercent * 100)}%). The posting fee is not refunded.
+        </p>
+        <Button type="submit" data-testid="create-buy-order" disabled={tradeDisabled || !orderDefinitionId} title={!tradeDisabled ? undefined : travelReason}>
+          Post buy order
+        </Button>
+      </form>
+
+      {orders.length === 0 ? (
+        <EmptyState testId="buy-orders-empty">No active buy orders.</EmptyState>
+      ) : (
+        <div className="market-table-wrap">
+          <table className="market-table" data-testid="buy-orders">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Bid</th>
+                <th>Escrow</th>
+                <th>Buyer</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id} className={order.id === selectedId ? 'market-row-selected' : undefined}>
+                  <td>
+                    <button type="button" className="market-row-select" onClick={() => onSelect(order.id)}>
+                      {order.itemName}
+                    </button>
+                  </td>
+                  <td>
+                    {order.remainingQuantity}/{order.originalQuantity}
+                  </td>
+                  <td>{order.maxUnitPrice}g</td>
+                  <td>{order.reservedGold}g</td>
+                  <td>{order.buyerName}</td>
+                  <td>
+                    {order.ownOrder ? (
+                      <Button type="button" data-testid={`cancel-order-${order.itemCode}`} disabled={tradeDisabled} onClick={() => onCancel(order.id)}>
+                        Cancel
+                      </Button>
+                    ) : (
+                      <span className="muted">Fill below</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedOrder && !selectedOrder.ownOrder ? (
+        <form
+          className="market-create-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onFulfill(selectedOrder.id)
+          }}
+        >
+          <h3>Fulfill {selectedOrder.itemName}</h3>
+          <Field label="Your item">
+            <select data-testid="fulfill-item-select" value={fulfillItemId} onChange={(event) => onFulfillItemId(event.target.value)}>
+              <option value="">Select a matching stack</option>
+              {fulfillChoices.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {itemLabel(item)}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Quantity">
+            <input
+              data-testid="fulfill-quantity"
+              type="number"
+              min={1}
+              max={selectedOrder.remainingQuantity}
+              value={fulfillQuantity}
+              onChange={(event) => onFulfillQuantity(Number(event.target.value))}
+            />
+          </Field>
+          <Button type="submit" data-testid="fulfill-buy-order" disabled={tradeDisabled || !fulfillItemId}>
+            Sell to order
+          </Button>
+        </form>
+      ) : null}
+    </section>
+  )
+}
+
+function OrderInspector({ order }: { order: MarketBuyOrderResponse }) {
+  return (
+    <article className="market-item-card" data-testid="order-inspector">
+      <h3>{order.itemName}</h3>
+      <dl className="stat-list">
+        <StatRow label="Remaining" value={`${order.remainingQuantity} / ${order.originalQuantity}`} />
+        <StatRow label="Max unit price" value={`${order.maxUnitPrice} gold`} />
+        <StatRow label="Reserved gold" value={`${order.reservedGold} gold`} />
+        <StatRow label="Buyer" value={order.buyerName} />
+        <StatRow label="Status" value={order.status} />
+      </dl>
+    </article>
   )
 }
 

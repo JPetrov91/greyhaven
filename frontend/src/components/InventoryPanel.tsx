@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchCharacter } from '../api/character'
+import { salvageItem } from '../api/crafting'
 import { fetchCurrentLocation } from '../api/world'
 import { equipItem, fetchInventory, unequipItem, useItem } from '../api/inventory'
 import { sellToMerchant } from '../api/market'
@@ -88,6 +89,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [merchantSellQuantity, setMerchantSellQuantity] = useState(1)
+  const [confirmSalvage, setConfirmSalvage] = useState(false)
   const slotFilter = parseSlot(searchParams.get('slot'))
 
   function setSlotFilter(slot: EquipmentSlot | '') {
@@ -159,6 +161,15 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
       void invalidateGameplay(`Sold ${result.itemName} for ${result.goldAwarded} gold.`),
   })
 
+  const salvageMutation = useMutation({
+    mutationFn: salvageItem,
+    onSuccess: (result) => {
+      setConfirmSalvage(false)
+      const yields = result.results.map((line) => `${line.itemName} × ${line.quantity}`).join(', ')
+      void invalidateGameplay(`Salvaged ${result.sourceItemName}${yields ? `: ${yields}` : '.'}`)
+    },
+  })
+
   const items = inventoryQuery.data?.items ?? []
 
   const visibleItems = useMemo(() => {
@@ -200,6 +211,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
 
   useEffect(() => {
     setMerchantSellQuantity(1)
+    setConfirmSalvage(false)
   }, [selectedId])
 
   const panelProps = {
@@ -243,6 +255,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
       : null
   const showCompare = selected != null && shouldShowItemComparison(selected)
   const atMarket = (locationQuery.data?.actions ?? []).includes('CREATE_LISTING' satisfies LocationAction)
+  const atWard = (locationQuery.data?.actions ?? []).includes('SALVAGE' satisfies LocationAction)
   const unreserved = selected ? selected.quantity - selected.listedQuantity : 0
   const canSell = selected != null && !selected.equipped && unreserved > 0
   const merchantOffer = selected?.merchantBuyPrice
@@ -264,6 +277,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     (unequipMutation.error instanceof ApiError && unequipMutation.error.message) ||
     (useMutationHook.error instanceof ApiError && useMutationHook.error.message) ||
     (merchantSellMutation.error instanceof ApiError && merchantSellMutation.error.message) ||
+    (salvageMutation.error instanceof ApiError && salvageMutation.error.message) ||
     null
 
   const emptyMessage =
@@ -538,9 +552,52 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                   <ComingLaterButton className="inventory-later" data-testid="inventory-move-stash">
                     Move to Stash
                   </ComingLaterButton>
-                  <ComingLaterButton className="inventory-later" data-testid="inventory-salvage">
-                    Salvage
-                  </ComingLaterButton>
+                  {confirmSalvage ? (
+                    <>
+                      <p className="muted" data-testid="salvage-confirm">
+                        Destroy this item for materials?
+                      </p>
+                      <Button
+                        type="button"
+                        data-testid="inventory-salvage"
+                        disabled={salvageMutation.isPending || mutationsDisabled}
+                        onClick={() => salvageMutation.mutate(selected.id)}
+                      >
+                        {salvageMutation.isPending ? 'Salvaging…' : 'Confirm salvage'}
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={() => setConfirmSalvage(false)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="inventory-later"
+                      data-testid="inventory-salvage"
+                      disabled={
+                        mutationsDisabled ||
+                        !atWard ||
+                        selected.equipped ||
+                        selected.listedQuantity > 0 ||
+                        (selected.type !== 'WEAPON' && selected.type !== 'ARMOR' && selected.type !== 'ACCESSORY')
+                      }
+                      title={
+                        selected.equipped
+                          ? 'Unequip this item before salvaging it.'
+                          : selected.listedQuantity > 0
+                            ? 'Cancel the market listing before salvaging.'
+                            : !atWard
+                              ? 'Travel to the Craftsmen Ward to salvage.'
+                              : selected.type !== 'WEAPON' && selected.type !== 'ARMOR' && selected.type !== 'ACCESSORY'
+                                ? 'Only equipment can be salvaged.'
+                                : undefined
+                      }
+                      onClick={() => setConfirmSalvage(true)}
+                    >
+                      Salvage
+                    </Button>
+                  )}
                   <ComingLaterButton className="inventory-later" data-testid="inventory-link-chat">
                     Link in Chat
                   </ComingLaterButton>

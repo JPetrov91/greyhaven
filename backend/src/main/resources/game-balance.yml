@@ -96,12 +96,30 @@ market:
   merchantSellMultiplier: 1.30
   affixValuePerAffix: 0.08
   maxMerchantPurchaseQuantity: 99
+  listingFeePercent: 0.02
+  saleFeePercent: 0.08
+  listingPageSize: 20
+  maxListingPageSize: 50
   # Catalog baseValue already scales with rarity. Merchant prices must not apply these again.
   rarityModifiers:
     COMMON: 1.0
     UNCOMMON: 1.15
     RARE: 1.35
     EPIC: 1.60
+
+crafting:
+  maxRank: 10
+  xpPerRecipe: 15
+  # Keep Common the modal crafted rarity at rank 10 on a Common–Epic band.
+  rankRarityBonusPerRank: 1
+  # Index 0 unused. Index n is total profession XP required to reach rank n.
+  cumulativeXpToReachRank:
+    [0, 0, 40, 90, 160, 250, 360, 500, 680, 900, 1200]
+  salvageRarityMultipliers:
+    COMMON: 1
+    UNCOMMON: 1
+    RARE: 2
+    EPIC: 3
 
 items:
   baseRollPercentMin: 95
