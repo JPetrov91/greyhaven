@@ -53,3 +53,21 @@ recovery:
 
 inventory:
   defaultCapacity: 40
+
+items:
+  baseRollPercentMin: 95
+  baseRollPercentMax: 105
+  rarityWeights:
+    COMMON: 60
+    UNCOMMON: 25
+    RARE: 12
+    EPIC: 3
+  affixCounts:
+    COMMON: 0
+    UNCOMMON: 1
+    RARE: 2
+    EPIC: 3
+  armorDodge:
+    LIGHT: 2
+    MEDIUM: 0
+    HEAVY: -3

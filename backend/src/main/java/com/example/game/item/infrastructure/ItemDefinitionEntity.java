@@ -6,8 +6,11 @@ import java.util.UUID;
 import org.springframework.data.domain.Persistable;
 
 import com.example.game.inventory.domain.EquipmentSlot;
+import com.example.game.item.domain.ArmorCategory;
+import com.example.game.item.domain.ItemDefinitionData;
 import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.ItemType;
+import com.example.game.item.domain.WeaponFamily;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -65,11 +68,13 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 	@Column(name = "two_handed", nullable = false)
 	private boolean twoHanded;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "weapon_family", length = 32)
-	private String weaponFamily;
+	private WeaponFamily weaponFamily;
 
+	@Enumerated(EnumType.STRING)
 	@Column(name = "armor_category", length = 32)
-	private String armorCategory;
+	private ArmorCategory armorCategory;
 
 	@Column(name = "required_strength", nullable = false)
 	private int requiredStrength;
@@ -190,11 +195,11 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 		return twoHanded;
 	}
 
-	public String getWeaponFamily() {
+	public WeaponFamily getWeaponFamily() {
 		return weaponFamily;
 	}
 
-	public String getArmorCategory() {
+	public ArmorCategory getArmorCategory() {
 		return armorCategory;
 	}
 
@@ -220,5 +225,25 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public ItemDefinitionData toData() {
+		return new ItemDefinitionData(
+				code,
+				name,
+				type,
+				rarity,
+				legacy,
+				equipmentSlot,
+				twoHanded,
+				weaponFamily,
+				armorCategory,
+				weaponDamage,
+				armorValue,
+				requiredLevel,
+				requiredStrength,
+				requiredAgility,
+				requiredEndurance,
+				requiredPerception);
 	}
 }

@@ -16,6 +16,7 @@ const ITEM_TYPES: { value: ItemType | ''; label: string }[] = [
   { value: '', label: 'All types' },
   { value: 'WEAPON', label: 'Weapons' },
   { value: 'ARMOR', label: 'Armor' },
+  { value: 'ACCESSORY', label: 'Accessories' },
   { value: 'CONSUMABLE', label: 'Consumables' },
   { value: 'MATERIAL', label: 'Materials' },
 ]

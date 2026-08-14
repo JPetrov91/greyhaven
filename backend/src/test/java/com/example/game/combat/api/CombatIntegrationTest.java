@@ -810,6 +810,80 @@ class CombatIntegrationTest {
 				combatId)).isFalse();
 	}
 
+	@Test
+	void failedVictoryRetryDoesNotRerollPlannedItemRolls() throws Exception {
+		String email = "combat-reroll-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		moveTo(session, "OLD_TOWN");
+
+		mutableRandomProvider.queue(1, 5, 0, 1, 0, 1, 61, 100, 0, 0, 4);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		Map<String, Object> planned = jdbcTemplate.queryForMap(
+				"""
+						select r.rarity, r.rolled_affixes, r.rolled_weapon_damage
+						from combat_reward_items r
+						join item_definitions d on d.id = r.item_definition_id
+						where r.session_id = ? and d.code = 'OLD_DAGGER'
+						""",
+				combatId);
+		assertThat(planned.get("rarity")).isEqualTo("UNCOMMON");
+		assertThat(planned.get("rolled_affixes")).isEqualTo("PREFIX:BALANCED:0:4");
+
+		fillInventoryWithNonStackableItems(characterId);
+		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
+		mutableRandomProvider.queue(5, 90);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"QUICK_ATTACK\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("INVENTORY_FULL"));
+
+		jdbcTemplate.update(
+				"""
+						delete from item_instances
+						where owner_character_id = ?
+							and item_definition_id = (select id from item_definitions where code = 'IRON_SWORD')
+						""",
+				characterId);
+
+		mutableRandomProvider.queue(5, 90, 99, 99, 99);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"QUICK_ATTACK\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_WON"));
+
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select i.rarity from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = 'OLD_DAGGER'
+						""",
+				String.class,
+				characterId)).isEqualTo("UNCOMMON");
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select a.affix_code from item_instance_affixes a
+						join item_instances i on i.id = a.item_instance_id
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = 'OLD_DAGGER'
+						""",
+				String.class,
+				characterId)).isEqualTo("BALANCED");
+		assertThat(mutableRandomProvider.remainingScripted()).isEqualTo(3);
+	}
+
 	private void fillInventoryWithNonStackableItems(UUID characterId) {
 		UUID ironSword = jdbcTemplate.queryForObject(
 				"select id from item_definitions where code = 'IRON_SWORD'",
@@ -818,8 +892,8 @@ class CombatIntegrationTest {
 			jdbcTemplate.update(
 					"""
 							insert into item_instances
-							(id, item_definition_id, owner_character_id, quantity, stackable, created_at)
-							values (?, ?, ?, 1, false, now())
+							(id, item_definition_id, owner_character_id, quantity, stackable, rarity, created_at)
+							values (?, ?, ?, 1, false, 'UNCOMMON', now())
 							""",
 					UUID.randomUUID(),
 					ironSword,

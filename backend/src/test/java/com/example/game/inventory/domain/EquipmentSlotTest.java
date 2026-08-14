@@ -25,6 +25,9 @@ class EquipmentSlotTest {
 
 	@Test
 	void rejectsItemTypesThatHaveNoSlot() {
+		assertThatThrownBy(() -> EquipmentSlot.forItemType(ItemType.ACCESSORY))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("ACCESSORY");
 		assertThatThrownBy(() -> EquipmentSlot.forItemType(ItemType.CONSUMABLE))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("CONSUMABLE");

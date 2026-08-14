@@ -29,6 +29,10 @@ class GameBalanceCatalogTest {
 		assertThat(balance.recovery().bands().get(3).maxLevel()).isEqualTo(30);
 		assertThat(balance.recovery().bands().get(3).healthPercentPerMinute()).isEqualTo(7.5);
 		assertThat(balance.inventory().defaultCapacity()).isEqualTo(40);
+		assertThat(balance.items().baseRollPercentMin()).isEqualTo(95);
+		assertThat(balance.items().commonAffixes()).isZero();
+		assertThat(balance.items().epicAffixes()).isEqualTo(3);
+		assertThat(balance.items().lightDodge()).isEqualTo(2);
 
 		assertThat(CharacterBalance.MAX_LEVEL).isEqualTo(30);
 		assertThat(ProgressionBalance.cumulativeXpForLevel(11)).isEqualTo(7230);

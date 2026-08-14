@@ -37,8 +37,8 @@ public class GreyhavenStarterLoadoutGranter implements StarterLoadoutGranter {
 	@Override
 	@Transactional
 	public void grantStarterLoadout(UUID characterId) {
-		inventoryApplicationService.grantItems(characterId, ItemCodes.RUSTY_SWORD, 1);
-		inventoryApplicationService.grantItems(characterId, ItemCodes.WORN_LEATHER_ARMOR, 1);
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.WORN_LEATHER_ARMOR, 1);
 		inventoryApplicationService.grantItems(characterId, ItemCodes.HEALING_POTION, 2);
 
 		Map<UUID, ItemDefinitionEntity> definitions = itemDefinitionRepository.findAll().stream()

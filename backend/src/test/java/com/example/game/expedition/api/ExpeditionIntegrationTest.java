@@ -510,8 +510,8 @@ class ExpeditionIntegrationTest {
 			jdbcTemplate.update(
 					"""
 							insert into item_instances
-							(id, item_definition_id, owner_character_id, quantity, stackable, created_at)
-							values (?, ?, ?, 1, false, now())
+							(id, item_definition_id, owner_character_id, quantity, stackable, rarity, created_at)
+							values (?, ?, ?, 1, false, 'UNCOMMON', now())
 							""",
 					UUID.randomUUID(),
 					ironSword,

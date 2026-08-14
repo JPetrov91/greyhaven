@@ -18,6 +18,18 @@ class CharacterStatCalculatorTest {
 	}
 
 	@Test
+	void equipmentBonusesApplyBeforeDerivedFormulas() {
+		DerivedCombatStats stats = CharacterStatCalculator.calculate(
+				5, 5, 5, 6, 3, 2, 2, 1, 1, 0, 0, 0);
+
+		assertThat(stats.physicalDamage()).isEqualTo(15); // 6 + 6 * 1.5
+		assertThat(stats.accuracy()).isEqualTo(85); // round(75 + 5 * 1.5 + 2)
+		assertThat(stats.dodge()).isEqualTo(8); // round(5 * 1.2 + 2)
+		assertThat(stats.criticalChance()).isEqualTo(8); // round(5 + 5 * 0.35 + 1)
+		assertThat(stats.armor()).isEqualTo(3);
+	}
+
+	@Test
 	void unarmedCharacterUsesAttributeOnlyDamage() {
 		DerivedCombatStats stats = CharacterStatCalculator.calculate(5, 5, 5, 0, 0);
 

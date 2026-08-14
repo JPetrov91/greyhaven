@@ -123,7 +123,14 @@ public class CharacterApplicationService {
 				character.getAgility(),
 				character.getPerception(),
 				bonuses.weaponDamage(),
-				bonuses.armorValue());
+				bonuses.armorValue(),
+				bonuses.accuracy(),
+				bonuses.dodge(),
+				bonuses.criticalChance(),
+				bonuses.strength(),
+				bonuses.agility(),
+				bonuses.endurance(),
+				bonuses.perception());
 		return new CharacterView(
 				character.getId(),
 				character.getAccountId(),

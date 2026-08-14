@@ -36,7 +36,8 @@ public final class GameBalanceCatalog {
 				parseProgression(map(root, "progression")),
 				parseCombat(map(root, "combat")),
 				parseRecovery(map(root, "recovery")),
-				parseInventory(map(root, "inventory")));
+				parseInventory(map(root, "inventory")),
+				parseItems(map(root, "items")));
 	}
 
 	private static GameBalance load() {
@@ -112,6 +113,26 @@ public final class GameBalanceCatalog {
 
 	private static GameBalance.Inventory parseInventory(Map<String, Object> node) {
 		return new GameBalance.Inventory(intValue(node, "defaultCapacity"));
+	}
+
+	private static GameBalance.Items parseItems(Map<String, Object> node) {
+		Map<String, Object> rarityWeights = map(node, "rarityWeights");
+		Map<String, Object> affixCounts = map(node, "affixCounts");
+		Map<String, Object> armorDodge = map(node, "armorDodge");
+		return new GameBalance.Items(
+				intValue(node, "baseRollPercentMin"),
+				intValue(node, "baseRollPercentMax"),
+				intValue(rarityWeights, "COMMON"),
+				intValue(rarityWeights, "UNCOMMON"),
+				intValue(rarityWeights, "RARE"),
+				intValue(rarityWeights, "EPIC"),
+				intValue(affixCounts, "COMMON"),
+				intValue(affixCounts, "UNCOMMON"),
+				intValue(affixCounts, "RARE"),
+				intValue(affixCounts, "EPIC"),
+				intValue(armorDodge, "LIGHT"),
+				intValue(armorDodge, "MEDIUM"),
+				intValue(armorDodge, "HEAVY"));
 	}
 
 	@SuppressWarnings("unchecked")

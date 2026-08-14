@@ -93,7 +93,7 @@ class ExpeditionResolverTest {
 				new ExpeditionLootDrop(ItemCodes.WOLF_PELT, 2),
 				new ExpeditionLootDrop(ItemCodes.HEALING_POTION, 1),
 				new ExpeditionLootDrop(ItemCodes.OLD_DAGGER, 1),
-				new ExpeditionLootDrop(ItemCodes.IRON_SWORD, 1),
+				new ExpeditionLootDrop(ItemCodes.IRON_AXE, 1),
 				new ExpeditionLootDrop(ItemCodes.LEATHER_ARMOR, 1));
 	}
 }

@@ -358,13 +358,19 @@ h2,
 }
 
 .equipment-summary,
+.equipment-grid,
 .derived-stats {
   margin: 0 0 0.75rem;
   display: grid;
   gap: 0.4rem;
 }
 
+.equipment-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
 .equipment-summary div,
+.equipment-grid div,
 .derived-stats div {
   display: flex;
   justify-content: space-between;
@@ -374,15 +380,67 @@ h2,
 }
 
 .equipment-summary dt,
+.equipment-grid dt,
 .derived-stats dt {
   color: var(--ink-soft);
   font-weight: 500;
 }
 
 .equipment-summary dd,
+.equipment-grid dd,
 .derived-stats dd {
   margin: 0;
   font-weight: 600;
+}
+
+.inventory-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.inventory-filters label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.inventory-item-select {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.inventory-item-unusable {
+  opacity: 0.72;
+}
+
+.inventory-item-equipped strong {
+  text-decoration: underline;
+}
+
+.affix-list,
+.item-comparison ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.comparison-upgrade {
+  box-shadow: inset 3px 0 0 var(--accent-strong);
+}
+
+.comparison-downgrade {
+  box-shadow: inset 3px 0 0 #8a3a3a;
 }
 
 .inventory-list {

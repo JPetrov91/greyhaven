@@ -26,6 +26,10 @@ public final class MutableRandomProvider implements RandomProvider {
 		fallback = new Random(SEED);
 	}
 
+	public synchronized int remainingScripted() {
+		return scripted.size();
+	}
+
 	@Override
 	public synchronized int nextInt(int minInclusive, int maxInclusive) {
 		while (!scripted.isEmpty()) {

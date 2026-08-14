@@ -24,6 +24,10 @@ public interface EquipmentRepository extends JpaRepository<EquipmentEntity, UUID
 	boolean existsByItemInstanceId(UUID itemInstanceId);
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select e from EquipmentEntity e where e.characterId = :characterId")
+	List<EquipmentEntity> findWithLockByCharacterId(@Param("characterId") UUID characterId);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select e from EquipmentEntity e where e.characterId = :characterId and e.slot = :slot")
 	Optional<EquipmentEntity> findWithLockByCharacterIdAndSlot(
 			@Param("characterId") UUID characterId,

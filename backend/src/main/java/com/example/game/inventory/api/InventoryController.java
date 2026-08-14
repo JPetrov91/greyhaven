@@ -57,9 +57,7 @@ public class InventoryController {
 				inventory.capacity(),
 				inventory.usedSlots(),
 				inventory.items().stream().map(InventoryController::toItemResponse).toList(),
-				new EquipmentResponse(
-						inventory.equipment().weaponItemId(),
-						inventory.equipment().armorItemId()),
+				EquipmentResponse.from(inventory.equipment()),
 				toDerivedStats(inventory.derivedStats()));
 	}
 
@@ -69,19 +67,52 @@ public class InventoryController {
 				item.definitionId(),
 				item.code(),
 				item.name(),
+				item.displayName(),
 				item.description(),
 				item.type().name(),
 				item.rarity().name(),
 				item.quantity(),
 				item.requiredLevel(),
+				item.requiredStrength(),
+				item.requiredAgility(),
+				item.requiredEndurance(),
+				item.requiredPerception(),
 				item.baseValue(),
 				item.equipped(),
+				item.canEquip(),
+				item.twoHanded(),
+				item.legacy(),
 				item.equipmentSlot() == null ? null : item.equipmentSlot().name(),
+				item.weaponFamily() == null ? null : item.weaponFamily().name(),
+				item.armorCategory() == null ? null : item.armorCategory().name(),
 				item.usable(),
 				item.listedQuantity(),
+				item.rolledWeaponDamage(),
+				item.rolledArmorValue(),
 				item.weaponDamage(),
 				item.armorValue(),
-				item.healAmount());
+				item.healAmount(),
+				item.affixes().stream()
+						.map(affix -> new ItemAffixResponse(
+								affix.code(),
+								affix.kind().name(),
+								affix.displayName(),
+								affix.stat().name(),
+								affix.magnitude()))
+						.toList(),
+				item.comparison() == null
+						? null
+						: new ItemComparisonResponse(
+								item.comparison().slot().name(),
+								item.comparison().equippedItemId(),
+								item.comparison().verdict().name(),
+								item.comparison().deltas().stream()
+										.map(delta -> new StatDeltaResponse(
+												delta.stat(),
+												delta.equippedValue(),
+												delta.candidateValue(),
+												delta.delta()))
+										.toList()));
 	}
 
 	private static DerivedStatsResponse toDerivedStats(DerivedCombatStats stats) {

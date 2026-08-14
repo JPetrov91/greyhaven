@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.game.character.domain.ProgressionBalance;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
+import com.example.game.inventory.application.InventoryApplicationService;
+import com.example.game.inventory.domain.EquipmentValidator;
 import com.example.game.shared.api.ApiException;
 
 @Service
@@ -20,6 +22,7 @@ public class CharacterProgressionService {
 	private final CharacterApplicationService characterApplicationService;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final CharacterCombatGuard characterCombatGuard;
+	private final InventoryApplicationService inventoryApplicationService;
 	private final Clock clock;
 
 	public CharacterProgressionService(
@@ -27,11 +30,13 @@ public class CharacterProgressionService {
 			CharacterApplicationService characterApplicationService,
 			CharacterStateSyncService characterStateSyncService,
 			CharacterCombatGuard characterCombatGuard,
+			InventoryApplicationService inventoryApplicationService,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.characterApplicationService = characterApplicationService;
 		this.characterStateSyncService = characterStateSyncService;
 		this.characterCombatGuard = characterCombatGuard;
+		this.inventoryApplicationService = inventoryApplicationService;
 		this.clock = clock;
 	}
 
@@ -80,6 +85,14 @@ public class CharacterProgressionService {
 		}
 		character.respec(now);
 		characterRepository.saveAndFlush(character);
+		inventoryApplicationService.unequipInvalidEquipment(
+				character.getId(),
+				new EquipmentValidator.CharacterRequirements(
+						character.getLevel(),
+						character.getStrength(),
+						character.getAgility(),
+						character.getEndurance(),
+						character.getPerception()));
 		return characterApplicationService.current(accountId);
 	}
 }

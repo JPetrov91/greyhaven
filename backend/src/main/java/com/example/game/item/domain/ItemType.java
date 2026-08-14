@@ -4,13 +4,14 @@ public enum ItemType {
 	WEAPON,
 	ARMOR,
 	CONSUMABLE,
-	MATERIAL;
+	MATERIAL,
+	ACCESSORY;
 
 	public boolean isStackable() {
 		return this == CONSUMABLE || this == MATERIAL;
 	}
 
 	public boolean isEquippable() {
-		return this == WEAPON || this == ARMOR;
+		return this == WEAPON || this == ARMOR || this == ACCESSORY;
 	}
 }

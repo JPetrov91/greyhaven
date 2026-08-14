@@ -66,7 +66,10 @@ describe('MarketPanel', () => {
       capacity: 40,
       usedSlots: 0,
       items: [],
-      equipment: { weaponItemId: null, armorItemId: null },
+      equipment: { slots: {
+        HEAD: null, CHEST: null, HANDS: null, LEGS: null, FEET: null,
+        MAIN_HAND: null, OFF_HAND: null, AMULET: null, RING: null,
+      } },
       derivedStats: {
         physicalDamage: 8,
         accuracy: 80,
@@ -111,7 +114,10 @@ describe('MarketPanel', () => {
       capacity: 40,
       usedSlots: 0,
       items: [],
-      equipment: { weaponItemId: null, armorItemId: null },
+      equipment: { slots: {
+        HEAD: null, CHEST: null, HANDS: null, LEGS: null, FEET: null,
+        MAIN_HAND: null, OFF_HAND: null, AMULET: null, RING: null,
+      } },
       derivedStats: {
         physicalDamage: 8,
         accuracy: 80,

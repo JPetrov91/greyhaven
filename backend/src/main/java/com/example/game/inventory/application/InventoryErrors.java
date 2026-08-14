@@ -44,6 +44,13 @@ final class InventoryErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
+	static ApiException twoHandedBlocksOffHand() {
+		return new ApiException(
+				"EQUIP_TWO_HANDED_BLOCKS_OFF_HAND",
+				"Unequip your two-handed weapon before using the off-hand slot.",
+				HttpStatus.BAD_REQUEST);
+	}
+
 	static ApiException itemNotUsable() {
 		return new ApiException(
 				"ITEM_NOT_USABLE",

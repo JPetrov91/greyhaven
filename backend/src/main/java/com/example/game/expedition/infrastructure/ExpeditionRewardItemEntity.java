@@ -4,8 +4,14 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Persistable;
 
+import com.example.game.item.domain.GeneratedItem;
+import com.example.game.item.domain.ItemRarity;
+import com.example.game.item.domain.RolledAffixCodec;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
@@ -28,17 +34,39 @@ public class ExpeditionRewardItemEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private int quantity;
 
+	@Enumerated(EnumType.STRING)
+	@Column(length = 32)
+	private ItemRarity rarity;
+
+	@Column(name = "rolled_weapon_damage")
+	private Integer rolledWeaponDamage;
+
+	@Column(name = "rolled_armor_value")
+	private Integer rolledArmorValue;
+
+	@Column(name = "rolled_affixes", nullable = false)
+	private String rolledAffixes;
+
 	@Transient
 	private boolean unsaved;
 
 	protected ExpeditionRewardItemEntity() {
 	}
 
-	public ExpeditionRewardItemEntity(UUID id, UUID expeditionId, UUID itemDefinitionId, int quantity) {
+	public ExpeditionRewardItemEntity(
+			UUID id,
+			UUID expeditionId,
+			UUID itemDefinitionId,
+			int quantity,
+			GeneratedItem generated) {
 		this.id = id;
 		this.expeditionId = expeditionId;
 		this.itemDefinitionId = itemDefinitionId;
 		this.quantity = quantity;
+		this.rarity = generated.rarity();
+		this.rolledWeaponDamage = generated.rolledWeaponDamage();
+		this.rolledArmorValue = generated.rolledArmorValue();
+		this.rolledAffixes = RolledAffixCodec.encode(generated.affixes());
 		this.unsaved = true;
 	}
 
@@ -68,5 +96,17 @@ public class ExpeditionRewardItemEntity implements Persistable<UUID> {
 
 	public int getQuantity() {
 		return quantity;
+	}
+
+	public GeneratedItem toGenerated() {
+		return new GeneratedItem(
+				rarity,
+				rolledWeaponDamage,
+				rolledArmorValue,
+				RolledAffixCodec.decode(rolledAffixes));
+	}
+
+	public boolean hasPlannedRoll() {
+		return rarity != null;
 	}
 }

@@ -121,7 +121,7 @@ export type CombatResponse = {
   rewards: CombatRewardsResponse | null
 }
 
-export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL'
+export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL' | 'ACCESSORY'
 export type ItemRarity = 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC'
 export type EquipmentSlot =
   | 'HEAD'
@@ -134,29 +134,64 @@ export type EquipmentSlot =
   | 'AMULET'
   | 'RING'
 
+export type ItemAffixResponse = {
+  code: string
+  kind: 'PREFIX' | 'SUFFIX'
+  displayName: string
+  stat: string
+  magnitude: number
+}
+
+export type StatDeltaResponse = {
+  stat: string
+  equippedValue: number
+  candidateValue: number
+  delta: number
+}
+
+export type ItemComparisonResponse = {
+  slot: EquipmentSlot
+  equippedItemId: string | null
+  verdict: 'UPGRADE' | 'DOWNGRADE' | 'MIXED' | 'SAME'
+  deltas: StatDeltaResponse[]
+}
+
 export type InventoryItemResponse = {
   id: string
   definitionId: string
   code: string
   name: string
+  displayName: string
   description: string
   type: ItemType
   rarity: ItemRarity
   quantity: number
   requiredLevel: number
+  requiredStrength: number
+  requiredAgility: number
+  requiredEndurance: number
+  requiredPerception: number
   baseValue: number
   equipped: boolean
+  canEquip: boolean
+  twoHanded: boolean
+  legacy: boolean
   equipmentSlot: EquipmentSlot | null
+  weaponFamily: string | null
+  armorCategory: string | null
   usable: boolean
   listedQuantity: number
+  rolledWeaponDamage: number | null
+  rolledArmorValue: number | null
   weaponDamage: number | null
   armorValue: number | null
   healAmount: number | null
+  affixes: ItemAffixResponse[]
+  comparison: ItemComparisonResponse | null
 }
 
 export type EquipmentResponse = {
-  weaponItemId: string | null
-  armorItemId: string | null
+  slots: Record<EquipmentSlot, string | null>
 }
 
 export type InventoryResponse = {

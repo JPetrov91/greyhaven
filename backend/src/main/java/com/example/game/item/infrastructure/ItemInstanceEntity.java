@@ -5,8 +5,12 @@ import java.util.UUID;
 
 import org.springframework.data.domain.Persistable;
 
+import com.example.game.item.domain.ItemRarity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
@@ -32,6 +36,16 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 	@Column(nullable = false)
 	private boolean stackable;
 
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 32)
+	private ItemRarity rarity;
+
+	@Column(name = "rolled_weapon_damage")
+	private Integer rolledWeaponDamage;
+
+	@Column(name = "rolled_armor_value")
+	private Integer rolledArmorValue;
+
 	@Column(nullable = false)
 	private boolean legacy;
 
@@ -50,6 +64,10 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 			UUID ownerCharacterId,
 			int quantity,
 			boolean stackable,
+			ItemRarity rarity,
+			Integer rolledWeaponDamage,
+			Integer rolledArmorValue,
+			boolean legacy,
 			Instant createdAt) {
 		if (!stackable && quantity != 1) {
 			throw new IllegalArgumentException("non-stackable items must have quantity 1");
@@ -59,7 +77,10 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 		this.ownerCharacterId = ownerCharacterId;
 		this.quantity = quantity;
 		this.stackable = stackable;
-		this.legacy = false;
+		this.rarity = rarity;
+		this.rolledWeaponDamage = rolledWeaponDamage;
+		this.rolledArmorValue = rolledArmorValue;
+		this.legacy = legacy;
 		this.createdAt = createdAt;
 		this.unsaved = true;
 	}
@@ -94,6 +115,18 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 
 	public boolean isStackable() {
 		return stackable;
+	}
+
+	public ItemRarity getRarity() {
+		return rarity;
+	}
+
+	public Integer getRolledWeaponDamage() {
+		return rolledWeaponDamage;
+	}
+
+	public Integer getRolledArmorValue() {
+		return rolledArmorValue;
 	}
 
 	public boolean isLegacy() {

@@ -22,6 +22,15 @@ public class InventoryEquippedBonusProvider implements EquippedBonusProvider {
 	public EquippedBonuses bonusesFor(UUID characterId) {
 		InventoryApplicationService.EquippedBonusesSnapshot snapshot =
 				inventoryApplicationService.equippedBonuses(characterId);
-		return new EquippedBonuses(snapshot.weaponDamage(), snapshot.armorValue());
+		return new EquippedBonuses(
+				snapshot.weaponDamage(),
+				snapshot.armorValue(),
+				snapshot.accuracy(),
+				snapshot.dodge(),
+				snapshot.criticalChance(),
+				snapshot.strength(),
+				snapshot.agility(),
+				snapshot.endurance(),
+				snapshot.perception());
 	}
 }

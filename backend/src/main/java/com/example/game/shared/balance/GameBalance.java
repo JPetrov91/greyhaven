@@ -10,7 +10,8 @@ public record GameBalance(
 		Progression progression,
 		Combat combat,
 		Recovery recovery,
-		Inventory inventory
+		Inventory inventory,
+		Items items
 ) {
 
 	public record Character(
@@ -63,5 +64,22 @@ public record GameBalance(
 	}
 
 	public record Inventory(int defaultCapacity) {
+	}
+
+	public record Items(
+			int baseRollPercentMin,
+			int baseRollPercentMax,
+			int commonWeight,
+			int uncommonWeight,
+			int rareWeight,
+			int epicWeight,
+			int commonAffixes,
+			int uncommonAffixes,
+			int rareAffixes,
+			int epicAffixes,
+			int lightDodge,
+			int mediumDodge,
+			int heavyDodge
+	) {
 	}
 }

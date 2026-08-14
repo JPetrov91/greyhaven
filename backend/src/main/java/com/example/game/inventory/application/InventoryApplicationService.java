@@ -21,15 +21,30 @@ import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.inventory.domain.EquipmentSlot;
+import com.example.game.inventory.domain.EquipmentValidator;
 import com.example.game.inventory.domain.InventoryBalance;
 import com.example.game.inventory.infrastructure.EquipmentEntity;
 import com.example.game.inventory.infrastructure.EquipmentRepository;
+import com.example.game.item.application.AffixCatalogService;
+import com.example.game.item.domain.AffixCatalog;
+import com.example.game.item.domain.ArmorCategory;
+import com.example.game.item.domain.GeneratedItem;
+import com.example.game.item.domain.ItemBalance;
 import com.example.game.item.domain.ItemCodes;
+import com.example.game.item.domain.ItemDefinitionData;
+import com.example.game.item.domain.ItemDisplayNames;
+import com.example.game.item.domain.ItemGenerator;
+import com.example.game.item.domain.ItemStatCalculator;
+import com.example.game.item.domain.ItemStats;
 import com.example.game.item.domain.ItemType;
+import com.example.game.item.domain.RolledAffix;
 import com.example.game.item.infrastructure.ItemDefinitionEntity;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
+import com.example.game.item.infrastructure.ItemInstanceAffixEntity;
+import com.example.game.item.infrastructure.ItemInstanceAffixRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
+import com.example.game.shared.domain.RandomProvider;
 
 @Service
 public class InventoryApplicationService {
@@ -40,6 +55,9 @@ public class InventoryApplicationService {
 	private final CharacterVitalsService characterVitalsService;
 	private final CharacterCombatGuard characterCombatGuard;
 	private final ItemReservationQuery itemReservationQuery;
+	private final ItemInstanceAffixRepository itemInstanceAffixRepository;
+	private final AffixCatalogService affixCatalogService;
+	private final RandomProvider randomProvider;
 	private final Clock clock;
 
 	public InventoryApplicationService(
@@ -49,6 +67,9 @@ public class InventoryApplicationService {
 			CharacterVitalsService characterVitalsService,
 			CharacterCombatGuard characterCombatGuard,
 			ItemReservationQuery itemReservationQuery,
+			ItemInstanceAffixRepository itemInstanceAffixRepository,
+			AffixCatalogService affixCatalogService,
+			RandomProvider randomProvider,
 			Clock clock) {
 		this.itemDefinitionRepository = itemDefinitionRepository;
 		this.itemInstanceRepository = itemInstanceRepository;
@@ -56,6 +77,9 @@ public class InventoryApplicationService {
 		this.characterVitalsService = characterVitalsService;
 		this.characterCombatGuard = characterCombatGuard;
 		this.itemReservationQuery = itemReservationQuery;
+		this.itemInstanceAffixRepository = itemInstanceAffixRepository;
+		this.affixCatalogService = affixCatalogService;
+		this.randomProvider = randomProvider;
 		this.clock = clock;
 	}
 
@@ -186,10 +210,9 @@ public class InventoryApplicationService {
 				return;
 			}
 			ensureCapacity(characterId, 1);
-			itemInstanceRepository.saveAndFlush(new ItemInstanceEntity(
-					UUID.randomUUID(),
-					definition.getId(),
+			itemInstanceRepository.saveAndFlush(copyDefinitionInstance(
 					characterId,
+					definition,
 					quantity,
 					true,
 					Instant.now(clock)));
@@ -198,18 +221,70 @@ public class InventoryApplicationService {
 
 		ensureCapacity(characterId, quantity);
 		Instant now = Instant.now(clock);
-		List<ItemInstanceEntity> created = new ArrayList<>(quantity);
+		AffixCatalog catalog = affixCatalogService.load();
 		for (int i = 0; i < quantity; i++) {
-			created.add(new ItemInstanceEntity(
-					UUID.randomUUID(),
-					definition.getId(),
-					characterId,
-					1,
-					false,
-					now));
+			persistOwnedInstance(characterId, definition, rollItem(definition, catalog), false, now);
 		}
-		itemInstanceRepository.saveAll(created);
-		itemInstanceRepository.flush();
+	}
+
+	/**
+	 * Rolls a new instance snapshot without persisting it. Combat and expedition plans store this
+	 * so a later grant retry cannot reroll rarity or affixes.
+	 */
+	@Transactional(readOnly = true)
+	public GeneratedItem rollItem(String itemCode) {
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		return rollItem(definition, affixCatalogService.load());
+	}
+
+	/**
+	 * Grants a previously rolled snapshot. Unique items must be quantity 1.
+	 */
+	@Transactional
+	public void grantRolled(UUID characterId, String itemCode, int quantity, GeneratedItem generated) {
+		if (quantity < 1) {
+			throw new IllegalArgumentException("quantity must be positive");
+		}
+		if (generated == null) {
+			throw new IllegalArgumentException("generated item is required");
+		}
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		if (definition.getType().isStackable()) {
+			grantItems(characterId, itemCode, quantity);
+			return;
+		}
+		if (quantity != 1) {
+			throw new IllegalArgumentException("non-stackable rolled grants must have quantity 1");
+		}
+		ensureCapacity(characterId, 1);
+		persistOwnedInstance(characterId, definition, generated, false, Instant.now(clock));
+	}
+
+	/**
+	 * Grants an equippable item using catalog base stats and no affixes. Used for the starter
+	 * loadout so new characters stay deterministic.
+	 */
+	@Transactional
+	public void grantCatalogExact(UUID characterId, String itemCode, int quantity) {
+		if (quantity < 1) {
+			throw new IllegalArgumentException("quantity must be positive");
+		}
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		GeneratedItem generated = new GeneratedItem(
+				definition.getRarity(),
+				definition.getWeaponDamage(),
+				definition.getArmorValue(),
+				List.of());
+		ensureCapacity(characterId, quantity);
+		Instant now = Instant.now(clock);
+		for (int i = 0; i < quantity; i++) {
+			persistOwnedInstance(characterId, definition, generated, false, now);
+		}
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
@@ -276,6 +351,10 @@ public class InventoryApplicationService {
 					toCharacterId,
 					quantity,
 					true,
+					instance.getRarity(),
+					instance.getRolledWeaponDamage(),
+					instance.getRolledArmorValue(),
+					instance.isLegacy(),
 					Instant.now(clock)));
 			return;
 		}
@@ -304,18 +383,36 @@ public class InventoryApplicationService {
 		}
 		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
 
-		if (!definition.getType().isEquippable()) {
-			throw InventoryErrors.itemNotEquippable();
+		ItemDefinitionData data = definition.toData();
+		boolean listed = reservedQuantity(instance.getId()) > 0;
+		EquipmentValidator.CharacterRequirements requirements = requirementsOf(vitals);
+		boolean mainHandTwoHanded = isMainHandTwoHanded(vitals.characterId());
+		EquipmentValidator.Failure failure = EquipmentValidator.validate(
+				data,
+				listed,
+				requirements,
+				mainHandTwoHanded);
+		if (failure == EquipmentValidator.Failure.LISTED) {
+			throw InventoryErrors.itemListed();
 		}
-		if (vitals.level() < definition.getRequiredLevel()
-				|| vitals.strength() < definition.getRequiredStrength()
-				|| vitals.agility() < definition.getRequiredAgility()
-				|| vitals.endurance() < definition.getRequiredEndurance()
-				|| vitals.perception() < definition.getRequiredPerception()) {
+		if (failure == EquipmentValidator.Failure.REQUIREMENTS_NOT_MET) {
 			throw InventoryErrors.equipRequirementsNotMet();
 		}
+		if (failure == EquipmentValidator.Failure.TWO_HANDED_BLOCKS_OFF_HAND) {
+			throw InventoryErrors.twoHandedBlocksOffHand();
+		}
+		if (failure != null) {
+			throw InventoryErrors.itemNotEquippable();
+		}
 
-		EquipmentSlot slot = EquipmentSlot.forDefinition(definition.getEquipmentSlot(), definition.getType());
+		EquipmentSlot slot = data.equipmentSlot();
+		if (definition.isTwoHanded()) {
+			equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), EquipmentSlot.OFF_HAND)
+					.ifPresent(offHand -> {
+						equipmentRepository.delete(offHand);
+						equipmentRepository.flush();
+					});
+		}
 		equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), slot)
 				.ifPresentOrElse(
 						existing -> existing.equip(instance.getId()),
@@ -326,40 +423,102 @@ public class InventoryApplicationService {
 								instance.getId())));
 	}
 
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void unequipInvalidEquipment(UUID characterId, EquipmentValidator.CharacterRequirements requirements) {
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		boolean removed;
+		do {
+			removed = false;
+			boolean mainHandTwoHanded = isMainHandTwoHanded(characterId);
+			List<EquipmentEntity> equipped = equipmentRepository.findWithLockByCharacterId(characterId);
+			for (EquipmentEntity row : equipped) {
+				ItemInstanceEntity instance = requireOwnedInstance(characterId, row.getItemInstanceId());
+				ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+				EquipmentValidator.Failure failure = EquipmentValidator.validate(
+						definition.toData(),
+						false,
+						requirements,
+						mainHandTwoHanded);
+				if (failure != null) {
+					equipmentRepository.delete(row);
+					removed = true;
+				}
+			}
+			if (removed) {
+				equipmentRepository.flush();
+			}
+		}
+		while (removed);
+	}
+
 	EquippedBonusesSnapshot equippedBonuses(UUID characterId) {
-		Map<EquipmentSlot, UUID> equipped = equippedItemIds(characterId);
-		int weaponDamage = 0;
-		int armorValue = 0;
+		List<ItemInstanceEntity> instances = itemInstanceRepository
+				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId);
+		return equippedBonuses(
+				equippedItemIds(characterId),
+				instances,
+				loadDefinitions(instances),
+				loadAffixes(instances),
+				affixCatalogService.load());
+	}
 
-		UUID weaponId = equipped.get(EquipmentSlot.MAIN_HAND);
-		if (weaponId != null) {
-			ItemInstanceEntity weapon = itemInstanceRepository.findById(weaponId).orElse(null);
-			if (weapon != null) {
-				ItemDefinitionEntity definition = requireDefinition(weapon.getItemDefinitionId());
-				weaponDamage = definition.getWeaponDamage() == null ? 0 : definition.getWeaponDamage();
-			}
+	private EquippedBonusesSnapshot equippedBonuses(
+			Map<EquipmentSlot, UUID> equipped,
+			List<ItemInstanceEntity> instances,
+			Map<UUID, ItemDefinitionEntity> definitions,
+			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
+			AffixCatalog catalog) {
+		Map<UUID, ItemInstanceEntity> instancesById = new HashMap<>();
+		for (ItemInstanceEntity instance : instances) {
+			instancesById.put(instance.getId(), instance);
 		}
-
-		UUID armorId = equipped.get(EquipmentSlot.CHEST);
-		if (armorId != null) {
-			ItemInstanceEntity armor = itemInstanceRepository.findById(armorId).orElse(null);
-			if (armor != null) {
-				ItemDefinitionEntity definition = requireDefinition(armor.getItemDefinitionId());
-				armorValue = definition.getArmorValue() == null ? 0 : definition.getArmorValue();
+		ItemStats total = ItemStats.empty();
+		ArmorCategory heaviestArmor = null;
+		for (UUID itemId : equipped.values()) {
+			if (itemId == null) {
+				continue;
 			}
+			ItemInstanceEntity instance = instancesById.get(itemId);
+			if (instance == null) {
+				continue;
+			}
+			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			if (definition == null) {
+				definition = requireDefinition(instance.getItemDefinitionId());
+			}
+			total = total.plus(statsOf(instance, definition, affixesByInstance, catalog));
+			heaviestArmor = ArmorCategory.heaviest(heaviestArmor, definition.getArmorCategory());
 		}
-
-		return new EquippedBonusesSnapshot(weaponDamage, armorValue);
+		total = total.plusDodge(ItemBalance.armorDodge(heaviestArmor));
+		return new EquippedBonusesSnapshot(
+				total.weaponDamage(),
+				total.armor(),
+				total.accuracy(),
+				total.dodge(),
+				total.criticalChance(),
+				total.strength(),
+				total.agility(),
+				total.endurance(),
+				total.perception());
 	}
 
 	private InventoryView buildInventoryView(CharacterVitalsView vitals) {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(vitals.characterId());
 		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
+		AffixCatalog catalog = affixCatalogService.load();
 		Map<EquipmentSlot, UUID> equippedBySlot = equippedItemIds(vitals.characterId());
 		Set<UUID> equippedIds = new HashSet<>(equippedBySlot.values());
 		Map<UUID, Integer> reservedQuantities = itemReservationQuery.reservedQuantities(
 				instances.stream().map(ItemInstanceEntity::getId).toList());
+		Map<UUID, ItemStats> statsByInstance = new HashMap<>();
+		for (ItemInstanceEntity instance : instances) {
+			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			statsByInstance.put(instance.getId(), statsOf(instance, definition, affixesByInstance, catalog));
+		}
+		EquipmentValidator.CharacterRequirements requirements = requirementsOf(vitals);
+		boolean mainHandTwoHanded = isTwoHanded(equippedBySlot.get(EquipmentSlot.MAIN_HAND), instances, definitions);
 
 		List<InventoryItemView> items = instances.stream()
 				.map(instance -> {
@@ -369,43 +528,280 @@ public class InventoryApplicationService {
 							: null;
 					int listedQuantity = reservedQuantities.getOrDefault(instance.getId(), 0);
 					int available = instance.getQuantity() - listedQuantity;
+					List<RolledAffix> rolled = rolledAffixes(affixesByInstance.getOrDefault(instance.getId(), List.of()));
+					List<ItemAffixView> affixViews = rolled.stream()
+							.map(affix -> {
+								var def = catalog.require(affix.affixCode());
+								return new ItemAffixView(
+										def.code(),
+										def.kind(),
+										def.displayName(),
+										def.stat(),
+										affix.magnitude());
+							})
+							.toList();
+					boolean equipped = equippedIds.contains(instance.getId());
+					boolean canEquip = slot != null && EquipmentValidator.canEquip(
+							definition.toData(),
+							listedQuantity > 0,
+							requirements,
+							mainHandTwoHanded);
+					ItemComparisonView comparison = slot == null
+							? null
+							: comparison(
+									slot,
+									equippedBySlot.get(slot),
+									statsByInstance.get(instance.getId()),
+									statsByInstance);
 					return new InventoryItemView(
 							instance.getId(),
 							definition.getId(),
 							definition.getCode(),
 							definition.getName(),
+							ItemDisplayNames.compose(definition.getName(), rolled, catalog),
 							definition.getDescription(),
 							definition.getType(),
-							definition.getRarity(),
+							instance.getRarity(),
 							instance.getQuantity(),
 							definition.getRequiredLevel(),
+							definition.getRequiredStrength(),
+							definition.getRequiredAgility(),
+							definition.getRequiredEndurance(),
+							definition.getRequiredPerception(),
 							definition.getBaseValue(),
-							equippedIds.contains(instance.getId()),
+							equipped,
+							canEquip,
+							definition.isTwoHanded(),
+							instance.isLegacy(),
 							slot,
+							definition.getWeaponFamily(),
+							definition.getArmorCategory(),
 							isUsable(definition) && available > 0,
 							listedQuantity,
-							definition.getWeaponDamage(),
-							definition.getArmorValue(),
-							definition.getHealAmount());
+							instance.getRolledWeaponDamage(),
+							instance.getRolledArmorValue(),
+							displayWeaponDamage(instance.getRolledWeaponDamage(), statsByInstance.get(instance.getId())),
+							displayArmorValue(instance.getRolledArmorValue(), statsByInstance.get(instance.getId())),
+							definition.getHealAmount(),
+							affixViews,
+							comparison);
 				})
 				.toList();
 
-		EquippedBonusesSnapshot bonuses = equippedBonuses(vitals.characterId());
+		EquippedBonusesSnapshot bonuses = equippedBonuses(
+				equippedBySlot,
+				instances,
+				definitions,
+				affixesByInstance,
+				catalog);
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
 				vitals.strength(),
 				vitals.agility(),
 				vitals.perception(),
 				bonuses.weaponDamage(),
-				bonuses.armorValue());
+				bonuses.armorValue(),
+				bonuses.accuracy(),
+				bonuses.dodge(),
+				bonuses.criticalChance(),
+				bonuses.strength(),
+				bonuses.agility(),
+				bonuses.endurance(),
+				bonuses.perception());
 
 		return new InventoryView(
 				InventoryBalance.DEFAULT_CAPACITY,
 				instances.size(),
 				items,
-				new EquipmentView(
-						equippedBySlot.get(EquipmentSlot.MAIN_HAND),
-						equippedBySlot.get(EquipmentSlot.CHEST)),
+				EquipmentView.from(equippedBySlot),
 				derivedStats);
+	}
+
+	private ItemComparisonView comparison(
+			EquipmentSlot slot,
+			UUID equippedItemId,
+			ItemStats candidate,
+			Map<UUID, ItemStats> statsByInstance) {
+		ItemStats equipped = equippedItemId == null
+				? ItemStats.empty()
+				: statsByInstance.getOrDefault(equippedItemId, ItemStats.empty());
+		List<StatDeltaView> deltas = new ArrayList<>();
+		addDelta(deltas, "Damage", equipped.weaponDamage(), candidate.weaponDamage());
+		addDelta(deltas, "Armor", equipped.armor(), candidate.armor());
+		addDelta(deltas, "Accuracy", equipped.accuracy(), candidate.accuracy());
+		addDelta(deltas, "Critical", equipped.criticalChance(), candidate.criticalChance());
+		addDelta(deltas, "Dodge", equipped.dodge(), candidate.dodge());
+		addDelta(deltas, "Strength", equipped.strength(), candidate.strength());
+		addDelta(deltas, "Agility", equipped.agility(), candidate.agility());
+		addDelta(deltas, "Endurance", equipped.endurance(), candidate.endurance());
+		addDelta(deltas, "Perception", equipped.perception(), candidate.perception());
+		addDelta(deltas, "Stamina Cost", equipped.staminaCostReduction(), candidate.staminaCostReduction());
+		return new ItemComparisonView(slot, equippedItemId, ComparisonVerdict.fromDeltas(deltas), deltas);
+	}
+
+	private static void addDelta(List<StatDeltaView> deltas, String stat, int equipped, int candidate) {
+		if (equipped == 0 && candidate == 0) {
+			return;
+		}
+		deltas.add(new StatDeltaView(stat, equipped, candidate, candidate - equipped));
+	}
+
+	private ItemStats statsOf(
+			ItemInstanceEntity instance,
+			ItemDefinitionEntity definition,
+			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
+			AffixCatalog catalog) {
+		List<ItemStatCalculator.AppliedAffix> applied = affixesByInstance
+				.getOrDefault(instance.getId(), List.of())
+				.stream()
+				.map(affix -> new ItemStatCalculator.AppliedAffix(
+						catalog.require(affix.getAffixCode()).stat(),
+						affix.getRolledMagnitude()))
+				.toList();
+		return ItemStatCalculator.calculate(
+				instance.getRolledWeaponDamage(),
+				instance.getRolledArmorValue(),
+				definition.getArmorCategory(),
+				applied);
+	}
+
+	private Map<UUID, List<ItemInstanceAffixEntity>> loadAffixes(List<ItemInstanceEntity> instances) {
+		List<UUID> ids = instances.stream().map(ItemInstanceEntity::getId).toList();
+		Map<UUID, List<ItemInstanceAffixEntity>> byInstance = new HashMap<>();
+		if (ids.isEmpty()) {
+			return byInstance;
+		}
+		for (ItemInstanceAffixEntity affix : itemInstanceAffixRepository.findByItemInstanceIdIn(ids)) {
+			byInstance.computeIfAbsent(affix.getItemInstanceId(), key -> new ArrayList<>()).add(affix);
+		}
+		return byInstance;
+	}
+
+	private static List<RolledAffix> rolledAffixes(List<ItemInstanceAffixEntity> entities) {
+		return entities.stream()
+				.map(entity -> new RolledAffix(
+						entity.getAffixCode(),
+						entity.getKind(),
+						entity.getOrdinal(),
+						entity.getRolledMagnitude()))
+				.toList();
+	}
+
+	private void persistOwnedInstance(
+			UUID characterId,
+			ItemDefinitionEntity definition,
+			GeneratedItem generated,
+			boolean legacy,
+			Instant now) {
+		ItemInstanceEntity instance = new ItemInstanceEntity(
+				UUID.randomUUID(),
+				definition.getId(),
+				characterId,
+				1,
+				false,
+				generated.rarity(),
+				generated.rolledWeaponDamage(),
+				generated.rolledArmorValue(),
+				legacy,
+				now);
+		itemInstanceRepository.saveAndFlush(instance);
+		for (RolledAffix affix : generated.affixes()) {
+			itemInstanceAffixRepository.save(new ItemInstanceAffixEntity(
+					UUID.randomUUID(),
+					instance.getId(),
+					affix.kind(),
+					affix.ordinal(),
+					affix.affixCode(),
+					affix.magnitude()));
+		}
+		itemInstanceAffixRepository.flush();
+	}
+
+	private GeneratedItem rollItem(ItemDefinitionEntity definition, AffixCatalog catalog) {
+		if (!definition.getType().isEquippable()) {
+			return new GeneratedItem(
+					definition.getRarity(),
+					definition.getWeaponDamage(),
+					definition.getArmorValue(),
+					List.of());
+		}
+		return ItemGenerator.generate(definition.toData(), catalog, randomProvider);
+	}
+
+	private static Integer displayWeaponDamage(Integer rolledWeapon, ItemStats stats) {
+		if (stats == null) {
+			return rolledWeapon;
+		}
+		if (rolledWeapon == null && stats.weaponDamage() == 0) {
+			return null;
+		}
+		return stats.weaponDamage();
+	}
+
+	private static Integer displayArmorValue(Integer rolledArmor, ItemStats stats) {
+		if (stats == null) {
+			return rolledArmor;
+		}
+		if (rolledArmor == null && stats.armor() == 0) {
+			return null;
+		}
+		return stats.armor();
+	}
+
+	private ItemInstanceEntity copyDefinitionInstance(
+			UUID characterId,
+			ItemDefinitionEntity definition,
+			int quantity,
+			boolean stackable,
+			Instant now) {
+		return new ItemInstanceEntity(
+				UUID.randomUUID(),
+				definition.getId(),
+				characterId,
+				quantity,
+				stackable,
+				definition.getRarity(),
+				definition.getWeaponDamage(),
+				definition.getArmorValue(),
+				false,
+				now);
+	}
+
+	private boolean isMainHandTwoHanded(UUID characterId) {
+		return equipmentRepository.findWithLockByCharacterIdAndSlot(characterId, EquipmentSlot.MAIN_HAND)
+				.map(equipped -> {
+					ItemInstanceEntity instance = itemInstanceRepository.findById(equipped.getItemInstanceId())
+							.orElse(null);
+					if (instance == null) {
+						return false;
+					}
+					return requireDefinition(instance.getItemDefinitionId()).isTwoHanded();
+				})
+				.orElse(false);
+	}
+
+	private static boolean isTwoHanded(
+			UUID mainHandItemId,
+			List<ItemInstanceEntity> instances,
+			Map<UUID, ItemDefinitionEntity> definitions) {
+		if (mainHandItemId == null) {
+			return false;
+		}
+		for (ItemInstanceEntity instance : instances) {
+			if (instance.getId().equals(mainHandItemId)) {
+				ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+				return definition != null && definition.isTwoHanded();
+			}
+		}
+		return false;
+	}
+
+	private static EquipmentValidator.CharacterRequirements requirementsOf(CharacterVitalsView vitals) {
+		return new EquipmentValidator.CharacterRequirements(
+				vitals.level(),
+				vitals.strength(),
+				vitals.agility(),
+				vitals.endurance(),
+				vitals.perception());
 	}
 
 	private Map<EquipmentSlot, UUID> equippedItemIds(UUID characterId) {
@@ -465,6 +861,16 @@ public class InventoryApplicationService {
 		}
 	}
 
-	record EquippedBonusesSnapshot(int weaponDamage, int armorValue) {
+	record EquippedBonusesSnapshot(
+			int weaponDamage,
+			int armorValue,
+			int accuracy,
+			int dodge,
+			int criticalChance,
+			int strength,
+			int agility,
+			int endurance,
+			int perception
+	) {
 	}
 }

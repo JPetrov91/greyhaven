@@ -31,6 +31,7 @@ import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
+import com.example.game.item.domain.GeneratedItem;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
@@ -209,11 +210,24 @@ public class ExpeditionApplicationService {
 			if (item == null) {
 				throw ExpeditionErrors.itemDefinitionMissing(drop.itemCode());
 			}
-			rows.add(new ExpeditionRewardItemEntity(
-					UUID.randomUUID(),
-					expeditionId,
-					item.id(),
-					drop.quantity()));
+			if (item.type().isStackable()) {
+				rows.add(new ExpeditionRewardItemEntity(
+						UUID.randomUUID(),
+						expeditionId,
+						item.id(),
+						drop.quantity(),
+						new GeneratedItem(item.rarity(), null, null, List.of())));
+			}
+			else {
+				for (int i = 0; i < drop.quantity(); i++) {
+					rows.add(new ExpeditionRewardItemEntity(
+							UUID.randomUUID(),
+							expeditionId,
+							item.id(),
+							1,
+							inventoryApplicationService.rollItem(item.code())));
+				}
+			}
 		}
 		return rows;
 	}
@@ -240,10 +254,19 @@ public class ExpeditionApplicationService {
 		for (ExpeditionRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
 			try {
-				inventoryApplicationService.grantItems(
-						expedition.getCharacterId(),
-						item.code(),
-						reward.getQuantity());
+				if (item.type().isStackable() || !reward.hasPlannedRoll()) {
+					inventoryApplicationService.grantItems(
+							expedition.getCharacterId(),
+							item.code(),
+							reward.getQuantity());
+				}
+				else {
+					inventoryApplicationService.grantRolled(
+							expedition.getCharacterId(),
+							item.code(),
+							reward.getQuantity(),
+							reward.toGenerated());
+				}
 			}
 			catch (InventoryFullException exception) {
 				throw ExpeditionErrors.rewardsNeedInventorySpace();

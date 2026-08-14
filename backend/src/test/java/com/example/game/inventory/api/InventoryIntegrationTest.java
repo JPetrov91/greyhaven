@@ -75,10 +75,15 @@ class InventoryIntegrationTest {
 				"select count(*) from flyway_schema_history where version = '18' and success = true",
 				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(7);
+		Integer flywayV20 = jdbcTemplate.queryForObject(
+				"select count(*) from flyway_schema_history where version = '20' and success = true",
+				Integer.class);
+
+		assertThat(definitionCount).isEqualTo(20);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
 		assertThat(flywayV18).isEqualTo(1);
+		assertThat(flywayV20).isEqualTo(1);
 	}
 
 	@Test
@@ -90,11 +95,15 @@ class InventoryIntegrationTest {
 				.andExpect(jsonPath("$.capacity").value(40))
 				.andExpect(jsonPath("$.usedSlots").value(3))
 				.andExpect(jsonPath("$.items.length()").value(3))
-				.andExpect(jsonPath("$.equipment.weaponItemId").isNotEmpty())
-				.andExpect(jsonPath("$.equipment.armorItemId").isNotEmpty())
+				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").isNotEmpty())
+				.andExpect(jsonPath("$.equipment.slots.CHEST").isNotEmpty())
+				.andExpect(jsonPath("$.equipment.slots.HEAD").value(nullValue()))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].legacy", hasItem(false)))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].affixes.length()", hasItem(0)))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
-				.andExpect(jsonPath("$.derivedStats.accuracy").value(83));
+				.andExpect(jsonPath("$.derivedStats.accuracy").value(83))
+				.andExpect(jsonPath("$.derivedStats.dodge").value(8));
 
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())
@@ -110,13 +119,13 @@ class InventoryIntegrationTest {
 
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/unequip")).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.equipment.weaponItemId").value(nullValue()))
+				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").value(nullValue()))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(8))
 				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].equipped", hasItem(false)));
 
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/equip")).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.equipment.weaponItemId").value(weaponId.toString()))
+				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").value(weaponId.toString()))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14));
 	}
 
@@ -125,21 +134,13 @@ class InventoryIntegrationTest {
 		String email = "inv-attr-req-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
-		UUID weaponId = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
 
-		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/unequip")).session(session))
-				.andExpect(status().isOk());
-		jdbcTemplate.update(
-				"update item_definitions set required_strength = 40 where code = ?",
-				ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.grantItems(characterId, ItemCodes.IRON_HELM, 1);
+		UUID helmId = itemInstanceId(characterId, ItemCodes.IRON_HELM);
 
-		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/equip")).session(session))
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + helmId + "/equip")).session(session))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("EQUIP_REQUIREMENTS_NOT_MET"));
-
-		jdbcTemplate.update(
-				"update item_definitions set required_strength = 0 where code = ?",
-				ItemCodes.RUSTY_SWORD);
 	}
 
 	@Test
@@ -355,8 +356,8 @@ class InventoryIntegrationTest {
 		assertThatThrownBy(() -> jdbcTemplate.update(
 				"""
 						insert into item_instances
-						    (id, item_definition_id, owner_character_id, quantity, stackable, created_at)
-						values (?, ?, ?, 1, true, timestamptz '2026-01-01 00:00:00+00')
+						    (id, item_definition_id, owner_character_id, quantity, stackable, rarity, created_at)
+						values (?, ?, ?, 1, true, 'COMMON', timestamptz '2026-01-01 00:00:00+00')
 						""",
 				UUID.randomUUID(),
 				potionDefinitionId,

@@ -47,7 +47,7 @@ public final class ExpeditionResolver {
 		maybeAdd(drops, ItemCodes.WOLF_PELT, ExpeditionBalance.materialChancePercent(strategy), 1, 2, random);
 		maybeAdd(drops, ItemCodes.HEALING_POTION, ExpeditionBalance.potionChancePercent(strategy), 1, 1, random);
 		maybeAdd(drops, ItemCodes.OLD_DAGGER, ExpeditionBalance.commonGearChancePercent(strategy), 1, 1, random);
-		maybeAdd(drops, ItemCodes.IRON_SWORD, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
+		maybeAdd(drops, ItemCodes.IRON_AXE, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
 		maybeAdd(drops, ItemCodes.LEATHER_ARMOR, ExpeditionBalance.rareGearChancePercent(strategy), 1, 1, random);
 		return List.copyOf(drops);
 	}

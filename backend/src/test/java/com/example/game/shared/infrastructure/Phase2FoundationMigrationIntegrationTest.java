@@ -172,6 +172,14 @@ class Phase2FoundationMigrationIntegrationTest {
 					UUID.class,
 					RUSTY_SWORD)).isEqualTo(swordInstanceId);
 			assertThat(jdbc.queryForObject(
+					"select rarity from item_instances where id = ?",
+					String.class,
+					swordInstanceId)).isEqualTo("COMMON");
+			assertThat(jdbc.queryForObject(
+					"select rolled_weapon_damage from item_instances where id = ?",
+					Integer.class,
+					swordInstanceId)).isEqualTo(6);
+			assertThat(jdbc.queryForObject(
 					"select legacy from item_instances where id = ?",
 					Boolean.class,
 					swordInstanceId)).isTrue();
@@ -198,8 +206,8 @@ class Phase2FoundationMigrationIntegrationTest {
 			UUID postMigrationInstanceId = UUID.fromString("abababab-abab-4bab-8bab-abababababab");
 			jdbc.update(
 					"""
-							insert into item_instances (id, item_definition_id, owner_character_id, quantity, stackable, created_at)
-							values (?, ?, ?, 1, false, now())
+							insert into item_instances (id, item_definition_id, owner_character_id, quantity, stackable, rarity, created_at)
+							values (?, ?, ?, 1, false, 'COMMON', now())
 							""",
 					postMigrationInstanceId, OLD_DAGGER, characterId);
 			assertThat(jdbc.queryForObject(
@@ -239,14 +247,17 @@ class Phase2FoundationMigrationIntegrationTest {
 
 			flyway(dataSource).load().migrate();
 
-			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(7);
+			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(20);
 			assertThat(jdbc.queryForObject(
-					"select count(*) from flyway_schema_history where version = '19' and success = true",
+					"select count(*) from flyway_schema_history where version = '21' and success = true",
 					Integer.class)).isEqualTo(1);
 			assertCatalogSlots(jdbc);
 			assertThat(jdbc.queryForObject(
 					"select count(*) from item_definitions where legacy = true",
 					Integer.class)).isEqualTo(7);
+			assertThat(jdbc.queryForObject(
+					"select count(*) from affix_definitions",
+					Integer.class)).isEqualTo(16);
 
 			UUID accountId = UUID.fromString("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
 			UUID characterId = UUID.fromString("cccccccc-cccc-4ccc-8ccc-cccccccccccc");

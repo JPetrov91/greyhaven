@@ -47,6 +47,7 @@ import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
+import com.example.game.item.domain.GeneratedItem;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -208,7 +209,14 @@ public class CombatApplicationService {
 				vitals.agility(),
 				vitals.perception(),
 				bonuses.weaponDamage(),
-				bonuses.armorValue());
+				bonuses.armorValue(),
+				bonuses.accuracy(),
+				bonuses.dodge(),
+				bonuses.criticalChance(),
+				bonuses.strength(),
+				bonuses.agility(),
+				bonuses.endurance(),
+				bonuses.perception());
 
 		boolean potionAvailable = inventoryApplicationService.hasHealingPotion(vitals.characterId());
 		int potionHeal = 0;
@@ -325,10 +333,19 @@ public class CombatApplicationService {
 		for (CombatRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
 			try {
-				inventoryApplicationService.grantItems(
-						session.getCharacterId(),
-						item.code(),
-						reward.getQuantity());
+				if (item.type().isStackable() || !reward.hasPlannedRoll()) {
+					inventoryApplicationService.grantItems(
+							session.getCharacterId(),
+							item.code(),
+							reward.getQuantity());
+				}
+				else {
+					inventoryApplicationService.grantRolled(
+							session.getCharacterId(),
+							item.code(),
+							reward.getQuantity(),
+							reward.toGenerated());
+				}
 			}
 			catch (InventoryFullException exception) {
 				throw CombatErrors.rewardsNeedInventorySpace();
@@ -365,13 +382,30 @@ public class CombatApplicationService {
 		}
 		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
 		List<LootDrop> drops = LootGenerator.generate(buildLootTable(monster.getId()), randomProvider);
-		List<CombatRewardItemEntity> rewardRows = drops.stream()
-				.map(drop -> new CombatRewardItemEntity(
+		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
+				drops.stream().map(LootDrop::itemDefinitionId).toList());
+		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
+		for (LootDrop drop : drops) {
+			ItemDefinitionView item = requireItem(definitions, drop.itemDefinitionId());
+			if (item.type().isStackable()) {
+				rewardRows.add(new CombatRewardItemEntity(
 						UUID.randomUUID(),
 						session.getId(),
 						drop.itemDefinitionId(),
-						drop.quantity()))
-				.toList();
+						drop.quantity(),
+						new GeneratedItem(item.rarity(), null, null, List.of())));
+			}
+			else {
+				for (int i = 0; i < drop.quantity(); i++) {
+					rewardRows.add(new CombatRewardItemEntity(
+							UUID.randomUUID(),
+							session.getId(),
+							drop.itemDefinitionId(),
+							1,
+							inventoryApplicationService.rollItem(item.code())));
+				}
+			}
+		}
 		if (!rewardRows.isEmpty()) {
 			combatRewardItemRepository.saveAll(rewardRows);
 			combatRewardItemRepository.flush();

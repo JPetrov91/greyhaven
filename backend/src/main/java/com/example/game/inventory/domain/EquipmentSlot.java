@@ -17,6 +17,8 @@ public enum EquipmentSlot {
 		return switch (type) {
 			case WEAPON -> MAIN_HAND;
 			case ARMOR -> CHEST;
+			case ACCESSORY -> throw new IllegalArgumentException(
+					"Item type ACCESSORY requires a stored equipment slot");
 			case CONSUMABLE, MATERIAL -> throw new IllegalArgumentException(
 					"Item type " + type + " cannot be equipped");
 		};
