@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchCharacter } from '../api/character'
@@ -28,6 +28,17 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+function renderTopBar(combatContext?: { monsterName: string; roundNumber: number }) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <GameTopBar combatContext={combatContext ?? null} />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  )
+}
+
 describe('GameTopBar', () => {
   it('shows live gold and locked placeholder currencies', async () => {
     vi.mocked(fetchCharacter).mockResolvedValue({
@@ -39,14 +50,7 @@ describe('GameTopBar', () => {
     } as never)
     vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 3, capacity: 40, items: [], equipment: { slots: {} } } as never)
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <MemoryRouter>
-        <QueryClientProvider client={queryClient}>
-          <GameTopBar />
-        </QueryClientProvider>
-      </MemoryRouter>,
-    )
+    renderTopBar()
 
     expect(await screen.findByText('Ragnar')).toBeTruthy()
     expect(screen.getByTestId('topbar-gold').textContent?.replace(/\s+/g, ' ').trim()).toBe('Gold 4,320')
@@ -57,10 +61,12 @@ describe('GameTopBar', () => {
     expect(screen.getByTestId('topbar-honor').textContent).not.toMatch(/0/)
     expect(screen.getByTestId('topbar-mail').getAttribute('aria-label')).toBe('Mail')
     expect((screen.getByTestId('topbar-mail') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByTestId('logout-button')).toBeNull()
+    fireEvent.click(screen.getByTestId('topbar-menu'))
     expect(screen.getByTestId('logout-button').textContent).toContain('Logout')
   })
 
-  it('replaces identity with combat context during a fight', async () => {
+  it('shows a visible tooltip for icon-only utilities', async () => {
     vi.mocked(fetchCharacter).mockResolvedValue({
       id: 'char-1',
       accountId: 'acc',
@@ -70,18 +76,28 @@ describe('GameTopBar', () => {
     } as never)
     vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
-      <MemoryRouter>
-        <QueryClientProvider client={queryClient}>
-          <GameTopBar combatContext={{ monsterName: 'Street Thug', roundNumber: 5 }} />
-        </QueryClientProvider>
-      </MemoryRouter>,
-    )
+    renderTopBar()
+    await screen.findByText('Ragnar')
+    fireEvent.mouseEnter(screen.getByTestId('topbar-mail').closest('.chrome-hint') as HTMLElement)
+    expect(screen.getByRole('tooltip').textContent).toContain('Mail')
+    expect(screen.getByRole('tooltip').textContent).toContain('Coming later')
+  })
 
-    expect(await screen.findByTestId('topbar-combat-context')).toBeTruthy()
+  it('keeps identity visible and overlays combat context during a fight', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue({
+      id: 'char-1',
+      accountId: 'acc',
+      name: 'Ragnar',
+      level: 11,
+      gold: 4320,
+    } as never)
+    vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
+
+    renderTopBar({ monsterName: 'Street Thug', roundNumber: 5 })
+
+    expect(await screen.findByTestId('topbar-identity')).toBeTruthy()
+    expect(screen.getByText('Ragnar')).toBeTruthy()
     expect(screen.getByTestId('topbar-combat-context').textContent).toContain('COMBAT — Street Thug')
     expect(screen.getByTestId('topbar-combat-context').textContent).toContain('Round 5')
-    expect(screen.queryByTestId('topbar-identity')).toBeNull()
   })
 })

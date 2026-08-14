@@ -6,6 +6,7 @@ export const COMING_LATER_LABEL = 'Coming later'
 export function ComingLaterButton({
   className,
   children,
+  title,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -13,9 +14,9 @@ export function ComingLaterButton({
       type="button"
       disabled
       aria-disabled="true"
-      title={COMING_LATER_LABEL}
-      className={classNames('coming-later', className)}
       {...rest}
+      title={title === '' ? undefined : (title ?? COMING_LATER_LABEL)}
+      className={classNames('coming-later', className)}
     >
       {children}
       <span className="visually-hidden">{COMING_LATER_LABEL}</span>

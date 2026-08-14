@@ -38,7 +38,7 @@ export function Tooltip({ content, children, open, pinned = false }: Props) {
   const trigger = isValidElement<TriggerProps>(children)
     ? cloneElement(children, {
         'aria-describedby': open ? tooltipId : undefined,
-        'aria-expanded': pinned,
+        ...(pinned ? { 'aria-expanded': true } : {}),
       })
     : children
 

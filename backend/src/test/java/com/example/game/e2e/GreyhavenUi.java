@@ -53,6 +53,9 @@ final class GreyhavenUi {
 	}
 
 	void logout() {
+		if (!driver.findElements(By.cssSelector("[data-testid='topbar-menu']")).isEmpty()) {
+			wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='topbar-menu']"))).click();
+		}
 		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='logout-button']"))).click();
 		try {
 			wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='login-page']")));

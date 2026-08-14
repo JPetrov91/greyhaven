@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchCurrentExpedition } from '../api/expedition'
 import { fetchCurrentLocation } from '../api/world'
+import { NAV_COLLAPSE_STORAGE_KEY } from '../ui/navCollapse'
 import { GameLeftNav } from './GameLeftNav'
 
 vi.mock('../api/world', () => ({
@@ -19,6 +20,7 @@ vi.mock('../api/expedition', () => ({
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  localStorage.removeItem(NAV_COLLAPSE_STORAGE_KEY)
 })
 
 describe('GameLeftNav', () => {
@@ -93,5 +95,45 @@ describe('GameLeftNav', () => {
     expect(screen.getByTestId('nav-home').getAttribute('aria-current')).toBeNull()
     expect(screen.getByTestId('nav-character').getAttribute('aria-current')).toBeNull()
     expect(screen.queryByTestId('quick-claim-expedition')).toBeNull()
+  })
+
+  it('collapses the rail and remembers the choice', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-1',
+      code: 'CITY_SQUARE',
+      name: 'City Square',
+      description: 'The square',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY'],
+    })
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null as never)
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const view = render(
+      <MemoryRouter initialEntries={['/game']}>
+        <QueryClientProvider client={queryClient}>
+          <GameLeftNav />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByTestId('nav-home')).toBeTruthy()
+    expect(screen.getByTestId('nav-collapse').getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(screen.getByTestId('nav-collapse'))
+    expect(screen.getByLabelText('Primary').className).toContain('is-collapsed')
+    expect(screen.getByTestId('nav-collapse').getAttribute('aria-pressed')).toBe('true')
+    expect(localStorage.getItem(NAV_COLLAPSE_STORAGE_KEY)).toBe('true')
+
+    view.unmount()
+    render(
+      <MemoryRouter initialEntries={['/game']}>
+        <QueryClientProvider client={queryClient}>
+          <GameLeftNav />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByLabelText('Primary')).toBeTruthy()
+    expect(screen.getByLabelText('Primary').className).toContain('is-collapsed')
   })
 })

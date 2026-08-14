@@ -6,41 +6,44 @@
 }
 
 .game-topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) auto minmax(14rem, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.65rem 1rem;
+  gap: 0.75rem 1rem;
+  padding: 0.55rem 1rem;
   border-bottom: 1px solid var(--line-soft);
-  background: rgba(18, 16, 14, 0.92);
+  background: rgba(14, 12, 10, 0.96);
 }
 
 .game-topbar-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
+  min-width: 0;
 }
 
 .topbar-divider {
   width: 1px;
-  height: 2rem;
+  height: 2.1rem;
   background: var(--line-soft);
 }
 
 .chrome-icon {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.1rem;
+  height: 1.1rem;
   display: block;
+  flex-shrink: 0;
 }
 
 .btn-icon-chrome {
   position: relative;
-  width: 2.15rem;
-  height: 2.15rem;
-  min-width: 2.15rem;
+  width: 2.05rem;
+  height: 2.05rem;
+  min-width: 2.05rem;
   padding: 0;
   display: inline-grid;
   place-items: center;
+  color: var(--ink-soft);
 }
 
 .btn-icon-chrome .inventory-badge {
@@ -50,57 +53,97 @@
   margin: 0;
 }
 
+.game-topbar-right {
+  justify-self: end;
+}
+
 .game-topbar-right,
 .game-topbar-identity,
 .currency-row,
 .utility-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 
+.currency-row {
+  gap: 0.65rem;
+}
+
 .game-topbar .brand {
-  font-size: 1.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1.45rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--accent-strong);
   text-decoration: none;
 }
 
+.brand-crest {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: block;
+}
+
 .topbar-portrait {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.55rem;
+  height: 2.55rem;
   font-size: 1rem;
+  border-radius: 4px;
 }
 
 .topbar-name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 1.08rem;
   line-height: 1.1;
 }
 
 .topbar-level {
-  margin: 0;
+  margin: 0.12rem 0 0;
   font-size: var(--text-xs);
 }
 
 .currency-chip {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid var(--line-soft);
-  border-radius: 999px;
-  background: rgba(12, 10, 8, 0.55);
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.5rem 0.18rem 0.22rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
   font-size: var(--text-sm);
+}
+
+.currency-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  display: block;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.currency-copy {
+  display: grid;
+  line-height: 1.15;
+}
+
+.currency-copy .muted {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .currency-chip strong {
   font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 .currency-chip-locked {
-  opacity: 0.55;
+  opacity: 0.62;
 }
 
 .coming-later-hint {
@@ -114,19 +157,72 @@
   text-align: center;
 }
 
+.chrome-hint {
+  display: inline-flex;
+}
+
+.chrome-hint .tooltip-panel {
+  width: max-content;
+  max-width: 14rem;
+  max-height: none;
+  overflow: visible;
+  padding: 0.28rem 0.5rem;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.chrome-menu {
+  position: relative;
+}
+
+.chrome-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 30;
+  min-width: 9rem;
+  padding: 0.25rem;
+  background: var(--panel-solid);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+}
+
+.chrome-menu-panel button {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chrome-menu-panel button:hover,
+.chrome-menu-panel button:focus-visible {
+  background: var(--accent-soft);
+}
+
 .game-shell-body {
   display: grid;
   grid-template-columns: 13.5rem minmax(0, 1fr) 17rem;
   min-height: 0;
+  position: relative;
+}
+
+.game-shell-body:has(.game-leftnav.is-collapsed) {
+  grid-template-columns: 3.4rem minmax(0, 1fr) 17rem;
 }
 
 .game-leftnav {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 0.85rem 0.7rem 1rem;
+  gap: 1.1rem;
+  padding: 0.75rem 0.55rem 0.75rem;
   border-right: 1px solid var(--line-soft);
-  background: #14110f;
+  background: #12100e;
 }
 
 .game-nav-list,
@@ -135,7 +231,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.08rem;
 }
 
 .game-nav-list a,
@@ -147,9 +243,9 @@
   width: 100%;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.45rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: var(--radius-sm);
+  gap: 0.55rem;
+  padding: 0.38rem 0.6rem;
+  border-radius: 4px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink-soft);
@@ -160,23 +256,147 @@
 }
 
 .game-nav-list a.active {
-  color: var(--accent-strong);
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--ink);
+  border-color: transparent;
+  background: rgba(201, 162, 39, 0.12);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .game-nav-heading {
-  margin: 0 0 0.35rem;
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
+  margin: 0 0 0.4rem;
+  padding: 0 0.6rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+.quick-action-copy {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.quick-action-hint {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  opacity: 0.8;
 }
 
 .game-leftnav-foot {
   margin-top: auto;
   display: grid;
   gap: 0.45rem;
+}
+
+.office-toggle {
+  justify-content: flex-start;
+  gap: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+}
+
+.office-switch {
+  width: 1.7rem;
+  height: 0.92rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: #2a2420;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem;
+}
+
+.office-switch.is-on {
+  background: #2d5a38;
+  border-color: #4c8a58;
+}
+
+.office-knob {
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: #c9c0b4;
+}
+
+.office-switch.is-on .office-knob {
+  margin-left: auto;
+  background: #8fd49a;
+}
+
+.game-leftnav-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.nav-online {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.45rem;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+}
+
+.online-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #5f8f62;
+}
+
+.nav-collapse .chrome-icon {
+  transition: transform var(--motion);
+}
+
+.game-leftnav.is-collapsed .nav-collapse .chrome-icon {
+  transform: rotate(180deg);
+}
+
+.game-leftnav.is-collapsed {
+  width: 3.4rem;
+  padding-inline: 0.35rem;
+}
+
+.game-leftnav.is-collapsed:hover,
+.game-leftnav.is-collapsed:focus-within {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 25;
+  width: 13.5rem;
+  padding-inline: 0.55rem;
+  background: #12100e;
+  border-right: 1px solid var(--line-soft);
+}
+
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .nav-label,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .quick-action-copy,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .game-nav-heading,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .office-toggle-label,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .nav-online-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .game-nav-list a,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .game-nav-list .coming-later,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .quick-actions a,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .quick-actions .coming-later,
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .office-toggle {
+  justify-content: center;
+  padding-inline: 0.35rem;
+}
+
+.game-leftnav.is-collapsed:not(:hover):not(:focus-within) .game-leftnav-status {
+  justify-content: center;
 }
 
 .game-shell-main {
@@ -192,12 +412,17 @@
   min-height: 0;
 }
 
-.topbar-combat-context {
+.topbar-combat-chip {
   margin: 0;
-  font-size: var(--text-sm);
-  letter-spacing: 0.04em;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  background: var(--danger-soft);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-strong);
+  color: #f0c4bc;
+  white-space: nowrap;
 }
 
 .combat-hud {
@@ -1708,6 +1933,10 @@ html[data-ui-mode='compact'] .character-overview-portrait {
     grid-template-columns: 12rem minmax(0, 1fr);
   }
 
+  .game-shell-body:has(.game-leftnav.is-collapsed) {
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+  }
+
   .game-rail {
     grid-column: 1 / -1;
     border-left: 0;
@@ -1725,14 +1954,42 @@ html[data-ui-mode='compact'] .character-overview-portrait {
     grid-template-columns: 1fr;
   }
 
+  .game-shell-body:has(.game-leftnav.is-collapsed) {
+    grid-template-columns: 1fr;
+  }
+
   .game-leftnav {
     border-right: 0;
     border-bottom: 1px solid var(--line-soft);
   }
 
+  .game-leftnav.is-collapsed,
+  .game-leftnav.is-collapsed:hover,
+  .game-leftnav.is-collapsed:focus-within {
+    position: static;
+    width: auto;
+    padding-inline: 0.55rem;
+  }
+
+  .game-leftnav.is-collapsed:not(:hover):not(:focus-within) .nav-label,
+  .game-leftnav.is-collapsed:not(:hover):not(:focus-within) .quick-action-copy,
+  .game-leftnav.is-collapsed:not(:hover):not(:focus-within) .game-nav-heading,
+  .game-leftnav.is-collapsed:not(:hover):not(:focus-within) .office-toggle-label,
+  .game-leftnav.is-collapsed:not(:hover):not(:focus-within) .nav-online-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
   .game-topbar {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .game-topbar-right {
+    justify-self: start;
   }
 }
 
