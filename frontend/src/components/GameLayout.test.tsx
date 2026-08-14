@@ -46,6 +46,10 @@ vi.mock('./InventoryPanel', () => ({
   InventoryPanel: () => <div>inventory</div>,
 }))
 
+vi.mock('./MasteryPanel', () => ({
+  MasteryPanel: () => <div>mastery</div>,
+}))
+
 vi.mock('./LocationPanel', () => ({
   LocationPanel: () => <div>location</div>,
 }))

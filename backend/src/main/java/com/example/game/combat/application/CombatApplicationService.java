@@ -48,6 +48,7 @@ import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
+import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -64,6 +65,7 @@ public class CombatApplicationService {
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final MonsterLootEntryRepository monsterLootEntryRepository;
 	private final ItemCatalogService itemCatalogService;
+	private final MasteryApplicationService masteryApplicationService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 
@@ -79,6 +81,7 @@ public class CombatApplicationService {
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			MonsterLootEntryRepository monsterLootEntryRepository,
 			ItemCatalogService itemCatalogService,
+			MasteryApplicationService masteryApplicationService,
 			RandomProvider randomProvider,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
@@ -92,6 +95,7 @@ public class CombatApplicationService {
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.monsterLootEntryRepository = monsterLootEntryRepository;
 		this.itemCatalogService = itemCatalogService;
+		this.masteryApplicationService = masteryApplicationService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 	}
@@ -329,6 +333,7 @@ public class CombatApplicationService {
 		int previousLevel = before.level();
 
 		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
+		masteryApplicationService.grantVictoryMastery(session.getCharacterId());
 
 		for (CombatRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());

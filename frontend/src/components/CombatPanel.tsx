@@ -36,6 +36,8 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['character'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory'] }),
+        queryClient.invalidateQueries({ queryKey: ['masteries'] }),
+        queryClient.invalidateQueries({ queryKey: ['techniques'] }),
       ])
     } catch (err) {
       if (err instanceof ApiError) {
@@ -59,6 +61,8 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['character'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory'] }),
+        queryClient.invalidateQueries({ queryKey: ['masteries'] }),
+        queryClient.invalidateQueries({ queryKey: ['techniques'] }),
       ])
     } catch (err) {
       if (err instanceof ApiError) {

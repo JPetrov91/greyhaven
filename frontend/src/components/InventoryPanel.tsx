@@ -83,6 +83,8 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['character'] }),
+      queryClient.invalidateQueries({ queryKey: ['masteries'] }),
+      queryClient.invalidateQueries({ queryKey: ['techniques'] }),
     ])
     onMutated?.()
     if (message) {

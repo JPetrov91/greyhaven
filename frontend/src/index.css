@@ -161,6 +161,27 @@ h2,
   font-weight: 600;
 }
 
+.mastery-technique-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mastery-technique-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.mastery-loadout {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 .xp-bar {
   width: 8rem;
 }

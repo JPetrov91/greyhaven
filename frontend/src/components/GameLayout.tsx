@@ -14,6 +14,7 @@ import { ExpeditionPanel } from './ExpeditionPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 import { MarketPanel } from './MarketPanel'
+import { MasteryPanel } from './MasteryPanel'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
 
@@ -162,6 +163,7 @@ export function GameLayout() {
           mutationsDisabled={showCombat}
           onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
         />
+        <MasteryPanel mutationsDisabled={showCombat} />
       </div>
 
         <ActivityPanel />

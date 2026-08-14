@@ -54,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['destinations'] })
     await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
     await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+    await queryClient.invalidateQueries({ queryKey: ['masteries'] })
+    await queryClient.invalidateQueries({ queryKey: ['techniques'] })
     return response
   }
 
@@ -65,6 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['destinations'] })
     await queryClient.invalidateQueries({ queryKey: ['nearby-characters'] })
     await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+    await queryClient.invalidateQueries({ queryKey: ['masteries'] })
+    await queryClient.invalidateQueries({ queryKey: ['techniques'] })
     return response
   }
 
@@ -78,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: ['destinations'] })
       queryClient.removeQueries({ queryKey: ['nearby-characters'] })
       queryClient.removeQueries({ queryKey: ['inventory'] })
+      queryClient.removeQueries({ queryKey: ['masteries'] })
+      queryClient.removeQueries({ queryKey: ['techniques'] })
     }
   }
 

@@ -29,6 +29,11 @@ class GameBalanceCatalogTest {
 		assertThat(balance.recovery().bands().get(3).maxLevel()).isEqualTo(30);
 		assertThat(balance.recovery().bands().get(3).healthPercentPerMinute()).isEqualTo(7.5);
 		assertThat(balance.inventory().defaultCapacity()).isEqualTo(40);
+		assertThat(balance.mastery().maxLevel()).isEqualTo(10);
+		assertThat(balance.mastery().xpPerVictory()).isEqualTo(12);
+		assertThat(balance.mastery().unlockLevels()).containsExactly(2, 4, 6, 8, 10);
+		assertThat(balance.mastery().cumulativeXpToReachLevel()).hasSize(11);
+		assertThat(balance.mastery().cumulativeXpToReachLevel()[10]).isEqualTo(15000);
 		assertThat(balance.items().baseRollPercentMin()).isEqualTo(95);
 		assertThat(balance.items().commonAffixes()).isZero();
 		assertThat(balance.items().epicAffixes()).isEqualTo(3);
@@ -38,5 +43,9 @@ class GameBalanceCatalogTest {
 		assertThat(ProgressionBalance.cumulativeXpForLevel(11)).isEqualTo(7230);
 		assertThat(ProgressionBalance.xpToNextLevel(11)).isEqualTo(2000);
 		assertThat(InventoryBalance.DEFAULT_CAPACITY).isEqualTo(40);
+		assertThat(com.example.game.mastery.domain.MasteryBalance.MAX_LEVEL).isEqualTo(10);
+		assertThat(com.example.game.mastery.domain.MasteryBalance.unlockLevels()).containsExactly(2, 4, 6, 8, 10);
+		assertThat(com.example.game.mastery.domain.MasteryBalance.cumulativeXpForLevel(10)).isEqualTo(15000);
+		assertThat(com.example.game.mastery.domain.MasteryBalance.cumulativeXpForLevel(2)).isEqualTo(200);
 	}
 }

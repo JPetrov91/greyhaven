@@ -14,7 +14,7 @@ export function AppShell() {
 
   useEffect(() => {
     const id = location.hash.replace(/^#/, '')
-    if (id !== 'character' && id !== 'inventory') {
+    if (id !== 'character' && id !== 'inventory' && id !== 'mastery') {
       return
     }
     focusSection(id)
@@ -63,6 +63,9 @@ export function AppShell() {
                   </NavLink>
                   <NavLink to="/game#inventory" data-testid="nav-inventory" className={() => navClass('inventory')}>
                     Inventory
+                  </NavLink>
+                  <NavLink to="/game#mastery" data-testid="nav-mastery" className={() => navClass('mastery')}>
+                    Mastery
                   </NavLink>
                   <NavLink to="/game?panel=market" data-testid="nav-market" className={() => navClass('market')}>
                     Market

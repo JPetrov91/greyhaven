@@ -36,6 +36,7 @@ public final class GameBalanceCatalog {
 				parseProgression(map(root, "progression")),
 				parseCombat(map(root, "combat")),
 				parseRecovery(map(root, "recovery")),
+				parseMastery(map(root, "mastery")),
 				parseInventory(map(root, "inventory")),
 				parseItems(map(root, "items")));
 	}
@@ -109,6 +110,14 @@ public final class GameBalanceCatalog {
 					doubleValue(band, "staminaPercentPerMinute")));
 		}
 		return new GameBalance.Recovery(List.copyOf(bands));
+	}
+
+	private static GameBalance.Mastery parseMastery(Map<String, Object> node) {
+		return new GameBalance.Mastery(
+				intValue(node, "maxLevel"),
+				intValue(node, "xpPerVictory"),
+				intArray(node, "unlockLevels"),
+				intArray(node, "cumulativeXpToReachLevel"));
 	}
 
 	private static GameBalance.Inventory parseInventory(Map<String, Object> node) {

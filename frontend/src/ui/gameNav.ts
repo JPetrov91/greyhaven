@@ -1,4 +1,4 @@
-export type GameNavItem = 'character' | 'world' | 'inventory' | 'market'
+export type GameNavItem = 'character' | 'world' | 'inventory' | 'mastery' | 'market'
 
 export function isGameNavActive(
   item: GameNavItem,
@@ -21,5 +21,8 @@ export function isGameNavActive(
   if (item === 'character') {
     return hash === 'character'
   }
-  return hash !== 'inventory' && hash !== 'character'
+  if (item === 'mastery') {
+    return hash === 'mastery'
+  }
+  return hash !== 'inventory' && hash !== 'character' && hash !== 'mastery'
 }

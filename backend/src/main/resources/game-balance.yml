@@ -51,6 +51,16 @@ recovery:
       healthPercentPerMinute: 7.5
       staminaPercentPerMinute: 15.0
 
+mastery:
+  maxLevel: 10
+  xpPerVictory: 12
+  # Technique unlocks (actives at 2/4/6/8, mastery passive at 10).
+  unlockLevels: [2, 4, 6, 8, 10]
+  # Index 0 unused. Index n is total mastery XP required to reach mastery level n.
+  # 0→10 is slower than character 1→10 (5580 XP).
+  cumulativeXpToReachLevel:
+    [0, 80, 200, 400, 720, 1160, 1760, 2560, 3760, 5560, 15000]
+
 inventory:
   defaultCapacity: 40
 

@@ -10,6 +10,7 @@ public record GameBalance(
 		Progression progression,
 		Combat combat,
 		Recovery recovery,
+		Mastery mastery,
 		Inventory inventory,
 		Items items
 ) {
@@ -60,6 +61,14 @@ public record GameBalance(
 			int maxLevel,
 			double healthPercentPerMinute,
 			double staminaPercentPerMinute
+	) {
+	}
+
+	public record Mastery(
+			int maxLevel,
+			int xpPerVictory,
+			int[] unlockLevels,
+			int[] cumulativeXpToReachLevel
 	) {
 	}
 

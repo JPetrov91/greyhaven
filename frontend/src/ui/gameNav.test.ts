@@ -14,6 +14,8 @@ describe('isGameNavActive', () => {
     expect(isGameNavActive('character', { pathname: '/game', search: '', hash: '#character' })).toBe(true)
     expect(isGameNavActive('world', { pathname: '/game', search: '', hash: '#character' })).toBe(false)
     expect(isGameNavActive('inventory', { pathname: '/game', search: '', hash: '#inventory' })).toBe(true)
+    expect(isGameNavActive('mastery', { pathname: '/game', search: '', hash: '#mastery' })).toBe(true)
+    expect(isGameNavActive('world', { pathname: '/game', search: '', hash: '#mastery' })).toBe(false)
   })
 
   it('marks Market from the panel query and ignores hash', () => {

@@ -288,6 +288,8 @@ export type ActivityType =
   | 'MARKET_SOLD'
   | 'MARKET_BOUGHT'
   | 'MARKET_CANCELLED'
+  | 'MASTERY_UNLOCK'
+  | 'TECHNIQUE_UNLOCK'
 
 export type MarketListingStatus = 'ACTIVE' | 'SOLD' | 'CANCELLED'
 
@@ -327,4 +329,57 @@ export type ChatMessageResponse = {
   characterName: string
   body: string
   createdAt: string
+}
+
+export type WeaponFamily = 'SWORD' | 'AXE' | 'MACE' | 'DAGGER' | 'BOW'
+export type TechniqueKind = 'ACTIVE' | 'PASSIVE'
+
+export type MasteryProgressResponse = {
+  level: number
+  totalExperience: number
+  experienceIntoCurrentLevel: number
+  experienceRequiredForNextLevel: number | null
+  experienceRemaining: number | null
+  progressPercent: number
+  maxLevel: boolean
+}
+
+export type WeaponMasteryResponse = {
+  weaponFamily: WeaponFamily
+  level: number
+  totalExperience: number
+  progress: MasteryProgressResponse
+  nextUnlockCodes: string[]
+}
+
+export type MasteriesResponse = {
+  equippedWeaponFamily: WeaponFamily | null
+  masteries: WeaponMasteryResponse[]
+}
+
+export type TechniqueDefinitionResponse = {
+  code: string
+  displayName: string
+  description: string
+  weaponFamily: WeaponFamily
+  unlockMasteryLevel: number
+  kind: TechniqueKind
+  unlocked: boolean
+  staminaCost: number
+  accuracyModifier: number
+  damagePercentModifier: number
+  appliesStatus: string | null
+  tags: string
+}
+
+export type TechniqueLoadoutResponse = {
+  slots: Array<string | null>
+  loadoutFamily: WeaponFamily | null
+  compatibleWithEquippedWeapon: boolean
+}
+
+export type TechniquesResponse = {
+  equippedWeaponFamily: WeaponFamily | null
+  techniques: TechniqueDefinitionResponse[]
+  loadout: TechniqueLoadoutResponse
 }
