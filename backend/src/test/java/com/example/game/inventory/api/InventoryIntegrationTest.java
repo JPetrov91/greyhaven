@@ -79,7 +79,7 @@ class InventoryIntegrationTest {
 				"select count(*) from flyway_schema_history where version = '20' and success = true",
 				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(20);
+		assertThat(definitionCount).isEqualTo(24);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
 		assertThat(flywayV18).isEqualTo(1);

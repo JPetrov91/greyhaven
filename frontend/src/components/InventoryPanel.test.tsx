@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fetchCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
-import type { CharacterResponse, InventoryItemResponse, InventoryResponse } from '../api/types'
+import { sellToMerchant } from '../api/market'
+import type { CharacterResponse, InventoryItemResponse, InventoryResponse, LocationResponse } from '../api/types'
+import { fetchCurrentLocation } from '../api/world'
 import { InventoryPanel } from './InventoryPanel'
 import { ToastProvider } from '../ui/ToastRegion'
 
@@ -21,9 +23,29 @@ vi.mock('../api/character', () => ({
   fetchCharacter: vi.fn(),
 }))
 
+vi.mock('../api/market', () => ({
+  sellToMerchant: vi.fn(),
+}))
+
+vi.mock('../api/world', () => ({
+  fetchCurrentLocation: vi.fn(),
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+
+beforeEach(() => {
+  vi.mocked(fetchCurrentLocation).mockResolvedValue({
+    id: 'loc-1',
+    code: 'CITY_SQUARE',
+    name: 'City Square',
+    description: 'Safe square',
+    safety: 'SAFE',
+    region: 'Greyhaven',
+    actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY'],
+  })
 })
 
 function LocationProbe() {
@@ -87,6 +109,7 @@ function item(overrides: Partial<InventoryItemResponse>): InventoryItemResponse 
     requiredEndurance: 0,
     requiredPerception: 0,
     baseValue: 5,
+    merchantBuyPrice: 3,
     equipped: false,
     canEquip: true,
     twoHanded: false,
@@ -349,6 +372,48 @@ describe('InventoryPanel', () => {
     fireEvent.click(screen.getByTestId('sell-IRON_AXE'))
     expect(screen.getByTestId('location-probe').textContent).toContain('panel=market')
     expect(screen.getByTestId('location-probe').textContent).toContain('listItem=axe')
+  })
+
+  it('shows a merchant offer and sells immediately', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-market',
+      code: 'MARKET',
+      name: 'Market',
+      description: 'Safe market',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['CREATE_LISTING', 'BUY_ITEM'],
+    } satisfies LocationResponse)
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'axe',
+          code: 'IRON_AXE',
+          displayName: 'Iron Axe',
+          equipped: false,
+          comparison: null,
+          merchantBuyPrice: 16,
+        }),
+      ]),
+    )
+    vi.mocked(sellToMerchant).mockResolvedValue({
+      itemInstanceId: 'axe',
+      itemCode: 'IRON_AXE',
+      itemName: 'Iron Axe',
+      quantity: 1,
+      goldAwarded: 16,
+      goldRemaining: 1266,
+    })
+
+    renderPanel()
+
+    fireEvent.click(await screen.findByLabelText(/Iron Axe/))
+    expect(screen.getByTestId('merchant-offer-IRON_AXE').textContent).toContain('16 Gold')
+    const sellNow = await screen.findByRole('button', { name: 'Sell Now' })
+    await waitFor(() => expect(sellNow).toHaveProperty('disabled', false))
+    fireEvent.click(sellNow)
+    await waitFor(() => expect(sellToMerchant).toHaveBeenCalledWith('axe', 1))
   })
 
   it('auto-sorts by rarity', async () => {

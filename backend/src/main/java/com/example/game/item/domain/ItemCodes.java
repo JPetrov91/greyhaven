@@ -25,6 +25,10 @@ public final class ItemCodes {
 	public static final String IRON_PLATE = "IRON_PLATE";
 	public static final String COPPER_AMULET = "COPPER_AMULET";
 	public static final String COPPER_RING = "COPPER_RING";
+	public static final String WOODSMAN_AXE = "WOODSMAN_AXE";
+	public static final String KNOBBED_CLUB = "KNOBBED_CLUB";
+	public static final String PADDED_JACK = "PADDED_JACK";
+	public static final String SPLINT_VEST = "SPLINT_VEST";
 
 	private ItemCodes() {
 	}

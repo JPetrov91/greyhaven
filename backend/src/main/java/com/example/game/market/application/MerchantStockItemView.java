@@ -1,4 +1,4 @@
-package com.example.game.item.application;
+package com.example.game.market.application;
 
 import java.util.UUID;
 
@@ -7,18 +7,17 @@ import com.example.game.item.domain.ArmorCategory;
 import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.domain.WeaponFamily;
+import com.example.game.market.domain.MerchantAvailabilityType;
 
-/**
- * Identity of an item definition as seen by other modules.
- */
-public record ItemDefinitionView(
-		UUID id,
-		String code,
-		String name,
+public record MerchantStockItemView(
+		UUID itemDefinitionId,
+		String itemCode,
+		String itemName,
 		String description,
-		ItemType type,
+		ItemType itemType,
 		ItemRarity rarity,
-		int baseValue,
+		int sellPrice,
+		MerchantAvailabilityType availabilityType,
 		int requiredLevel,
 		Integer weaponDamage,
 		Integer armorValue,

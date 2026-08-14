@@ -40,6 +40,12 @@ class GameBalanceCatalogTest {
 		assertThat(balance.items().commonAffixes()).isZero();
 		assertThat(balance.items().epicAffixes()).isEqualTo(3);
 		assertThat(balance.items().lightDodge()).isEqualTo(2);
+		assertThat(balance.market().merchantBuyMultiplier()).isEqualTo(0.55);
+		assertThat(balance.market().merchantSellMultiplier()).isEqualTo(1.30);
+		assertThat(balance.market().affixValuePerAffix()).isEqualTo(0.08);
+		assertThat(balance.market().maxMerchantPurchaseQuantity()).isEqualTo(99);
+		assertThat(balance.market().commonRarityModifier()).isEqualTo(1.0);
+		assertThat(balance.market().epicRarityModifier()).isEqualTo(1.60);
 
 		assertThat(CharacterBalance.MAX_LEVEL).isEqualTo(30);
 		assertThat(ProgressionBalance.cumulativeXpForLevel(11)).isEqualTo(7230);

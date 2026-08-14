@@ -91,6 +91,18 @@ mastery:
 inventory:
   defaultCapacity: 40
 
+market:
+  merchantBuyMultiplier: 0.55
+  merchantSellMultiplier: 1.30
+  affixValuePerAffix: 0.08
+  maxMerchantPurchaseQuantity: 99
+  # Catalog baseValue already scales with rarity. Merchant prices must not apply these again.
+  rarityModifiers:
+    COMMON: 1.0
+    UNCOMMON: 1.15
+    RARE: 1.35
+    EPIC: 1.60
+
 items:
   baseRollPercentMin: 95
   baseRollPercentMax: 105

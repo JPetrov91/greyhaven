@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchInventory } from '../api/inventory'
-import { fetchMarketListings, fetchOwnMarketListings } from '../api/market'
+import { fetchMarketListings, fetchMerchants, fetchOwnMarketListings } from '../api/market'
 import type { InventoryItemResponse, InventoryResponse, LocationResponse, MarketListingResponse } from '../api/types'
 import { fetchCurrentLocation } from '../api/world'
 import { MarketPanel } from './MarketPanel'
@@ -20,6 +20,8 @@ vi.mock('../api/market', () => ({
   createMarketListing: vi.fn(),
   buyMarketListing: vi.fn(),
   cancelMarketListing: vi.fn(),
+  fetchMerchants: vi.fn(),
+  buyMerchantItem: vi.fn(),
 }))
 
 vi.mock('../api/world', () => ({
@@ -148,14 +150,20 @@ function renderPanel(path = '/') {
   )
 }
 
+async function openPlayerMarket() {
+  fireEvent.click(await screen.findByTestId('market-hub-player'))
+}
+
 describe('MarketPanel', () => {
   it('renders listings with item, rarity, seller, price, buy, and filters', async () => {
     vi.mocked(fetchCurrentLocation).mockResolvedValue(marketLocation)
     vi.mocked(fetchMarketListings).mockResolvedValue({ truncated: false, listings: [listing()] })
     vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchInventory).mockResolvedValue(inventory())
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
 
     renderPanel()
+    await openPlayerMarket()
 
     expect(await screen.findAllByText('Leather Armor')).not.toHaveLength(0)
     expect(screen.getAllByText('Uncommon').length).toBeGreaterThan(0)
@@ -174,8 +182,10 @@ describe('MarketPanel', () => {
     vi.mocked(fetchMarketListings).mockResolvedValue({ truncated: false, listings: [listing()] })
     vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchInventory).mockResolvedValue(inventory())
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
 
     renderPanel()
+    await openPlayerMarket()
 
     expect(await screen.findByTestId('inspector-buy-LEATHER_ARMOR')).toBeTruthy()
     expect(screen.getByTestId('market-buy-order')).toHaveProperty('disabled', true)
@@ -191,8 +201,10 @@ describe('MarketPanel', () => {
     vi.mocked(fetchMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchInventory).mockResolvedValue(inventory())
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
 
     renderPanel()
+    await openPlayerMarket()
 
     expect(await screen.findByTestId('market-travel-hint')).toBeTruthy()
     expect(screen.getByTestId('market-travel-cta')).toBeTruthy()
@@ -218,10 +230,12 @@ describe('MarketPanel', () => {
     })
     vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchInventory).mockResolvedValue(inventory())
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
 
     renderPanel()
+    await openPlayerMarket()
 
-    expect(await screen.findByText('Leather Armor')).toBeTruthy()
+    expect(await screen.findAllByText('Leather Armor')).not.toHaveLength(0)
     fireEvent.change(screen.getByTestId('market-search'), { target: { value: 'iron' } })
     expect(screen.queryByText('Leather Armor')).toBeNull()
     expect(screen.getAllByText('Iron Ore').length).toBeGreaterThan(0)
@@ -234,10 +248,64 @@ describe('MarketPanel', () => {
     vi.mocked(fetchMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
     vi.mocked(fetchInventory).mockResolvedValue(inventory([axeItem()]))
+    vi.mocked(fetchMerchants).mockResolvedValue({ merchants: [] })
 
     renderPanel('/?panel=market&listItem=axe')
 
     expect(await screen.findByTestId('market-item-select')).toHaveProperty('value', 'axe')
     expect(screen.getByTestId('market-tab-mine').getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('opens weaponsmith stock inside the merchants hub', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(marketLocation)
+    vi.mocked(fetchMarketListings).mockResolvedValue({ listings: [], truncated: false })
+    vi.mocked(fetchOwnMarketListings).mockResolvedValue({ listings: [], truncated: false })
+    vi.mocked(fetchInventory).mockResolvedValue(inventory())
+    vi.mocked(fetchMerchants).mockResolvedValue({
+      merchants: [
+        {
+          id: 'm-1',
+          code: 'WEAPONSMITH',
+          name: 'Edric Varn',
+          title: 'Greyhaven Weaponsmith',
+          description: 'Honest steel.',
+          merchantType: 'WEAPONSMITH',
+          portraitCode: 'edric-varn',
+          stock: [
+            {
+              itemDefinitionId: 'def-sword',
+              itemCode: 'RUSTY_SWORD',
+              itemName: 'Rusty Sword',
+              description: 'A notched starter blade.',
+              itemType: 'WEAPON',
+              rarity: 'COMMON',
+              sellPrice: 7,
+              availabilityType: 'UNLIMITED',
+              requiredLevel: 1,
+              weaponDamage: 6,
+              armorValue: null,
+              healAmount: null,
+              twoHanded: false,
+              equipmentSlot: 'MAIN_HAND',
+              weaponFamily: 'SWORD',
+              armorCategory: null,
+              requiredStrength: 0,
+              requiredAgility: 0,
+              requiredEndurance: 0,
+              requiredPerception: 0,
+            },
+          ],
+        },
+      ],
+    })
+
+    renderPanel()
+
+    expect(await screen.findByTestId('merchant-WEAPONSMITH')).toBeTruthy()
+    expect(screen.getByText('Edric Varn')).toBeTruthy()
+    expect(screen.getByTestId('merchant-stock-RUSTY_SWORD')).toBeTruthy()
+    expect(await screen.findByTestId('buy-merchant-RUSTY_SWORD')).toBeTruthy()
+    expect(screen.getByText('7g')).toBeTruthy()
+    expect(screen.queryByTestId('market-listings')).toBeNull()
   })
 })

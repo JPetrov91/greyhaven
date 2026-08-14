@@ -38,7 +38,8 @@ public final class GameBalanceCatalog {
 				parseRecovery(map(root, "recovery")),
 				parseMastery(map(root, "mastery")),
 				parseInventory(map(root, "inventory")),
-				parseItems(map(root, "items")));
+				parseItems(map(root, "items")),
+				parseMarket(map(root, "market")));
 	}
 
 	private static GameBalance load() {
@@ -149,6 +150,19 @@ public final class GameBalanceCatalog {
 
 	private static GameBalance.Inventory parseInventory(Map<String, Object> node) {
 		return new GameBalance.Inventory(intValue(node, "defaultCapacity"));
+	}
+
+	private static GameBalance.Market parseMarket(Map<String, Object> node) {
+		Map<String, Object> rarityModifiers = map(node, "rarityModifiers");
+		return new GameBalance.Market(
+				doubleValue(node, "merchantBuyMultiplier"),
+				doubleValue(node, "merchantSellMultiplier"),
+				doubleValue(node, "affixValuePerAffix"),
+				intValue(node, "maxMerchantPurchaseQuantity"),
+				doubleValue(rarityModifiers, "COMMON"),
+				doubleValue(rarityModifiers, "UNCOMMON"),
+				doubleValue(rarityModifiers, "RARE"),
+				doubleValue(rarityModifiers, "EPIC"));
 	}
 
 	private static GameBalance.Items parseItems(Map<String, Object> node) {

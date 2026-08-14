@@ -19,6 +19,7 @@ public record InventoryItemResponse(
 		int requiredEndurance,
 		int requiredPerception,
 		int baseValue,
+		int merchantBuyPrice,
 		boolean equipped,
 		boolean canEquip,
 		boolean twoHanded,

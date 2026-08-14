@@ -37,10 +37,10 @@ final class MarketErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
-	static ApiException cannotSellEquippedItem() {
+	static ApiException 		cannotSellEquippedItem() {
 		return new ApiException(
 				"CANNOT_SELL_EQUIPPED_ITEM",
-				"Unequip that item before listing it on the marketplace.",
+				"Unequip that item before selling it.",
 				HttpStatus.BAD_REQUEST);
 	}
 
@@ -76,6 +76,41 @@ final class MarketErrors {
 		return new ApiException(
 				"INVENTORY_FULL",
 				"Free inventory space before buying this listing.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException merchantNotFound() {
+		return new ApiException(
+				"MERCHANT_NOT_FOUND",
+				"That merchant does not exist.",
+				HttpStatus.NOT_FOUND);
+	}
+
+	static ApiException itemNotSoldByMerchant() {
+		return new ApiException(
+				"ITEM_NOT_SOLD_BY_MERCHANT",
+				"That merchant does not sell this item.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException invalidMerchantQuantity() {
+		return new ApiException(
+				"INVALID_MERCHANT_QUANTITY",
+				"That quantity cannot be traded with a merchant.",
+				HttpStatus.BAD_REQUEST);
+	}
+
+	static ApiException cannotSellListedItem() {
+		return new ApiException(
+				"CANNOT_SELL_LISTED_ITEM",
+				"Cancel the marketplace listing before selling that item to a merchant.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException merchantInventoryFull() {
+		return new ApiException(
+				"INVENTORY_FULL",
+				"Free inventory space before buying from this merchant.",
 				HttpStatus.CONFLICT);
 	}
 }

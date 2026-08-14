@@ -144,7 +144,7 @@ public class ItemInstanceEntity implements Persistable<UUID> {
 		if (amount < 1) {
 			throw new IllegalArgumentException("amount must be positive");
 		}
-		this.quantity += amount;
+		this.quantity = Math.addExact(this.quantity, amount);
 	}
 
 	public void decreaseQuantity(int amount) {

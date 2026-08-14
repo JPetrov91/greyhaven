@@ -241,6 +241,7 @@ export type InventoryItemResponse = {
   healAmount: number | null
   affixes: ItemAffixResponse[]
   comparison: ItemComparisonResponse | null
+  merchantBuyPrice?: number
 }
 
 export type EquipmentResponse = {
@@ -366,6 +367,65 @@ export type MarketListingResponse = {
 export type MarketListingsResponse = {
   listings: MarketListingResponse[]
   truncated: boolean
+}
+
+export type MerchantType = 'WEAPONSMITH' | 'ARMORER' | 'APOTHECARY' | 'GENERAL'
+
+export type MerchantStockItemResponse = {
+  itemDefinitionId: string
+  itemCode: string
+  itemName: string
+  description: string
+  itemType: ItemType
+  rarity: ItemRarity
+  sellPrice: number
+  availabilityType: 'UNLIMITED'
+  requiredLevel: number
+  weaponDamage: number | null
+  armorValue: number | null
+  healAmount: number | null
+  twoHanded: boolean
+  equipmentSlot: EquipmentSlot | null
+  weaponFamily: string | null
+  armorCategory: string | null
+  requiredStrength: number
+  requiredAgility: number
+  requiredEndurance: number
+  requiredPerception: number
+}
+
+export type MerchantResponse = {
+  id: string
+  code: string
+  name: string
+  title: string
+  description: string
+  merchantType: MerchantType
+  portraitCode: string
+  stock: MerchantStockItemResponse[]
+}
+
+export type MerchantListResponse = {
+  merchants: MerchantResponse[]
+}
+
+export type MerchantPurchaseResponse = {
+  merchantId: string
+  itemDefinitionId: string
+  itemCode: string
+  itemName: string
+  quantity: number
+  pricePaid: number
+  goldRemaining: number
+}
+
+export type MerchantSaleResponse = {
+  itemInstanceId: string
+  itemCode: string
+  itemName: string
+  quantity: number
+  goldAwarded: number
+  goldRemaining: number
 }
 
 export type ActivityEntryResponse = {

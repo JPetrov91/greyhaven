@@ -126,6 +126,16 @@ public class ActivityApplicationService {
 		record(characterId, ActivityType.MARKET_CANCELLED, "You cancelled your marketplace listing.");
 	}
 
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void recordMerchantBought(UUID characterId, String itemName, int price) {
+		record(characterId, ActivityType.MARKET_BOUGHT, "You bought " + itemName + " for " + price + " Gold.");
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void recordMerchantSold(UUID characterId, String itemName, int price) {
+		record(characterId, ActivityType.MARKET_SOLD, "You sold " + itemName + " for " + price + " Gold.");
+	}
+
 	private static ActivityEntryView toView(ActivityEntryEntity entity) {
 		return new ActivityEntryView(
 				entity.getId(),

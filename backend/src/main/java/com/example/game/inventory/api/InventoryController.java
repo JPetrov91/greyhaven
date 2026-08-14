@@ -78,6 +78,7 @@ public class InventoryController {
 				item.requiredEndurance(),
 				item.requiredPerception(),
 				item.baseValue(),
+				item.merchantBuyPrice(),
 				item.equipped(),
 				item.canEquip(),
 				item.twoHanded(),

@@ -44,6 +44,7 @@ import com.example.game.item.infrastructure.ItemInstanceAffixEntity;
 import com.example.game.item.infrastructure.ItemInstanceAffixRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
+import com.example.game.market.domain.MerchantPriceCalculator;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -287,16 +288,62 @@ public class InventoryApplicationService {
 		}
 	}
 
+	/**
+	 * Grants a merchant purchase using catalog-exact equipment (no random affixes) or stack merge
+	 * for consumables and materials.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void grantMerchantPurchase(UUID characterId, String itemCode, int quantity) {
+		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
+		if (definition.getType().isStackable()) {
+			grantItems(characterId, itemCode, quantity);
+			return;
+		}
+		grantCatalogExact(characterId, itemCode, quantity);
+	}
+
+	/**
+	 * Destroys unreserved quantity as an NPC item sink. Listed quantity must already be excluded by
+	 * the caller.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void consumeUnreservedQuantity(UUID characterId, UUID itemInstanceId, int quantity) {
+		if (quantity < 1) {
+			throw new IllegalArgumentException("quantity must be positive");
+		}
+		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		if (equipmentRepository.existsByItemInstanceId(instance.getId())) {
+			throw InventoryErrors.itemNotOwned();
+		}
+		int available = unreservedQuantity(instance);
+		if (available < quantity) {
+			throw InventoryErrors.itemListed();
+		}
+		instance.decreaseQuantity(quantity);
+		if (instance.getQuantity() == 0) {
+			itemInstanceAffixRepository.deleteAll(
+					itemInstanceAffixRepository.findByItemInstanceIdIn(List.of(instance.getId())));
+			itemInstanceRepository.delete(instance);
+		}
+		else {
+			itemInstanceRepository.saveAndFlush(instance);
+		}
+	}
+
 	@Transactional(propagation = Propagation.MANDATORY)
 	public OwnedItemSnapshot requireOwnedItemForTrade(UUID characterId, UUID itemInstanceId) {
 		characterVitalsService.lockVitalsByCharacterId(characterId);
 		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
+		int affixCount = itemInstanceAffixRepository.findByItemInstanceIdIn(List.of(instance.getId())).size();
 		return new OwnedItemSnapshot(
 				instance.getId(),
 				instance.getItemDefinitionId(),
 				instance.getQuantity(),
 				unreservedQuantity(instance),
-				equipmentRepository.existsByItemInstanceId(instance.getId()));
+				equipmentRepository.existsByItemInstanceId(instance.getId()),
+				instance.getRarity(),
+				affixCount);
 	}
 
 	/**
@@ -570,6 +617,10 @@ public class InventoryApplicationService {
 							definition.getRequiredEndurance(),
 							definition.getRequiredPerception(),
 							definition.getBaseValue(),
+							MerchantPriceCalculator.merchantBuyPrice(
+									definition.getBaseValue(),
+									instance.getRarity(),
+									rolled.size()),
 							equipped,
 							canEquip,
 							definition.isTwoHanded(),

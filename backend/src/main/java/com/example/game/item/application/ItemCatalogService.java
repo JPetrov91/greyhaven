@@ -74,8 +74,22 @@ public class ItemCatalogService {
 				definition.getId(),
 				definition.getCode(),
 				definition.getName(),
+				definition.getDescription(),
 				definition.getType(),
-				definition.getRarity());
+				definition.getRarity(),
+				definition.getBaseValue(),
+				definition.getRequiredLevel(),
+				definition.getWeaponDamage(),
+				definition.getArmorValue(),
+				definition.getHealAmount(),
+				definition.isTwoHanded(),
+				definition.getEquipmentSlot(),
+				definition.getWeaponFamily(),
+				definition.getArmorCategory(),
+				definition.getRequiredStrength(),
+				definition.getRequiredAgility(),
+				definition.getRequiredEndurance(),
+				definition.getRequiredPerception());
 	}
 }
 

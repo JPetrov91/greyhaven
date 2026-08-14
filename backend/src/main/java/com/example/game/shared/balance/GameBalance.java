@@ -12,7 +12,8 @@ public record GameBalance(
 		Recovery recovery,
 		Mastery mastery,
 		Inventory inventory,
-		Items items
+		Items items,
+		Market market
 ) {
 
 	public record Character(
@@ -100,6 +101,18 @@ public record GameBalance(
 	}
 
 	public record Inventory(int defaultCapacity) {
+	}
+
+	public record Market(
+			double merchantBuyMultiplier,
+			double merchantSellMultiplier,
+			double affixValuePerAffix,
+			int maxMerchantPurchaseQuantity,
+			double commonRarityModifier,
+			double uncommonRarityModifier,
+			double rareRarityModifier,
+			double epicRarityModifier
+	) {
 	}
 
 	public record Items(

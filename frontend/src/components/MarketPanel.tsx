@@ -5,13 +5,22 @@ import { ApiError } from '../api/client'
 import { fetchInventory } from '../api/inventory'
 import {
   buyMarketListing,
+  buyMerchantItem,
   cancelMarketListing,
   createMarketListing,
   fetchMarketListings,
+  fetchMerchants,
   fetchOwnMarketListings,
 } from '../api/market'
 import { fetchCurrentLocation } from '../api/world'
-import type { InventoryItemResponse, ItemType, LocationAction, MarketListingResponse } from '../api/types'
+import type {
+  InventoryItemResponse,
+  ItemType,
+  LocationAction,
+  MarketListingResponse,
+  MerchantResponse,
+  MerchantStockItemResponse,
+} from '../api/types'
 import { Button } from '../ui/Button'
 import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
@@ -38,6 +47,7 @@ const ITEM_TYPES: { value: ItemType | ''; label: string }[] = [
 ]
 
 type MarketTab = 'all' | 'mine'
+type MarketHub = 'merchants' | 'player' | 'listings'
 
 type Props = {
   onClose?: () => void
@@ -46,11 +56,16 @@ type Props = {
 export function MarketPanel({ onClose }: Props) {
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
+  const initialHub = hubFromSearch(searchParams)
   const [itemType, setItemType] = useState<ItemType | ''>('')
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<MarketTab>(searchParams.get('listItem') ? 'mine' : 'all')
+  const [hub, setHub] = useState<MarketHub>(initialHub)
+  const [tab, setTab] = useState<MarketTab>(initialHub === 'listings' ? 'mine' : 'all')
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
   const [selectedItemId, setSelectedItemId] = useState(searchParams.get('listItem') ?? '')
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string | null>(null)
+  const [selectedStockCode, setSelectedStockCode] = useState<string | null>(null)
+  const [merchantQuantity, setMerchantQuantity] = useState(1)
   const [quantity, setQuantity] = useState(1)
   const [price, setPrice] = useState(10)
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +94,12 @@ export function MarketPanel({ onClose }: Props) {
     retry: false,
   })
 
+  const merchantsQuery = useQuery({
+    queryKey: ['market-merchants'],
+    queryFn: fetchMerchants,
+    retry: false,
+  })
+
   const atMarket = (locationQuery.data?.actions ?? []).includes('BUY_ITEM' satisfies LocationAction)
 
   const listableItems = useMemo(
@@ -93,6 +114,10 @@ export function MarketPanel({ onClose }: Props) {
   const maxQuantity = selectedItem ? selectedItem.quantity - selectedItem.listedQuantity : 1
 
   useEffect(() => {
+    setHub(hubFromSearch(searchParams))
+  }, [searchParams])
+
+  useEffect(() => {
     const listItem = searchParams.get('listItem')
     if (listItem && listableItems.some((item) => item.id === listItem)) {
       setSelectedItemId(listItem)
@@ -100,10 +125,38 @@ export function MarketPanel({ onClose }: Props) {
     }
   }, [searchParams, listableItems])
 
+  const merchants = merchantsQuery.data?.merchants ?? []
+  useEffect(() => {
+    if (selectedMerchantId && merchants.some((merchant) => merchant.id === selectedMerchantId)) {
+      return
+    }
+    const requested = searchParams.get('merchant')
+    const match = merchants.find((merchant) => merchant.code === requested || merchant.id === requested)
+    setSelectedMerchantId(match?.id ?? merchants[0]?.id ?? null)
+  }, [merchants, selectedMerchantId, searchParams])
+
+  const selectedMerchant = merchants.find((merchant) => merchant.id === selectedMerchantId) ?? null
+  const visibleStock = useMemo(
+    () => (selectedMerchant ? filterStock(selectedMerchant.stock, search) : []),
+    [selectedMerchant, search],
+  )
+  useEffect(() => {
+    if (visibleStock.some((item) => item.itemCode === selectedStockCode)) {
+      return
+    }
+    setSelectedStockCode(visibleStock[0]?.itemCode ?? null)
+  }, [visibleStock, selectedStockCode])
+  useEffect(() => {
+    setMerchantQuantity(1)
+  }, [selectedStockCode])
+  const selectedStock = visibleStock.find((item) => item.itemCode === selectedStockCode) ?? null
+  const merchantMaxQuantity = selectedStock?.itemType === 'CONSUMABLE' || selectedStock?.itemType === 'MATERIAL' ? 99 : 1
+
   async function refreshAfterChange() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['market-listings'] }),
       queryClient.invalidateQueries({ queryKey: ['market-own-listings'] }),
+      queryClient.invalidateQueries({ queryKey: ['market-merchants'] }),
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['character'] }),
       queryClient.invalidateQueries({ queryKey: ['activity'] }),
@@ -144,10 +197,30 @@ export function MarketPanel({ onClose }: Props) {
     },
   })
 
+  const merchantBuyMutation = useMutation({
+    mutationFn: () => {
+      if (!selectedMerchant || !selectedStock) {
+        throw new Error('Choose a merchant item first.')
+      }
+      return buyMerchantItem(selectedMerchant.id, selectedStock.itemDefinitionId, merchantQuantity)
+    },
+    onSuccess: async () => {
+      setError(null)
+      await refreshAfterChange()
+    },
+    onError: (cause) => {
+      setError(cause instanceof ApiError ? cause.message : 'Unable to buy from that merchant.')
+    },
+  })
+
   const listings = listingsQuery.data?.listings ?? []
   const listingsTruncated = listingsQuery.data?.truncated ?? false
   const ownListings = ownListingsQuery.data?.listings ?? []
-  const busy = createMutation.isPending || buyMutation.isPending || cancelMutation.isPending
+  const busy =
+    createMutation.isPending ||
+    buyMutation.isPending ||
+    cancelMutation.isPending ||
+    merchantBuyMutation.isPending
   const tradeDisabled = busy || !atMarket
   const travelReason = 'Travel to the Market to buy, sell, or cancel listings.'
 
@@ -199,8 +272,8 @@ export function MarketPanel({ onClose }: Props) {
     <Panel
       className="market-panel game-column"
       data-testid="market-panel"
-      aria-label="Marketplace"
-      title="Marketplace"
+      aria-label="Greyhaven Market"
+      title="Greyhaven Market"
       actions={
         onClose ? (
           <Button type="button" variant="ghost" data-testid="close-market" onClick={onClose}>
@@ -212,7 +285,7 @@ export function MarketPanel({ onClose }: Props) {
       <div className="market-banner">
         <img className="market-banner-art" src={locationArtUrl('MARKET')} alt="" />
         <div className="market-banner-copy">
-          <p className="muted">Trade equipment, resources, and rare items with adventurers across Greyhaven.</p>
+          <p className="muted">Trade District — NPC merchants and the player market share this hall.</p>
         </div>
       </div>
 
@@ -230,6 +303,76 @@ export function MarketPanel({ onClose }: Props) {
         </p>
       ) : null}
 
+      <div className="market-tabs market-hub-tabs" role="tablist" aria-label="Greyhaven Market">
+        <button
+          type="button"
+          role="tab"
+          className={hub === 'merchants' ? 'tab tab-active' : 'tab'}
+          aria-selected={hub === 'merchants'}
+          data-testid="market-hub-merchants"
+          onClick={() => setHub('merchants')}
+        >
+          Merchants
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={hub === 'player' ? 'tab tab-active' : 'tab'}
+          aria-selected={hub === 'player'}
+          data-testid="market-hub-player"
+          onClick={() => {
+            setHub('player')
+            setTab('all')
+          }}
+        >
+          Player Market
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={hub === 'listings' ? 'tab tab-active' : 'tab'}
+          aria-selected={hub === 'listings'}
+          data-testid="market-hub-listings"
+          onClick={() => {
+            setHub('listings')
+            setTab('mine')
+          }}
+        >
+          My Listings
+        </button>
+      </div>
+
+      {hub === 'merchants' ? (
+        <MerchantHub
+          merchants={merchants}
+          selectedMerchant={selectedMerchant}
+          visibleStock={visibleStock}
+          selectedStock={selectedStock}
+          merchantQuantity={merchantQuantity}
+          merchantMaxQuantity={merchantMaxQuantity}
+          loading={merchantsQuery.isLoading}
+          loadError={
+            merchantsQuery.error
+              ? merchantsQuery.error instanceof ApiError
+                ? merchantsQuery.error.message
+                : 'Unable to load merchants.'
+              : null
+          }
+          search={search}
+          tradeDisabled={tradeDisabled}
+          buyPending={merchantBuyMutation.isPending}
+          buyDisabledReason={!atMarket ? travelReason : undefined}
+          onSearch={setSearch}
+          onSelectMerchant={(id) => {
+            setSelectedMerchantId(id)
+            setSelectedStockCode(null)
+          }}
+          onSelectStock={setSelectedStockCode}
+          onQuantity={setMerchantQuantity}
+          onBuy={() => merchantBuyMutation.mutate()}
+        />
+      ) : (
+        <>
       <Field label="Search" className="market-search-field">
         <input
           type="search"
@@ -454,6 +597,8 @@ export function MarketPanel({ onClose }: Props) {
           )}
         </aside>
       </div>
+        </>
+      )}
     </Panel>
   )
 }
@@ -640,4 +785,226 @@ function filterListings(listings: MarketListingResponse[], search: string): Mark
 function itemLabel(item: InventoryItemResponse): string {
   const available = item.quantity - item.listedQuantity
   return `${item.displayName} · ${formatRarity(item.rarity)} · qty ${available}`
+}
+
+function hubFromSearch(searchParams: URLSearchParams): MarketHub {
+  if (searchParams.get('listItem')) {
+    return 'listings'
+  }
+  const hub = searchParams.get('hub')
+  if (hub === 'player' || hub === 'listings' || hub === 'merchants') {
+    return hub
+  }
+  return 'merchants'
+}
+
+function filterStock(stock: MerchantStockItemResponse[], search: string): MerchantStockItemResponse[] {
+  const query = search.trim().toLowerCase()
+  if (!query) {
+    return stock
+  }
+  return stock.filter((item) =>
+    [item.itemName, item.itemCode, item.itemType, item.rarity].join(' ').toLowerCase().includes(query),
+  )
+}
+
+function MerchantHub({
+  merchants,
+  selectedMerchant,
+  visibleStock,
+  selectedStock,
+  merchantQuantity,
+  merchantMaxQuantity,
+  loading,
+  loadError,
+  search,
+  tradeDisabled,
+  buyPending,
+  buyDisabledReason,
+  onSearch,
+  onSelectMerchant,
+  onSelectStock,
+  onQuantity,
+  onBuy,
+}: {
+  merchants: MerchantResponse[]
+  selectedMerchant: MerchantResponse | null
+  visibleStock: MerchantStockItemResponse[]
+  selectedStock: MerchantStockItemResponse | null
+  merchantQuantity: number
+  merchantMaxQuantity: number
+  loading: boolean
+  loadError: string | null
+  search: string
+  tradeDisabled: boolean
+  buyPending: boolean
+  buyDisabledReason?: string
+  onSearch: (value: string) => void
+  onSelectMerchant: (id: string) => void
+  onSelectStock: (code: string) => void
+  onQuantity: (value: number) => void
+  onBuy: () => void
+}) {
+  return (
+    <div className="market-workspace merchant-workspace">
+      <div className="merchant-list" data-testid="merchant-list">
+        {merchants.map((merchant) => (
+          <button
+            key={merchant.id}
+            type="button"
+            className={merchant.id === selectedMerchant?.id ? 'merchant-card merchant-card-selected' : 'merchant-card'}
+            data-testid={`merchant-${merchant.code}`}
+            onClick={() => onSelectMerchant(merchant.id)}
+          >
+            <span className="merchant-portrait" aria-hidden="true">
+              {initials(merchant.name)}
+            </span>
+            <span>
+              <strong>{merchant.name}</strong>
+              <span className="muted">{merchant.title}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="market-browse">
+        <Field label="Search" className="market-search-field">
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => onSearch(event.target.value)}
+            data-testid="merchant-search"
+            placeholder="Search merchant goods…"
+          />
+        </Field>
+        {loading ? (
+          <LoadingState>Loading merchants…</LoadingState>
+        ) : loadError ? (
+          <ErrorState testId="merchant-load-error">{loadError}</ErrorState>
+        ) : !selectedMerchant ? (
+          <EmptyState testId="merchant-empty">No merchants are trading today.</EmptyState>
+        ) : visibleStock.length === 0 ? (
+          <EmptyState testId="merchant-stock-empty">This merchant has no matching goods.</EmptyState>
+        ) : (
+          <div className="market-table-wrap">
+            <table className="market-table" data-testid="merchant-stock">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Rarity</th>
+                  <th>Type</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleStock.map((item) => (
+                  <tr
+                    key={item.itemDefinitionId}
+                    className={item.itemCode === selectedStock?.itemCode ? 'market-row market-row-selected' : 'market-row'}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        className="market-row-select"
+                        data-testid={`merchant-stock-${item.itemCode}`}
+                        onClick={() => onSelectStock(item.itemCode)}
+                      >
+                        <ItemIcon item={listingIconSource(item.itemType)} />
+                        {item.itemName}
+                      </button>
+                    </td>
+                    <td>
+                      <RarityBadge rarity={item.rarity} />
+                    </td>
+                    <td>{formatItemType(item.itemType)}</td>
+                    <td>{item.sellPrice}g</td>
+                    <td>Unlimited</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <aside className="market-inspector" aria-label="Selected merchant goods">
+        {selectedMerchant && selectedStock ? (
+          <>
+            <p className="muted" data-testid="merchant-identity">
+              {selectedMerchant.name} · {selectedMerchant.title}
+            </p>
+            <p>{selectedMerchant.description}</p>
+            <ItemDetail item={stockAsInventoryItem(selectedStock)} showComparison={false} showIcon valueLabel="Merchant price" />
+            <StatRow label="Price" value={`${selectedStock.sellPrice} gold`} />
+            <Field label="Quantity">
+              <input
+                data-testid="merchant-buy-quantity"
+                type="number"
+                min={1}
+                max={merchantMaxQuantity}
+                value={merchantQuantity}
+                onChange={(event) => onQuantity(Number(event.target.value))}
+              />
+            </Field>
+            <Button
+              type="button"
+              className="inventory-action-primary"
+              data-testid={`buy-merchant-${selectedStock.itemCode}`}
+              disabled={tradeDisabled || buyPending}
+              title={buyDisabledReason}
+              onClick={onBuy}
+            >
+              {buyPending ? 'Buying…' : `Buy for ${selectedStock.sellPrice * merchantQuantity} gold`}
+            </Button>
+          </>
+        ) : (
+          <EmptyState>Select a merchant good to inspect it.</EmptyState>
+        )}
+      </aside>
+    </div>
+  )
+}
+
+function initials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+}
+
+function stockAsInventoryItem(item: MerchantStockItemResponse): InventoryItemResponse {
+  return {
+    id: item.itemDefinitionId,
+    definitionId: item.itemDefinitionId,
+    code: item.itemCode,
+    name: item.itemName,
+    displayName: item.itemName,
+    description: item.description,
+    type: item.itemType,
+    rarity: item.rarity,
+    quantity: 1,
+    requiredLevel: item.requiredLevel,
+    requiredStrength: item.requiredStrength,
+    requiredAgility: item.requiredAgility,
+    requiredEndurance: item.requiredEndurance,
+    requiredPerception: item.requiredPerception,
+    baseValue: item.sellPrice,
+    equipped: false,
+    canEquip: item.equipmentSlot != null,
+    twoHanded: item.twoHanded,
+    legacy: false,
+    equipmentSlot: item.equipmentSlot,
+    weaponFamily: item.weaponFamily,
+    armorCategory: item.armorCategory,
+    usable: item.healAmount != null,
+    listedQuantity: 0,
+    rolledWeaponDamage: item.weaponDamage,
+    rolledArmorValue: item.armorValue,
+    weaponDamage: item.weaponDamage,
+    armorValue: item.armorValue,
+    healAmount: item.healAmount,
+    affixes: [],
+    comparison: null,
+  }
 }

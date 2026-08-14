@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchCharacter } from '../api/character'
+import { fetchCurrentLocation } from '../api/world'
 import { equipItem, fetchInventory, unequipItem, useItem } from '../api/inventory'
+import { sellToMerchant } from '../api/market'
 import { ApiError } from '../api/client'
-import type { EquipmentSlot, InventoryItemResponse, ItemRarity, ItemType } from '../api/types'
+import type { EquipmentSlot, InventoryItemResponse, ItemRarity, ItemType, LocationAction } from '../api/types'
 import { Button } from '../ui/Button'
 import { ComingLaterButton, ComingLaterChip } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
@@ -85,6 +87,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
   const [search, setSearch] = useState('')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [merchantSellQuantity, setMerchantSellQuantity] = useState(1)
   const slotFilter = parseSlot(searchParams.get('slot'))
 
   function setSlotFilter(slot: EquipmentSlot | '') {
@@ -114,12 +117,20 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     retry: false,
   })
 
+  const locationQuery = useQuery({
+    queryKey: ['location'],
+    queryFn: fetchCurrentLocation,
+    retry: false,
+  })
+
   const invalidateGameplay = async (message?: string) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['character'] }),
       queryClient.invalidateQueries({ queryKey: ['masteries'] }),
       queryClient.invalidateQueries({ queryKey: ['techniques'] }),
+      queryClient.invalidateQueries({ queryKey: ['activity'] }),
+      queryClient.invalidateQueries({ queryKey: ['location'] }),
     ])
     onMutated?.()
     if (message) {
@@ -140,6 +151,12 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
   const useMutationHook = useMutation({
     mutationFn: useItem,
     onSuccess: () => void invalidateGameplay('Item used.'),
+  })
+
+  const merchantSellMutation = useMutation({
+    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) => sellToMerchant(itemId, quantity),
+    onSuccess: (result) =>
+      void invalidateGameplay(`Sold ${result.itemName} for ${result.goldAwarded} gold.`),
   })
 
   const items = inventoryQuery.data?.items ?? []
@@ -181,6 +198,10 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     setSelectedId(visibleItems[0]?.id ?? null)
   }, [visibleItems, selectedId])
 
+  useEffect(() => {
+    setMerchantSellQuantity(1)
+  }, [selectedId])
+
   const panelProps = {
     className: 'game-column inventory-panel',
     'aria-label': 'Inventory',
@@ -221,15 +242,20 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
       ? (items.find((item) => item.id === selected.comparison?.equippedItemId) ?? null)
       : null
   const showCompare = selected != null && shouldShowItemComparison(selected)
-  const canSell = selected != null && !selected.equipped && selected.quantity - selected.listedQuantity > 0
+  const atMarket = (locationQuery.data?.actions ?? []).includes('CREATE_LISTING' satisfies LocationAction)
+  const unreserved = selected ? selected.quantity - selected.listedQuantity : 0
+  const canSell = selected != null && !selected.equipped && unreserved > 0
+  const merchantOffer = selected?.merchantBuyPrice
   const sellHint =
     selected && !canSell
       ? selected.equipped
-        ? 'Unequip this item before listing it.'
+        ? 'Unequip this item before selling it.'
         : selected.listedQuantity > 0
           ? 'This stack is already listed.'
           : null
-      : null
+      : !atMarket && canSell
+        ? 'Travel to the Market to sell to a merchant or list an item.'
+        : null
   const emptySlots =
     visibleItems.length > 0 ? Math.max(0, inventory.capacity - visibleItems.length) : 0
 
@@ -237,6 +263,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
     (equipMutation.error instanceof ApiError && equipMutation.error.message) ||
     (unequipMutation.error instanceof ApiError && unequipMutation.error.message) ||
     (useMutationHook.error instanceof ApiError && useMutationHook.error.message) ||
+    (merchantSellMutation.error instanceof ApiError && merchantSellMutation.error.message) ||
     null
 
   const emptyMessage =
@@ -406,7 +433,13 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
         <aside className="inventory-inspector" aria-label="Selected item">
           {selected ? (
             <>
-              <ItemDetail item={selected} showComparison={false} showIcon valueLabel="Sell Price" />
+              <ItemDetail item={selected} showComparison={false} showIcon valueLabel="Base value" />
+              {merchantOffer != null ? (
+                <p className="muted" data-testid={`merchant-offer-${selected.code}`}>
+                  Merchant offer: {merchantOffer} Gold
+                  {unreserved > 1 ? ` each (${merchantOffer * Math.min(merchantSellQuantity, unreserved)} for qty)` : ''}
+                </p>
+              ) : null}
               {showCompare && selected.comparison ? (
                 <div className="item-comparison inventory-compare" data-testid={`comparison-${selected.code}`}>
                   <p className="item-comparison-heading">
@@ -464,6 +497,33 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                     Use
                   </Button>
                 ) : null}
+                {unreserved > 1 ? (
+                  <Field label="Sell quantity">
+                    <input
+                      data-testid={`merchant-sell-qty-${selected.code}`}
+                      type="number"
+                      min={1}
+                      max={unreserved}
+                      value={merchantSellQuantity}
+                      onChange={(event) => setMerchantSellQuantity(Number(event.target.value))}
+                    />
+                  </Field>
+                ) : null}
+                <Button
+                  type="button"
+                  className="inventory-action-primary"
+                  data-testid={`merchant-sell-${selected.code}`}
+                  disabled={!canSell || mutationsDisabled || merchantSellMutation.isPending || !atMarket}
+                  title={!atMarket ? 'Travel to the Market to sell to a merchant.' : undefined}
+                  onClick={() =>
+                    merchantSellMutation.mutate({
+                      itemId: selected.id,
+                      quantity: Math.min(Math.max(1, merchantSellQuantity), unreserved),
+                    })
+                  }
+                >
+                  Sell Now
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
@@ -471,7 +531,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                   disabled={!canSell}
                   onClick={() => navigate({ pathname: '/game', search: `?panel=market&listItem=${selected.id}` })}
                 >
-                  Sell
+                  Create Market Listing
                 </Button>
                 {sellHint ? <p className="muted inventory-sell-hint">{sellHint}</p> : null}
                 <div className="inventory-later-row">
