@@ -1,30 +1,90 @@
+import type { ItemType, MarketListingResponse } from '../api/types'
 import { Button } from '../ui/Button'
+import { classNames } from '../ui/classNames'
+import { ItemIcon, type ItemIconSource } from '../ui/itemIcons'
 import { RarityBadge } from '../ui/RarityBadge'
-import type { MarketListingResponse } from '../api/types'
 
 type Props = {
   listing: MarketListingResponse
+  selected: boolean
   actionLabel: string
   actionTestId: string
   disabled: boolean
+  disabledReason?: string
+  onSelect: () => void
   onAction: () => void
 }
 
-export function MarketListingRow({ listing, actionLabel, actionTestId, disabled, onAction }: Props) {
+export function listingIconSource(itemType: ItemType): ItemIconSource {
+  if (itemType === 'WEAPON') {
+    return { type: itemType, equipmentSlot: 'MAIN_HAND' }
+  }
+  if (itemType === 'ARMOR') {
+    return { type: itemType, equipmentSlot: 'CHEST' }
+  }
+  if (itemType === 'ACCESSORY') {
+    return { type: itemType, equipmentSlot: 'AMULET' }
+  }
+  return { type: itemType }
+}
+
+export function formatItemType(itemType: ItemType): string {
+  return itemType.charAt(0) + itemType.slice(1).toLowerCase()
+}
+
+export function MarketListingRow({
+  listing,
+  selected,
+  actionLabel,
+  actionTestId,
+  disabled,
+  disabledReason,
+  onSelect,
+  onAction,
+}: Props) {
   return (
-    <li data-testid={`market-listing-${listing.itemCode}`}>
-      <div className="inventory-item-main">
-        <strong className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</strong>
+    <tr
+      data-testid={`market-listing-${listing.itemCode}`}
+      className={classNames('market-row', selected && 'market-row-selected')}
+      aria-selected={selected}
+    >
+      <td>
+        <button type="button" className="market-row-select" onClick={onSelect}>
+          <ItemIcon item={listingIconSource(listing.itemType)} className="item-icon item-icon-row" />
+          <span className={`item-name rarity-ink-${listing.rarity.toLowerCase()}`}>{listing.itemName}</span>
+        </button>
+      </td>
+      <td>
         <RarityBadge rarity={listing.rarity} />
-      </div>
-      <p className="inventory-item-meta">
-        {listing.itemType} · Qty {listing.quantity} · {listing.price} gold · Seller {listing.sellerName}
-      </p>
-      <div className="inventory-item-actions">
-        <Button type="button" data-testid={actionTestId} disabled={disabled} onClick={onAction}>
+      </td>
+      <td>{formatItemType(listing.itemType)}</td>
+      <td>{listing.quantity}</td>
+      <td className="market-col-locked" title="Coming later">
+        —
+      </td>
+      <td className="market-col-locked" title="Coming later">
+        —
+      </td>
+      <td>{listing.price} gold</td>
+      <td>Seller {listing.sellerName}</td>
+      <td className="market-col-locked" title="Coming later">
+        —
+      </td>
+      <td>
+        <Button
+          type="button"
+          data-testid={actionTestId}
+          disabled={disabled}
+          title={disabled ? disabledReason : undefined}
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelect()
+            onAction()
+          }}
+        >
           {actionLabel}
         </Button>
-      </div>
-    </li>
+      </td>
+    </tr>
   )
 }

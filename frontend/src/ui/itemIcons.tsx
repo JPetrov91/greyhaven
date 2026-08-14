@@ -1,9 +1,14 @@
-import type { InventoryItemResponse } from '../api/types'
+import type { EquipmentSlot, ItemType } from '../api/types'
 import { classNames } from './classNames'
 import { EquipmentSlotIcon } from './equipmentIcons'
 
+export type ItemIconSource = {
+  type: ItemType
+  equipmentSlot?: EquipmentSlot | null
+}
+
 type Props = {
-  item: InventoryItemResponse
+  item: ItemIconSource
   className?: string
 }
 
@@ -16,7 +21,7 @@ export function ItemIcon({ item, className = 'item-icon' }: Props) {
   )
 }
 
-function ItemGlyph({ item }: { item: InventoryItemResponse }) {
+function ItemGlyph({ item }: { item: ItemIconSource }) {
   if (item.equipmentSlot) {
     return <EquipmentSlotIcon slot={item.equipmentSlot} className="item-icon-svg" />
   }
