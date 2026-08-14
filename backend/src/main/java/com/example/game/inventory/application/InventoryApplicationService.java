@@ -499,7 +499,8 @@ public class InventoryApplicationService {
 				total.strength(),
 				total.agility(),
 				total.endurance(),
-				total.perception());
+				total.perception(),
+				total.staminaCostReduction());
 	}
 
 	private InventoryView buildInventoryView(CharacterVitalsView vitals) {
@@ -870,7 +871,8 @@ public class InventoryApplicationService {
 			int strength,
 			int agility,
 			int endurance,
-			int perception
+			int perception,
+			int staminaCostReduction
 	) {
 	}
 }

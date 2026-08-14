@@ -9,6 +9,7 @@ public record CombatView(
 		UUID id,
 		UUID encounterId,
 		CombatSessionStatus status,
+		int rulesVersion,
 		int roundNumber,
 		int playerHealth,
 		int playerMaxHealth,
@@ -16,8 +17,15 @@ public record CombatView(
 		int playerMaxStamina,
 		int enemyHealth,
 		int enemyMaxHealth,
+		int enemyStamina,
+		int enemyMaxStamina,
 		MonsterView monster,
 		boolean potionAvailable,
+		boolean playerStunned,
+		List<CombatStatusView> playerStatuses,
+		List<CombatStatusView> enemyStatuses,
+		List<CombatTechniqueOptionView> techniques,
+		CoreActionCostsView coreActionCosts,
 		List<CombatEventView> events,
 		CombatRewardsView rewards
 ) {

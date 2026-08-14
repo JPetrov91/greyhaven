@@ -42,3 +42,12 @@ Task 2 must preserve stored `experience`, then apply an **explicit** catch-up th
 - Affixes, instance rarity rolls, item generators
 - Playable nine-slot UI, two-handed off-hand lock
 - Mastery, techniques, Combat 2.0, PvP, crafting
+
+## Combat 2.0 — in-flight Phase 1 sessions
+
+Task 6 (`V23`) adds `combat_sessions.rules_version`.
+
+- Existing rows (ACTIVE and unacknowledged terminal) are backfilled to `1`.
+- New encounters start at `2` (Combat 2.0).
+
+**Choice:** do not migrate mid-fight HP/stamina onto Combat 2.0 formulas. A `rules_version = 1` session finishes with `Phase1CombatEngine` (linear armor, original six actions, no techniques/statuses). Unacknowledged terminal sessions never re-enter either engine.

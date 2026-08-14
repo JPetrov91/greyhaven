@@ -1,7 +1,7 @@
 package com.example.game.mastery.domain;
 
 /**
- * Data-driven combat contract for Task 6. CombatEngine must not resolve these values yet.
+ * Combat 2.0 resolves {@link TechniqueEffectSpec} values through {@code CombatEngine}.
  */
 public record TechniqueEffectSpec(
 		String effectCode,

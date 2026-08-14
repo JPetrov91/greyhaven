@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import com.example.game.shared.domain.ScriptedRandomProvider;
 
-class CombatEngineTest {
+class Phase1CombatEngineTest {
 
 	private static final CombatantStats PLAYER = new CombatantStats(14, 80, 8, 8, 3, 5);
 	private static final MonsterCombatStats RAT = new MonsterCombatStats("Giant Rat", 1, 3, 6);
@@ -18,7 +18,7 @@ class CombatEngineTest {
 		// player hit roll 10 (< hit chance), no crit 90 (>= 8), enemy hit 10, enemy dmg 4
 		ScriptedRandomProvider random = new ScriptedRandomProvider(10, 90, 10, 4);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
@@ -39,7 +39,7 @@ class CombatEngineTest {
 		// hit, no crit
 		ScriptedRandomProvider random = new ScriptedRandomProvider(5, 90, 90, 3);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.HEAVY_ATTACK,
 				noPotion(),
@@ -56,7 +56,7 @@ class CombatEngineTest {
 		// hit, crit (crit chance 8+15=23, roll 10), enemy miss
 		ScriptedRandomProvider random = new ScriptedRandomProvider(5, 10, 90);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.PRECISE_ATTACK,
 				noPotion(),
@@ -74,7 +74,7 @@ class CombatEngineTest {
 		// miss (roll 95), enemy miss
 		ScriptedRandomProvider random = new ScriptedRandomProvider(95, 90);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
@@ -91,7 +91,7 @@ class CombatEngineTest {
 		// enemy hit, dmg 6 -> after armor 3 -> defended 2 (round 1.5? 3*0.5=1.5 -> 2)
 		ScriptedRandomProvider random = new ScriptedRandomProvider(5, 6);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.DEFEND,
 				noPotion(),
@@ -108,10 +108,10 @@ class CombatEngineTest {
 		CombatSessionState state = active(50, 80, 50);
 		ScriptedRandomProvider random = new ScriptedRandomProvider(90);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.USE_POTION,
-				new CombatEngine.ActionContext(true, 40),
+				new CombatActionContext(true, 40),
 				random);
 
 		assertThat(result.playerHealth()).isEqualTo(90);
@@ -126,7 +126,7 @@ class CombatEngineTest {
 		// retreat chance = 25 + 5*3 = 40; roll 10 succeeds
 		ScriptedRandomProvider random = new ScriptedRandomProvider(10);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.RETREAT,
 				noPotion(),
@@ -144,7 +144,7 @@ class CombatEngineTest {
 		// fail retreat (roll 80 >= 40), enemy miss
 		ScriptedRandomProvider random = new ScriptedRandomProvider(80, 90);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.RETREAT,
 				noPotion(),
@@ -160,7 +160,7 @@ class CombatEngineTest {
 		CombatSessionState state = active(100, 80, 10);
 		ScriptedRandomProvider random = new ScriptedRandomProvider(5, 90);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
@@ -178,7 +178,7 @@ class CombatEngineTest {
 		CombatSessionState state = active(2, 80, 50);
 		ScriptedRandomProvider random = new ScriptedRandomProvider(5, 90, 5, 6);
 
-		CombatRoundResult result = CombatEngine.resolve(
+		CombatRoundResult result = Phase1CombatEngine.resolve(
 				state,
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
@@ -194,7 +194,7 @@ class CombatEngineTest {
 	void insufficientStaminaIsRejected() {
 		CombatSessionState state = active(100, 5, 50);
 
-		assertThatThrownBy(() -> CombatEngine.resolve(
+		assertThatThrownBy(() -> Phase1CombatEngine.resolve(
 				state,
 				CombatAction.HEAVY_ATTACK,
 				noPotion(),
@@ -207,10 +207,10 @@ class CombatEngineTest {
 	void potionRequiredForUsePotion() {
 		CombatSessionState state = active(50, 80, 50);
 
-		assertThatThrownBy(() -> CombatEngine.resolve(
+		assertThatThrownBy(() -> Phase1CombatEngine.resolve(
 				state,
 				CombatAction.USE_POTION,
-				new CombatEngine.ActionContext(false, 0),
+				new CombatActionContext(false, 0),
 				new ScriptedRandomProvider()))
 				.isInstanceOfSatisfying(CombatRuleViolation.class, violation -> assertThat(violation.getReason())
 						.isEqualTo(CombatRuleViolation.Reason.NO_POTION));
@@ -221,7 +221,7 @@ class CombatEngineTest {
 		CombatSessionState state = new CombatSessionState(
 				3, 100, 160, 80, 80, 0, CombatSessionStatus.PLAYER_WON, PLAYER, RAT);
 
-		assertThatThrownBy(() -> CombatEngine.resolve(
+		assertThatThrownBy(() -> Phase1CombatEngine.resolve(
 				state,
 				CombatAction.QUICK_ATTACK,
 				noPotion(),
@@ -243,7 +243,7 @@ class CombatEngineTest {
 				RAT);
 	}
 
-	private static CombatEngine.ActionContext noPotion() {
-		return new CombatEngine.ActionContext(false, 0);
+	private static CombatActionContext noPotion() {
+		return new CombatActionContext(false, 0);
 	}
 }

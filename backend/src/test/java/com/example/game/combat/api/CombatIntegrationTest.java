@@ -795,7 +795,6 @@ class CombatIntegrationTest {
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.code").value("INVENTORY_FULL"));
 
-		// The whole round rolled back: no partial rewards, and the fight can still be finished.
 		assertThat(intColumn("select experience from characters where id = ?", characterId)).isEqualTo(xpBefore);
 		assertThat(intColumn("select gold from characters where id = ?", characterId)).isEqualTo(goldBefore);
 		assertThat(intColumn("select count(*) from combat_reward_items where session_id = ?", combatId))
@@ -803,11 +802,19 @@ class CombatIntegrationTest {
 		assertThat(jdbcTemplate.queryForObject(
 				"select status from combat_sessions where id = ?",
 				String.class,
-				combatId)).isEqualTo("ACTIVE");
+				combatId)).isEqualTo("PLAYER_WON");
+		assertThat(jdbcTemplate.queryForObject(
+				"select enemy_health from combat_sessions where id = ?",
+				Integer.class,
+				combatId)).isZero();
 		assertThat(jdbcTemplate.queryForObject(
 				"select rewards_applied from combat_sessions where id = ?",
 				Boolean.class,
 				combatId)).isFalse();
+
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/acknowledge")).session(session))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("INVENTORY_FULL"));
 	}
 
 	@Test
@@ -856,7 +863,6 @@ class CombatIntegrationTest {
 						""",
 				characterId);
 
-		mutableRandomProvider.queue(5, 90, 99, 99, 99);
 		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -881,7 +887,163 @@ class CombatIntegrationTest {
 						""",
 				String.class,
 				characterId)).isEqualTo("BALANCED");
-		assertThat(mutableRandomProvider.remainingScripted()).isEqualTo(3);
+		assertThat(mutableRandomProvider.remainingScripted()).isZero();
+	}
+
+	@Test
+	void combat2PersistsStatusesAcrossCurrentReload() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat2-status-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.rulesVersion").value(2))
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		jdbcTemplate.update(
+				"""
+						insert into combat_status_effects
+						(id, session_id, target, status_type, stacks, remaining_rounds)
+						values (?, ?, 'ENEMY', 'BLEED', 1, 3)
+						""",
+				UUID.randomUUID(),
+				combatId);
+
+		mockMvc.perform(get("/api/v1/combat/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(combatId.toString()))
+				.andExpect(jsonPath("$.enemyStatuses[0].type").value("BLEED"))
+				.andExpect(jsonPath("$.enemyStatuses[0].stacks").value(1));
+	}
+
+	@Test
+	void combat2TechniqueAppliesBleedAndSurvivesReload() throws Exception {
+		String email = "combat2-tech-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		mockMvc.perform(get("/api/v1/character/techniques").session(session))
+				.andExpect(status().isOk());
+		jdbcTemplate.update(
+				"""
+						update technique_loadout_slots
+						set technique_code = 'SWORD_DEEP_CUT'
+						where character_id = ? and slot_index = 0
+						""",
+				characterId);
+		moveTo(session, "OLD_TOWN");
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.rulesVersion").value(2))
+				.andExpect(jsonPath("$.techniques[0].code").value("SWORD_DEEP_CUT"))
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+
+		mutableRandomProvider.queue(1, 99, 99, 5);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"action":"USE_TECHNIQUE","expectedRoundNumber":0,"techniqueCode":"SWORD_DEEP_CUT"}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("ACTIVE"))
+				.andExpect(jsonPath("$.enemyStatuses[?(@.type=='BLEED')]").isNotEmpty());
+
+		mockMvc.perform(get("/api/v1/combat/current").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(combatId.toString()))
+				.andExpect(jsonPath("$.enemyStatuses[0].type").value("BLEED"));
+	}
+
+	@Test
+	void combat2RejectsLowStaminaAttacks() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat2-stam-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+		jdbcTemplate.update("update combat_sessions set player_stamina = 0 where id = ?", combatId);
+
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"HEAVY_ATTACK\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INSUFFICIENT_STAMINA"));
+	}
+
+	@Test
+	void combat2PlayerStunSkipsActionAndPersistsImmunity() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat2-stun-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+		jdbcTemplate.update(
+				"""
+						insert into combat_status_effects
+						(id, session_id, target, status_type, stacks, remaining_rounds)
+						values (?, ?, 'PLAYER', 'STUN', 1, 1)
+						""",
+				UUID.randomUUID(),
+				combatId);
+
+		mutableRandomProvider.queue(99, 5);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"QUICK_ATTACK\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("ACTIVE"))
+				.andExpect(jsonPath("$.playerStunned").value(false))
+				.andExpect(jsonPath("$.playerStatuses[0].type").value("STUN_IMMUNITY"));
+	}
+
+	@Test
+	void legacyCombatRejectsTechniques() throws Exception {
+		MockHttpSession session = registerWithCharacter("combat-legacy-" + System.nanoTime() + "@greyhaven.test");
+		moveTo(session, "OLD_TOWN");
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+		jdbcTemplate.update("update combat_sessions set rules_version = 1 where id = ?", combatId);
+
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"action":"USE_TECHNIQUE","expectedRoundNumber":0,"techniqueCode":"SWORD_DEEP_CUT"}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_TECHNIQUE"));
 	}
 
 	private void fillInventoryWithNonStackableItems(UUID characterId) {

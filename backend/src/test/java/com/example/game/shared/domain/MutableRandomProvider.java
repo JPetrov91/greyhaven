@@ -32,11 +32,16 @@ public final class MutableRandomProvider implements RandomProvider {
 
 	@Override
 	public synchronized int nextInt(int minInclusive, int maxInclusive) {
-		while (!scripted.isEmpty()) {
+		if (maxInclusive < minInclusive) {
+			throw new IllegalArgumentException("maxInclusive must be >= minInclusive");
+		}
+		if (!scripted.isEmpty()) {
 			int value = scripted.removeFirst();
-			if (value >= minInclusive && value <= maxInclusive) {
-				return value;
+			if (value < minInclusive || value > maxInclusive) {
+				throw new IllegalStateException(
+						"scripted value " + value + " outside [" + minInclusive + "," + maxInclusive + "]");
 			}
+			return value;
 		}
 		return fallback.nextInt(minInclusive, maxInclusive + 1);
 	}

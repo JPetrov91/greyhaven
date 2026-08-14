@@ -46,7 +46,7 @@ public final class ActionCombatBalance {
 			case QUICK_ATTACK -> QUICK_STAMINA_COST;
 			case HEAVY_ATTACK -> HEAVY_STAMINA_COST;
 			case PRECISE_ATTACK -> PRECISE_STAMINA_COST;
-			case DEFEND, USE_POTION, RETREAT -> 0;
+			case DEFEND, USE_POTION, RETREAT, USE_TECHNIQUE -> 0;
 		};
 	}
 
@@ -55,7 +55,7 @@ public final class ActionCombatBalance {
 			case QUICK_ATTACK -> QUICK_DAMAGE_MULT;
 			case HEAVY_ATTACK -> HEAVY_DAMAGE_MULT;
 			case PRECISE_ATTACK -> PRECISE_DAMAGE_MULT;
-			default -> 0.0;
+			case DEFEND, USE_POTION, RETREAT, USE_TECHNIQUE -> 0.0;
 		};
 	}
 
@@ -64,7 +64,7 @@ public final class ActionCombatBalance {
 			case QUICK_ATTACK -> QUICK_ACCURACY_MULT;
 			case HEAVY_ATTACK -> HEAVY_ACCURACY_MULT;
 			case PRECISE_ATTACK -> PRECISE_ACCURACY_MULT;
-			default -> 1.0;
+			case DEFEND, USE_POTION, RETREAT, USE_TECHNIQUE -> 1.0;
 		};
 	}
 
@@ -73,7 +73,7 @@ public final class ActionCombatBalance {
 			case PRECISE_ATTACK -> PRECISE_CRIT_BONUS;
 			case QUICK_ATTACK -> QUICK_CRIT_BONUS;
 			case HEAVY_ATTACK -> HEAVY_CRIT_BONUS;
-			default -> 0;
+			case DEFEND, USE_POTION, RETREAT, USE_TECHNIQUE -> 0;
 		};
 	}
 

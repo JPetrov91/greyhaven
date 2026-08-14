@@ -9,7 +9,8 @@ public class CombatRuleViolation extends RuntimeException {
 	public enum Reason {
 		COMBAT_NOT_ACTIVE,
 		INSUFFICIENT_STAMINA,
-		NO_POTION
+		NO_POTION,
+		INVALID_TECHNIQUE
 	}
 
 	private final Reason reason;

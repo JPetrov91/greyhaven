@@ -22,6 +22,8 @@ class GameBalanceCatalogTest {
 		assertThat(balance.progression().cumulativeXpToReachLevel()[30]).isEqualTo(184830);
 		assertThat(balance.progression().freeRespecMaxLevel()).isEqualTo(10);
 		assertThat(balance.combat().baseAccuracy()).isEqualTo(75);
+		assertThat(balance.combat().armorK()).isEqualTo(50);
+		assertThat(balance.combat().critChanceCap()).isEqualTo(35);
 		assertThat(balance.recovery().bands()).hasSize(4);
 		assertThat(balance.recovery().bands().get(0).maxLevel()).isEqualTo(5);
 		assertThat(balance.recovery().bands().get(0).healthPercentPerMinute()).isEqualTo(20.0);

@@ -36,4 +36,12 @@ class CharacterStatCalculatorTest {
 		assertThat(stats.physicalDamage()).isEqualTo(8); // 0 + 5 * 1.5
 		assertThat(stats.armor()).isEqualTo(0);
 	}
+
+	@Test
+	void criticalChanceIsCappedAtThirtyFive() {
+		DerivedCombatStats stats = CharacterStatCalculator.calculate(
+				5, 5, 40, 6, 3, 0, 0, 50, 0, 0, 0, 0);
+
+		assertThat(stats.criticalChance()).isEqualTo(CombatBalance.CRIT_CHANCE_CAP);
+	}
 }

@@ -6,5 +6,6 @@ public enum CombatAction {
 	PRECISE_ATTACK,
 	DEFEND,
 	USE_POTION,
-	RETREAT
+	RETREAT,
+	USE_TECHNIQUE
 }

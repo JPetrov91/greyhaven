@@ -19,6 +19,7 @@ public final class CombatBalance {
 
 	public static final double BASE_CRITICAL_CHANCE = VALUES.baseCriticalChance();
 	public static final double CRITICAL_CHANCE_PER_PERCEPTION = VALUES.criticalChancePerPerception();
+	public static final int CRIT_CHANCE_CAP = VALUES.critChanceCap();
 
 	private CombatBalance() {
 	}

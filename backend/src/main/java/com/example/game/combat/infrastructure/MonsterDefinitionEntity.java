@@ -7,6 +7,8 @@ import org.springframework.data.domain.Persistable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
@@ -46,6 +48,29 @@ public class MonsterDefinitionEntity implements Persistable<UUID> {
 
 	@Column(name = "gold_max", nullable = false)
 	private int goldMax;
+
+	@Column(nullable = false)
+	private int armor;
+
+	@Column(nullable = false)
+	private int accuracy;
+
+	@Column(nullable = false)
+	private int dodge;
+
+	@Column(name = "critical_chance", nullable = false)
+	private int criticalChance;
+
+	@Column(name = "max_stamina", nullable = false)
+	private int maxStamina;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "ai_archetype", nullable = false, length = 16)
+	private com.example.game.combat.domain.EnemyAiArchetype aiArchetype;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "signature_status", length = 32)
+	private com.example.game.combat.domain.StatusType signatureStatus;
 
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
@@ -132,6 +157,34 @@ public class MonsterDefinitionEntity implements Persistable<UUID> {
 
 	public int getGoldMax() {
 		return goldMax;
+	}
+
+	public int getArmor() {
+		return armor;
+	}
+
+	public int getAccuracy() {
+		return accuracy;
+	}
+
+	public int getDodge() {
+		return dodge;
+	}
+
+	public int getCriticalChance() {
+		return criticalChance;
+	}
+
+	public int getMaxStamina() {
+		return maxStamina;
+	}
+
+	public com.example.game.combat.domain.EnemyAiArchetype getAiArchetype() {
+		return aiArchetype;
+	}
+
+	public com.example.game.combat.domain.StatusType getSignatureStatus() {
+		return signatureStatus;
 	}
 
 	public Instant getCreatedAt() {

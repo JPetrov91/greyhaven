@@ -379,11 +379,25 @@ h2,
 }
 
 .combat-actions,
+.combat-techniques,
 .encounter-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0.75rem 0;
+}
+
+.combat-status-rows {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.combat-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
 }
 
 .combat-log ul,

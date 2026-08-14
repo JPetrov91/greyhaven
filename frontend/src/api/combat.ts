@@ -10,10 +10,11 @@ export function submitCombatAction(
   combatId: string,
   action: CombatAction,
   expectedRoundNumber: number,
+  techniqueCode?: string,
 ): Promise<CombatResponse> {
   return apiRequest<CombatResponse>(`/api/v1/combat/${combatId}/actions`, {
     method: 'POST',
-    body: JSON.stringify({ action, expectedRoundNumber }),
+    body: JSON.stringify({ action, expectedRoundNumber, techniqueCode: techniqueCode ?? null }),
   })
 }
 

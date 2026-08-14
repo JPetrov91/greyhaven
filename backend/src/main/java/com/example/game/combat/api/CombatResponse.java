@@ -9,6 +9,7 @@ public record CombatResponse(
 		UUID id,
 		UUID encounterId,
 		CombatSessionStatus status,
+		int rulesVersion,
 		int roundNumber,
 		int playerHealth,
 		int playerMaxHealth,
@@ -16,8 +17,15 @@ public record CombatResponse(
 		int playerMaxStamina,
 		int enemyHealth,
 		int enemyMaxHealth,
+		int enemyStamina,
+		int enemyMaxStamina,
 		MonsterResponse monster,
 		boolean potionAvailable,
+		boolean playerStunned,
+		List<CombatStatusResponse> playerStatuses,
+		List<CombatStatusResponse> enemyStatuses,
+		List<CombatTechniqueOptionResponse> techniques,
+		CoreActionCostsResponse coreActionCosts,
 		List<CombatEventResponse> events,
 		CombatRewardsResponse rewards
 ) {

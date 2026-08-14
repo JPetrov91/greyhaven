@@ -58,9 +58,30 @@ export type CombatAction =
   | 'DEFEND'
   | 'USE_POTION'
   | 'RETREAT'
+  | 'USE_TECHNIQUE'
 
 export type CombatSessionStatus = 'ACTIVE' | 'PLAYER_WON' | 'PLAYER_LOST' | 'PLAYER_ESCAPED'
 export type EncounterStatus = 'AVAILABLE' | 'COMBAT_STARTED' | 'RESOLVED' | 'EXPIRED'
+
+export type CombatStatusResponse = {
+  type: string
+  stacks: number
+  remainingRounds: number
+}
+
+export type CombatTechniqueOptionResponse = {
+  code: string
+  name: string
+  description: string
+  staminaCost: number
+  disabledReason: string | null
+}
+
+export type CoreActionCostsResponse = {
+  quickAttack: number
+  heavyAttack: number
+  preciseAttack: number
+}
 
 export type MonsterResponse = {
   id: string
@@ -68,6 +89,7 @@ export type MonsterResponse = {
   name: string
   level: number
   maxHealth: number
+  archetype?: string | null
 }
 
 export type EncounterSearchResponse = {
@@ -108,6 +130,7 @@ export type CombatResponse = {
   id: string
   encounterId: string
   status: CombatSessionStatus
+  rulesVersion: number
   roundNumber: number
   playerHealth: number
   playerMaxHealth: number
@@ -115,8 +138,15 @@ export type CombatResponse = {
   playerMaxStamina: number
   enemyHealth: number
   enemyMaxHealth: number
+  enemyStamina: number
+  enemyMaxStamina: number
   monster: MonsterResponse
   potionAvailable: boolean
+  playerStunned: boolean
+  playerStatuses: CombatStatusResponse[]
+  enemyStatuses: CombatStatusResponse[]
+  techniques: CombatTechniqueOptionResponse[]
+  coreActionCosts: CoreActionCostsResponse
   events: CombatEventResponse[]
   rewards: CombatRewardsResponse | null
 }

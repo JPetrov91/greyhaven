@@ -31,6 +31,7 @@ public class InventoryEquippedBonusProvider implements EquippedBonusProvider {
 				snapshot.strength(),
 				snapshot.agility(),
 				snapshot.endurance(),
-				snapshot.perception());
+				snapshot.perception(),
+				snapshot.staminaCostReduction());
 	}
 }

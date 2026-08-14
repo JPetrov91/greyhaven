@@ -5,10 +5,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.example.game.activity.application.ActivityApplicationService;
 import com.example.game.character.application.CharacterVitalsService;
@@ -18,37 +21,58 @@ import com.example.game.character.application.EquippedBonuses;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.domain.ProgressionBalance;
+import com.example.game.combat.domain.ActionCombatBalance;
+import com.example.game.combat.domain.Combat2State;
 import com.example.game.combat.domain.CombatAction;
+import com.example.game.combat.domain.CombatActionContext;
 import com.example.game.combat.domain.CombatEngine;
 import com.example.game.combat.domain.CombatEvent;
 import com.example.game.combat.domain.CombatRoundResult;
 import com.example.game.combat.domain.CombatRuleViolation;
+import com.example.game.combat.domain.CombatRulesVersion;
 import com.example.game.combat.domain.CombatSessionState;
 import com.example.game.combat.domain.CombatSessionStatus;
+import com.example.game.combat.domain.CombatV2Balance;
+import com.example.game.combat.domain.CombatantSide;
 import com.example.game.combat.domain.CombatantStats;
 import com.example.game.combat.domain.EncounterStatus;
 import com.example.game.combat.domain.LootDrop;
 import com.example.game.combat.domain.LootGenerator;
 import com.example.game.combat.domain.LootTableEntry;
+import com.example.game.combat.domain.MonsterCombatProfile;
 import com.example.game.combat.domain.MonsterCombatStats;
+import com.example.game.combat.domain.Phase1CombatEngine;
+import com.example.game.combat.domain.StatusEffectEngine;
+import com.example.game.combat.domain.StatusInstance;
+import com.example.game.combat.domain.StatusType;
 import com.example.game.combat.infrastructure.CombatEventEntity;
 import com.example.game.combat.infrastructure.CombatEventRepository;
 import com.example.game.combat.infrastructure.CombatRewardItemEntity;
 import com.example.game.combat.infrastructure.CombatRewardItemRepository;
 import com.example.game.combat.infrastructure.CombatSessionEntity;
 import com.example.game.combat.infrastructure.CombatSessionRepository;
+import com.example.game.combat.infrastructure.CombatStatusEffectEntity;
+import com.example.game.combat.infrastructure.CombatStatusEffectRepository;
 import com.example.game.combat.infrastructure.EncounterEntity;
 import com.example.game.combat.infrastructure.EncounterRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
 import com.example.game.combat.infrastructure.MonsterLootEntryEntity;
 import com.example.game.combat.infrastructure.MonsterLootEntryRepository;
+import com.example.game.inventory.application.EquippedWeaponQuery;
 import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
+import com.example.game.item.domain.WeaponFamily;
+import com.example.game.mastery.application.CombatTechniqueCatalogService;
 import com.example.game.mastery.application.MasteryApplicationService;
+import com.example.game.mastery.application.TechniqueLoadoutQuery;
+import com.example.game.mastery.domain.CombatTechniqueCatalog;
+import com.example.game.mastery.domain.CombatTechniqueDefinition;
+import com.example.game.mastery.domain.TechniqueEffectSpec;
+import com.example.game.mastery.domain.TechniqueKind;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -62,12 +86,17 @@ public class CombatApplicationService {
 	private final CombatSessionRepository combatSessionRepository;
 	private final CombatEventRepository combatEventRepository;
 	private final CombatRewardItemRepository combatRewardItemRepository;
+	private final CombatStatusEffectRepository combatStatusEffectRepository;
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final MonsterLootEntryRepository monsterLootEntryRepository;
 	private final ItemCatalogService itemCatalogService;
 	private final MasteryApplicationService masteryApplicationService;
+	private final TechniqueLoadoutQuery techniqueLoadoutQuery;
+	private final CombatTechniqueCatalogService combatTechniqueCatalogService;
+	private final EquippedWeaponQuery equippedWeaponQuery;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
+	private final TransactionTemplate transactionTemplate;
 
 	public CombatApplicationService(
 			CharacterVitalsService characterVitalsService,
@@ -78,12 +107,17 @@ public class CombatApplicationService {
 			CombatSessionRepository combatSessionRepository,
 			CombatEventRepository combatEventRepository,
 			CombatRewardItemRepository combatRewardItemRepository,
+			CombatStatusEffectRepository combatStatusEffectRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			MonsterLootEntryRepository monsterLootEntryRepository,
 			ItemCatalogService itemCatalogService,
 			MasteryApplicationService masteryApplicationService,
+			TechniqueLoadoutQuery techniqueLoadoutQuery,
+			CombatTechniqueCatalogService combatTechniqueCatalogService,
+			EquippedWeaponQuery equippedWeaponQuery,
 			RandomProvider randomProvider,
-			Clock clock) {
+			Clock clock,
+			PlatformTransactionManager transactionManager) {
 		this.characterVitalsService = characterVitalsService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.inventoryApplicationService = inventoryApplicationService;
@@ -92,12 +126,17 @@ public class CombatApplicationService {
 		this.combatSessionRepository = combatSessionRepository;
 		this.combatEventRepository = combatEventRepository;
 		this.combatRewardItemRepository = combatRewardItemRepository;
+		this.combatStatusEffectRepository = combatStatusEffectRepository;
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.monsterLootEntryRepository = monsterLootEntryRepository;
 		this.itemCatalogService = itemCatalogService;
 		this.masteryApplicationService = masteryApplicationService;
+		this.techniqueLoadoutQuery = techniqueLoadoutQuery;
+		this.combatTechniqueCatalogService = combatTechniqueCatalogService;
+		this.equippedWeaponQuery = equippedWeaponQuery;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
 	}
 
 	@Transactional
@@ -138,6 +177,8 @@ public class CombatApplicationService {
 				now,
 				now);
 		combatSessionRepository.saveAndFlush(session);
+		captureCombat2Snapshot(session, vitals.characterId(), monster);
+		combatSessionRepository.saveAndFlush(session);
 		createRewardPlan(session, monster, now);
 		return toView(session, monster, vitals, loadEvents(session.getId()), null);
 	}
@@ -172,6 +213,9 @@ public class CombatApplicationService {
 		if (session.getStatus() == CombatSessionStatus.ACTIVE) {
 			throw CombatErrors.combatStillActive();
 		}
+		if (session.getStatus() == CombatSessionStatus.PLAYER_WON && !session.isRewardsApplied()) {
+			throw CombatErrors.rewardsNeedInventorySpace();
+		}
 		if (session.isOutcomeAcknowledged()) {
 			return;
 		}
@@ -185,6 +229,34 @@ public class CombatApplicationService {
 			UUID combatId,
 			CombatAction action,
 			int expectedRoundNumber) {
+		return submitAction(accountId, combatId, action, null, expectedRoundNumber);
+	}
+
+	public CombatView submitAction(
+			UUID accountId,
+			UUID combatId,
+			CombatAction action,
+			String techniqueCode,
+			int expectedRoundNumber) {
+		CombatView persisted = Objects.requireNonNull(transactionTemplate.execute(status -> persistTurn(
+				accountId, combatId, action, techniqueCode, expectedRoundNumber)));
+		if (persisted.status() == CombatSessionStatus.PLAYER_WON && persisted.rewards() == null) {
+			try {
+				return Objects.requireNonNull(transactionTemplate.execute(status -> claimVictoryRewards(accountId, combatId)));
+			}
+			catch (InventoryFullException exception) {
+				throw CombatErrors.rewardsNeedInventorySpace();
+			}
+		}
+		return persisted;
+	}
+
+	private CombatView persistTurn(
+			UUID accountId,
+			UUID combatId,
+			CombatAction action,
+			String techniqueCode,
+			int expectedRoundNumber) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
 		CombatSessionEntity session = combatSessionRepository.findWithLockById(combatId)
 				.orElseThrow(CombatErrors::combatNotFound);
@@ -192,10 +264,13 @@ public class CombatApplicationService {
 			throw CombatErrors.combatNotFound();
 		}
 		if (session.getStatus() != CombatSessionStatus.ACTIVE) {
-			// Idempotent reward path: repeating completion still returns the same snapshot.
 			if (session.isRewardsApplied()) {
 				MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
 				return toView(session, monster, vitals, loadEvents(session.getId()), loadRewards(session));
+			}
+			if (session.getStatus() == CombatSessionStatus.PLAYER_WON) {
+				MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+				return toView(session, monster, vitals, loadEvents(session.getId()), null);
 			}
 			throw CombatErrors.combatNotActive();
 		}
@@ -221,50 +296,64 @@ public class CombatApplicationService {
 				bonuses.agility(),
 				bonuses.endurance(),
 				bonuses.perception());
+		int totalAgility = vitals.agility() + bonuses.agility();
 
+		boolean playerStunned = session.getRulesVersion() == CombatRulesVersion.COMBAT_2
+				&& StatusEffectEngine.has(loadStatuses(session.getId(), CombatantSide.PLAYER), StatusType.STUN);
 		boolean potionAvailable = inventoryApplicationService.hasHealingPotion(vitals.characterId());
 		int potionHeal = 0;
-		if (action == CombatAction.USE_POTION) {
+		if (action == CombatAction.USE_POTION && !playerStunned) {
 			if (!potionAvailable) {
 				throw CombatErrors.noPotion();
 			}
 			potionHeal = inventoryApplicationService.consumeOneHealingPotion(vitals.characterId());
 		}
 
-		CombatSessionState state = new CombatSessionState(
-				session.getRoundNumber(),
-				session.getPlayerHealth(),
-				vitals.maxHealth(),
-				session.getPlayerStamina(),
-				vitals.maxStamina(),
-				session.getEnemyHealth(),
-				session.getStatus(),
-				new CombatantStats(
-						derived.physicalDamage(),
-						derived.accuracy(),
-						derived.dodge(),
-						derived.criticalChance(),
-						derived.armor(),
-						vitals.agility()),
-				new MonsterCombatStats(
-						monster.getName(),
-						monster.getLevel(),
-						monster.getDamageMin(),
-						monster.getDamageMax()));
-
+		CombatActionContext actionContext = new CombatActionContext(
+				potionAvailable || action == CombatAction.USE_POTION, potionHeal);
 		CombatRoundResult result;
 		try {
-			result = CombatEngine.resolve(
-					state,
-					action,
-					new CombatEngine.ActionContext(potionAvailable || action == CombatAction.USE_POTION, potionHeal),
-					randomProvider);
+			if (session.getRulesVersion() == CombatRulesVersion.PHASE_1) {
+				if (action == CombatAction.USE_TECHNIQUE) {
+					throw CombatErrors.invalidTechnique();
+				}
+				CombatSessionState state = new CombatSessionState(
+						session.getRoundNumber(),
+						session.getPlayerHealth(),
+						vitals.maxHealth(),
+						session.getPlayerStamina(),
+						vitals.maxStamina(),
+						session.getEnemyHealth(),
+						session.getStatus(),
+						new CombatantStats(
+								derived.physicalDamage(),
+								derived.accuracy(),
+								derived.dodge(),
+								derived.criticalChance(),
+								derived.armor(),
+								totalAgility),
+						new MonsterCombatStats(
+								monster.getName(),
+								monster.getLevel(),
+								monster.getDamageMin(),
+								monster.getDamageMax()));
+				result = Phase1CombatEngine.resolve(state, action, actionContext, randomProvider);
+			}
+			else {
+				result = CombatEngine.resolve(
+						buildCombat2State(session, vitals, derived, totalAgility, bonuses),
+						action,
+						techniqueCode,
+						actionContext,
+						randomProvider);
+			}
 		}
 		catch (CombatRuleViolation violation) {
 			throw switch (violation.getReason()) {
 				case INSUFFICIENT_STAMINA -> CombatErrors.insufficientStamina();
 				case NO_POTION -> CombatErrors.noPotion();
 				case COMBAT_NOT_ACTIVE -> CombatErrors.combatNotActive();
+				case INVALID_TECHNIQUE -> CombatErrors.invalidTechnique();
 			};
 		}
 
@@ -274,9 +363,15 @@ public class CombatApplicationService {
 				result.playerHealth(),
 				result.playerStamina(),
 				result.enemyHealth(),
+				result.enemyStamina(),
 				result.status(),
+				result.lastEnemyMissed(),
+				result.lastPlayerGuarded(),
 				now);
 		combatSessionRepository.saveAndFlush(session);
+		if (session.getRulesVersion() == CombatRulesVersion.COMBAT_2) {
+			replaceStatuses(session.getId(), result.playerStatuses(), result.enemyStatuses());
+		}
 		persistEvents(session.getId(), result.roundNumber(), result.events(), now);
 
 		CharacterVitalsView synced;
@@ -298,9 +393,7 @@ public class CombatApplicationService {
 					result.playerHealth(),
 					result.playerStamina(),
 					true);
-			applyRewardsExactlyOnce(session, monster, now);
 			resolveEncounter(session.getEncounterId(), now);
-			synced = characterVitalsService.lockVitalsByCharacterId(vitals.characterId());
 		}
 		else {
 			synced = characterVitalsService.syncCombatVitals(
@@ -313,11 +406,30 @@ public class CombatApplicationService {
 		return toView(session, monster, synced, loadEvents(session.getId()), rewards);
 	}
 
+	private CombatView claimVictoryRewards(UUID accountId, UUID combatId) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		CombatSessionEntity session = combatSessionRepository.findWithLockById(combatId)
+				.orElseThrow(CombatErrors::combatNotFound);
+		if (!session.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.combatNotFound();
+		}
+		if (session.getStatus() != CombatSessionStatus.PLAYER_WON) {
+			throw CombatErrors.combatNotActive();
+		}
+		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
+		if (!session.isRewardsApplied()) {
+			applyRewardsExactlyOnce(session, monster, Instant.now(clock));
+			vitals = characterVitalsService.lockVitalsByCharacterId(vitals.characterId());
+		}
+		return toView(session, monster, vitals, loadEvents(session.getId()), loadRewards(session));
+	}
+
 	/**
 	 * Idempotent reward application. Safe under concurrent completion attempts because the session
 	 * row is locked and {@code rewards_applied} flips in the same transaction.
 	 *
-	 * <p>Rewards are all-or-nothing: a full inventory aborts the round instead of destroying loot.
+	 * <p>The combat round is committed before this runs. A full inventory leaves the victory in
+	 * place so the player can make room and claim without re-rolling the fight.
 	 */
 	void applyRewardsExactlyOnce(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
 		if (session.isRewardsApplied()) {
@@ -337,23 +449,18 @@ public class CombatApplicationService {
 
 		for (CombatRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
-			try {
-				if (item.type().isStackable() || !reward.hasPlannedRoll()) {
-					inventoryApplicationService.grantItems(
-							session.getCharacterId(),
-							item.code(),
-							reward.getQuantity());
-				}
-				else {
-					inventoryApplicationService.grantRolled(
-							session.getCharacterId(),
-							item.code(),
-							reward.getQuantity(),
-							reward.toGenerated());
-				}
+			if (item.type().isStackable() || !reward.hasPlannedRoll()) {
+				inventoryApplicationService.grantItems(
+						session.getCharacterId(),
+						item.code(),
+						reward.getQuantity());
 			}
-			catch (InventoryFullException exception) {
-				throw CombatErrors.rewardsNeedInventorySpace();
+			else {
+				inventoryApplicationService.grantRolled(
+						session.getCharacterId(),
+						item.code(),
+						reward.getQuantity(),
+						reward.toGenerated());
 			}
 			activityApplicationService.recordItemFound(
 					session.getCharacterId(),
@@ -511,10 +618,28 @@ public class CombatApplicationService {
 			List<CombatEventView> events,
 			CombatRewardsView rewards) {
 		boolean potionAvailable = inventoryApplicationService.hasHealingPotion(session.getCharacterId());
+		List<CombatStatusView> playerStatuses = toStatusViews(loadStatuses(session.getId(), CombatantSide.PLAYER));
+		List<CombatStatusView> enemyStatuses = toStatusViews(loadStatuses(session.getId(), CombatantSide.ENEMY));
+		boolean stunned = playerStatuses.stream().anyMatch(status -> status.type() == StatusType.STUN);
+		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(session.getCharacterId());
+		int reduction = session.getRulesVersion() == CombatRulesVersion.COMBAT_2
+				? session.getStaminaCostReduction()
+				: bonuses.staminaCostReduction();
+		CoreActionCostsView costs = new CoreActionCostsView(
+				CombatV2Balance.reducedStaminaCost(ActionCombatBalance.QUICK_STAMINA_COST, reduction),
+				CombatV2Balance.reducedStaminaCost(ActionCombatBalance.HEAVY_STAMINA_COST, reduction),
+				CombatV2Balance.reducedStaminaCost(ActionCombatBalance.PRECISE_STAMINA_COST, reduction));
+		List<CombatTechniqueOptionView> techniques = session.getRulesVersion() == CombatRulesVersion.COMBAT_2
+				? techniqueOptions(session, stunned)
+				: List.of();
+		int enemyMaxStamina = session.getRulesVersion() == CombatRulesVersion.COMBAT_2
+				? session.getEnemyMaxStamina()
+				: 0;
 		return new CombatView(
 				session.getId(),
 				session.getEncounterId(),
 				session.getStatus(),
+				session.getRulesVersion(),
 				session.getRoundNumber(),
 				session.getPlayerHealth(),
 				vitals.maxHealth(),
@@ -522,9 +647,181 @@ public class CombatApplicationService {
 				vitals.maxStamina(),
 				session.getEnemyHealth(),
 				monster.getMaxHealth(),
+				session.getEnemyStamina(),
+				enemyMaxStamina,
 				EncounterApplicationService.toMonsterView(monster),
 				potionAvailable,
+				stunned,
+				playerStatuses,
+				enemyStatuses,
+				techniques,
+				costs,
 				events,
 				rewards);
+	}
+
+	private void captureCombat2Snapshot(
+			CombatSessionEntity session,
+			UUID characterId,
+			MonsterDefinitionEntity monster) {
+		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(characterId);
+		WeaponFamily family = equippedWeaponQuery.mainHandFamily(characterId).orElse(null);
+		List<String> codes = techniqueLoadoutQuery.activeTechniqueCodes(characterId);
+		session.captureCombat2Snapshot(
+				monster.getMaxStamina(),
+				monster.getMaxStamina(),
+				monster.getArmor(),
+				monster.getAccuracy(),
+				monster.getDodge(),
+				monster.getCriticalChance(),
+				monster.getDamageMin(),
+				monster.getDamageMax(),
+				monster.getAiArchetype(),
+				monster.getSignatureStatus(),
+				family,
+				codes.isEmpty() ? null : String.join(",", codes),
+				bonuses.staminaCostReduction());
+	}
+
+	private Combat2State buildCombat2State(
+			CombatSessionEntity session,
+			CharacterVitalsView vitals,
+			DerivedCombatStats derived,
+			int totalAgility,
+			EquippedBonuses bonuses) {
+		CombatTechniqueCatalog catalog = combatTechniqueCatalogService.load();
+		List<String> codes = parseTechniqueCodes(session.getTechniqueCodes());
+		java.util.Map<String, TechniqueEffectSpec> specs = new java.util.LinkedHashMap<>();
+		for (String code : codes) {
+			specs.put(code, catalog.require(code).effect());
+		}
+		TechniqueEffectSpec passive = masteryPassive(session.getCharacterId(), session.getWeaponFamily(), catalog);
+		MonsterCombatProfile enemy = new MonsterCombatProfile(
+				requireMonster(session.getMonsterDefinitionId()).getName(),
+				requireMonster(session.getMonsterDefinitionId()).getLevel(),
+				session.getSnapEnemyDamageMin(),
+				session.getSnapEnemyDamageMax(),
+				session.getSnapEnemyArmor(),
+				session.getSnapEnemyAccuracy(),
+				session.getSnapEnemyDodge(),
+				session.getSnapEnemyCriticalChance(),
+				requireMonster(session.getMonsterDefinitionId()).getMaxHealth(),
+				session.getEnemyMaxStamina(),
+				session.getSnapAiArchetype(),
+				session.getSnapSignatureStatus());
+		return new Combat2State(
+				session.getRoundNumber(),
+				session.getPlayerHealth(),
+				vitals.maxHealth(),
+				session.getPlayerStamina(),
+				vitals.maxStamina(),
+				session.getEnemyHealth(),
+				enemy.maxHealth(),
+				session.getEnemyStamina(),
+				session.getEnemyMaxStamina(),
+				session.getStatus(),
+				new CombatantStats(
+						derived.physicalDamage(),
+						derived.accuracy(),
+						derived.dodge(),
+						derived.criticalChance(),
+						derived.armor(),
+						totalAgility),
+				enemy,
+				loadStatuses(session.getId(), CombatantSide.PLAYER),
+				loadStatuses(session.getId(), CombatantSide.ENEMY),
+				codes,
+				specs,
+				passive,
+				session.getStaminaCostReduction(),
+				session.isLastEnemyMissed(),
+				session.isLastPlayerGuarded());
+	}
+
+	private TechniqueEffectSpec masteryPassive(
+			UUID characterId,
+			WeaponFamily family,
+			CombatTechniqueCatalog catalog) {
+		if (family == null || techniqueLoadoutQuery.masteryLevel(characterId, family) < 10) {
+			return null;
+		}
+		return catalog.forFamily(family).stream()
+				.filter(definition -> definition.kind() == TechniqueKind.PASSIVE)
+				.map(CombatTechniqueDefinition::effect)
+				.findFirst()
+				.orElse(null);
+	}
+
+	private List<CombatTechniqueOptionView> techniqueOptions(CombatSessionEntity session, boolean stunned) {
+		List<String> codes = parseTechniqueCodes(session.getTechniqueCodes());
+		if (codes.isEmpty()) {
+			return List.of();
+		}
+		CombatTechniqueCatalog catalog = combatTechniqueCatalogService.load();
+		List<CombatTechniqueOptionView> options = new java.util.ArrayList<>();
+		for (String code : codes) {
+			CombatTechniqueDefinition definition = catalog.require(code);
+			int cost = CombatV2Balance.reducedStaminaCost(
+					definition.effect().staminaCost(), session.getStaminaCostReduction());
+			String disabled = null;
+			if (stunned) {
+				disabled = "STUNNED";
+			}
+			else if (session.getPlayerStamina() < cost) {
+				disabled = "INSUFFICIENT_STAMINA";
+			}
+			options.add(new CombatTechniqueOptionView(
+					definition.code(),
+					definition.displayName(),
+					definition.description(),
+					cost,
+					disabled));
+		}
+		return List.copyOf(options);
+	}
+
+	private List<StatusInstance> loadStatuses(UUID sessionId, CombatantSide side) {
+		return combatStatusEffectRepository.findBySessionIdAndTarget(sessionId, side).stream()
+				.map(row -> new StatusInstance(row.getStatusType(), row.getStacks(), row.getRemainingRounds()))
+				.toList();
+	}
+
+	private List<CombatStatusView> toStatusViews(List<StatusInstance> statuses) {
+		return statuses.stream()
+				.map(status -> new CombatStatusView(status.type(), status.stacks(), status.remainingRounds()))
+				.toList();
+	}
+
+	private void replaceStatuses(
+			UUID sessionId,
+			List<StatusInstance> playerStatuses,
+			List<StatusInstance> enemyStatuses) {
+		combatStatusEffectRepository.deleteBySessionId(sessionId);
+		combatStatusEffectRepository.flush();
+		List<CombatStatusEffectEntity> rows = new java.util.ArrayList<>();
+		for (StatusInstance status : playerStatuses) {
+			rows.add(new CombatStatusEffectEntity(
+					UUID.randomUUID(), sessionId, CombatantSide.PLAYER, status.type(), status.stacks(),
+					status.remainingRounds()));
+		}
+		for (StatusInstance status : enemyStatuses) {
+			rows.add(new CombatStatusEffectEntity(
+					UUID.randomUUID(), sessionId, CombatantSide.ENEMY, status.type(), status.stacks(),
+					status.remainingRounds()));
+		}
+		if (!rows.isEmpty()) {
+			combatStatusEffectRepository.saveAll(rows);
+			combatStatusEffectRepository.flush();
+		}
+	}
+
+	private static List<String> parseTechniqueCodes(String stored) {
+		if (stored == null || stored.isBlank()) {
+			return List.of();
+		}
+		return java.util.Arrays.stream(stored.split(","))
+				.map(String::trim)
+				.filter(code -> !code.isEmpty())
+				.toList();
 	}
 }

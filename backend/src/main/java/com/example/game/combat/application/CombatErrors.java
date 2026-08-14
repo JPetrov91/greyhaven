@@ -86,6 +86,13 @@ final class CombatErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
+	static ApiException invalidTechnique() {
+		return new ApiException(
+				"INVALID_TECHNIQUE",
+				"That technique cannot be used in this combat.",
+				HttpStatus.BAD_REQUEST);
+	}
+
 	static ApiException noPotion() {
 		return new ApiException(
 				"NO_POTION",
@@ -94,13 +101,12 @@ final class CombatErrors {
 	}
 
 	/**
-	 * Victory rewards are all-or-nothing, so a full inventory aborts the round rather than
-	 * discarding loot the player earned.
+	 * Victory is already persisted. Make room, then submit another action to claim the planned loot.
 	 */
 	static ApiException rewardsNeedInventorySpace() {
 		return new ApiException(
 				"INVENTORY_FULL",
-				"Your inventory is full. Retreat and make room before finishing this fight.",
+				"Your inventory is full. Make room, then claim these rewards.",
 				HttpStatus.CONFLICT);
 	}
 }

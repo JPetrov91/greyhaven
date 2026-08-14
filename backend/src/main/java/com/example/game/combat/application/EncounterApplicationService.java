@@ -168,6 +168,7 @@ public class EncounterApplicationService {
 				monster.getCode(),
 				monster.getName(),
 				monster.getLevel(),
-				monster.getMaxHealth());
+				monster.getMaxHealth(),
+				monster.getAiArchetype() == null ? null : monster.getAiArchetype().name());
 	}
 }

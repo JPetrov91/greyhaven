@@ -35,6 +35,33 @@ combat:
   dodgePerAgility: 1.2
   baseCriticalChance: 5.0
   criticalChancePerPerception: 0.35
+  minHitChance: 5
+  maxHitChance: 95
+  critChanceCap: 35
+  criticalDamageMult: 2
+  armorK: 50
+  minDamageAfterArmor: 1
+  armorBreakPerStack: 0.20
+  guardedDamageTakenMult: 0.50
+  bleedDamagePerStack: 4
+  poisonDamagePerStack: 3
+  bleedMaxStacks: 3
+  poisonMaxStacks: 3
+  armorBreakMaxStacks: 3
+  stunImmunityRounds: 1
+  offBalanceDodgePenalty: 15
+  offBalanceAccuracyPenalty: 8
+  counterDamagePercent: 20
+  cleaveVsGuardedPercent: 15
+  advancedDamagePercent: 25
+  advancedHpThresholdPercent: 40
+  staminaRegenPerRound: 4
+  staminaRegenPerAgility: 0.2
+  enemyStaminaRegenPerRound: 4
+  defendStaminaRestore: 8
+  enemyBasicStaminaCost: 8
+  enemyHeavyStaminaCost: 18
+  enemyStatusAttackStaminaCost: 12
 
 recovery:
   bands:

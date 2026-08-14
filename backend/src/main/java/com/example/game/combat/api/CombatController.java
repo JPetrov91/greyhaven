@@ -16,6 +16,8 @@ import com.example.game.combat.application.CombatApplicationService;
 import com.example.game.combat.application.CombatEventView;
 import com.example.game.combat.application.CombatRewardItemView;
 import com.example.game.combat.application.CombatRewardsView;
+import com.example.game.combat.application.CombatStatusView;
+import com.example.game.combat.application.CombatTechniqueOptionView;
 import com.example.game.combat.application.CombatView;
 import com.example.game.combat.application.MonsterView;
 
@@ -49,6 +51,7 @@ public class CombatController {
 				principal.getAccountId(),
 				combatId,
 				request.action(),
+				request.techniqueCode(),
 				request.expectedRoundNumber()));
 	}
 
@@ -65,6 +68,7 @@ public class CombatController {
 				view.id(),
 				view.encounterId(),
 				view.status(),
+				view.rulesVersion(),
 				view.roundNumber(),
 				view.playerHealth(),
 				view.playerMaxHealth(),
@@ -72,8 +76,18 @@ public class CombatController {
 				view.playerMaxStamina(),
 				view.enemyHealth(),
 				view.enemyMaxHealth(),
+				view.enemyStamina(),
+				view.enemyMaxStamina(),
 				toMonster(view.monster()),
 				view.potionAvailable(),
+				view.playerStunned(),
+				view.playerStatuses().stream().map(CombatController::toStatus).toList(),
+				view.enemyStatuses().stream().map(CombatController::toStatus).toList(),
+				view.techniques().stream().map(CombatController::toTechnique).toList(),
+				new CoreActionCostsResponse(
+						view.coreActionCosts().quickAttack(),
+						view.coreActionCosts().heavyAttack(),
+						view.coreActionCosts().preciseAttack()),
 				view.events().stream().map(CombatController::toEvent).toList(),
 				toRewards(view.rewards()));
 	}
@@ -84,7 +98,21 @@ public class CombatController {
 				monster.code(),
 				monster.name(),
 				monster.level(),
-				monster.maxHealth());
+				monster.maxHealth(),
+				monster.archetype());
+	}
+
+	private static CombatStatusResponse toStatus(CombatStatusView status) {
+		return new CombatStatusResponse(status.type(), status.stacks(), status.remainingRounds());
+	}
+
+	private static CombatTechniqueOptionResponse toTechnique(CombatTechniqueOptionView technique) {
+		return new CombatTechniqueOptionResponse(
+				technique.code(),
+				technique.name(),
+				technique.description(),
+				technique.staminaCost(),
+				technique.disabledReason());
 	}
 
 	private static CombatEventResponse toEvent(CombatEventView event) {

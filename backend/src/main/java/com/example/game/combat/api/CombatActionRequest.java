@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 public record CombatActionRequest(
 		@NotNull CombatAction action,
-		@NotNull @PositiveOrZero Integer expectedRoundNumber
+		@NotNull @PositiveOrZero Integer expectedRoundNumber,
+		String techniqueCode
 ) {
 }

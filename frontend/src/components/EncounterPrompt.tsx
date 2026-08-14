@@ -61,7 +61,10 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
   return (
     <section className="encounter-prompt" data-testid="encounter-prompt" aria-label="Encounter">
       <h3 data-testid="encounter-monster-name">{encounter.monster.name}</h3>
-      <p className="muted">Level {encounter.monster.level}</p>
+      <p className="muted">
+        Level {encounter.monster.level}
+        {encounter.monster.archetype ? ` · ${encounter.monster.archetype.charAt(0)}${encounter.monster.archetype.slice(1).toLowerCase()}` : ''}
+      </p>
       <p>A hostile presence blocks the path. Fight or ignore?</p>
       <div className="encounter-actions">
         <Button type="button" data-testid="encounter-fight" disabled={busy} onClick={() => void handleFight()}>

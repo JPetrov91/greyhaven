@@ -40,10 +40,12 @@ public final class CharacterStatCalculator {
 						+ (totalPerception * CombatBalance.ACCURACY_PER_PERCEPTION)
 						+ accuracyBonus);
 		int dodge = (int) Math.round((totalAgility * CombatBalance.DODGE_PER_AGILITY) + dodgeBonus);
-		int criticalChance = (int) Math.round(
-				CombatBalance.BASE_CRITICAL_CHANCE
-						+ (totalPerception * CombatBalance.CRITICAL_CHANCE_PER_PERCEPTION)
-						+ criticalChanceBonus);
+		int criticalChance = Math.max(0, Math.min(
+				CombatBalance.CRIT_CHANCE_CAP,
+				(int) Math.round(
+						CombatBalance.BASE_CRITICAL_CHANCE
+								+ (totalPerception * CombatBalance.CRITICAL_CHANCE_PER_PERCEPTION)
+								+ criticalChanceBonus)));
 		return new DerivedCombatStats(
 				physicalDamage,
 				accuracy,
