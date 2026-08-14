@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchActivity } from '../api/activity'
 import { ActivityPanel } from './ActivityPanel'
@@ -31,12 +32,35 @@ describe('ActivityPanel', () => {
     })
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <ActivityPanel />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ActivityPanel />
+        </QueryClientProvider>
+      </MemoryRouter>,
     )
 
     expect(await screen.findByText('Your Forest Patrol returned.')).toBeTruthy()
     expect(screen.getByTestId('activity-EXPEDITION_COMPLETED')).toBeTruthy()
+    expect(screen.getByTestId('activity-view-all').textContent).toContain('View All')
+  })
+
+  it('shows a claimable expedition action without inventing world events', async () => {
+    vi.mocked(fetchActivity).mockResolvedValue([])
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <ActivityPanel claimableExpedition combatActive />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByTestId('activity-claimable')).toBeTruthy()
+    expect(screen.getByTestId('rail-claim-expedition')).toBeTruthy()
+    expect(screen.getByTestId('activity-alerts').textContent).toContain('Combat is in progress')
+    expect(screen.queryByText(/rift/i)).toBeNull()
   })
 })

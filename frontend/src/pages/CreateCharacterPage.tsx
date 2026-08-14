@@ -47,7 +47,7 @@ export function CreateCharacterPage() {
   }
 
   return (
-    <section className="auth-page" data-testid="create-character-page">
+    <section className="auth-page create-character-page" data-testid="create-character-page">
       <h1>Create Character</h1>
       <p className="muted">
         Choose a unique name. Your character begins at level 1 with 100 gold.

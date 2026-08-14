@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
@@ -7,6 +8,7 @@ import { Button } from '../ui/Button'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
+import { gameLink } from '../ui/gameNav'
 
 const STRATEGIES: { strategy: ExpeditionStrategy; label: string; blurb: string }[] = [
   { strategy: 'CAUTIOUS', label: 'Cautious', blurb: 'Lower risk, lower reward' },
@@ -16,6 +18,7 @@ const STRATEGIES: { strategy: ExpeditionStrategy; label: string; blurb: string }
 
 type Props = {
   onClose?: () => void
+  variant?: 'full' | 'card'
 }
 
 function formatRemaining(completesAt: string, nowMs: number): string {
@@ -26,7 +29,7 @@ function formatRemaining(completesAt: string, nowMs: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function ExpeditionPanel({ onClose }: Props) {
+export function ExpeditionPanel({ onClose, variant = 'full' }: Props) {
   const queryClient = useQueryClient()
   const [strategy, setStrategy] = useState<ExpeditionStrategy>('BALANCED')
   const [error, setError] = useState<string | null>(null)
@@ -137,12 +140,53 @@ export function ExpeditionPanel({ onClose }: Props) {
     )
   }
 
+  const card = variant === 'card'
   const expedition = expeditionQuery.data ?? null
   const visuallyComplete =
     expedition?.status === 'ACTIVE' && Date.parse(expedition.completesAt) <= nowMs
 
+  if (card) {
+    return (
+      <Panel className="expedition-panel" data-testid="expedition-overview" title="Active Expeditions">
+        {expedition && expedition.status !== 'CLAIMED' ? (
+          <>
+            <p data-testid="expedition-status">
+              {expedition.expeditionName} · <strong>{expedition.status}</strong>
+            </p>
+            {expedition.status === 'ACTIVE' && !visuallyComplete ? (
+              <p data-testid="expedition-countdown">
+                Remaining: <strong>{formatRemaining(expedition.completesAt, nowMs)}</strong>
+              </p>
+            ) : null}
+            {expedition.status === 'COMPLETED' ? (
+              <Button
+                type="button"
+                data-testid="claim-expedition-button"
+                disabled={busy}
+                onClick={() => void handleClaim(expedition)}
+              >
+                {busy ? 'Claiming…' : 'Claim rewards'}
+              </Button>
+            ) : null}
+          </>
+        ) : (
+          <p className="muted">No expedition in progress.</p>
+        )}
+        <NavLink to={gameLink('expeditions')} className="btn btn-secondary" data-testid="view-expeditions">
+          {expedition && expedition.status !== 'CLAIMED' ? 'View' : 'Start New Expedition'}
+        </NavLink>
+        {error ? (
+          <p className="form-error" role="alert" data-testid="expedition-error">
+            {error}
+          </p>
+        ) : null}
+      </Panel>
+    )
+  }
+
   return (
     <Panel
+      id="expeditions"
       className="expedition-panel"
       data-testid="expedition-panel"
       aria-label="Expedition"

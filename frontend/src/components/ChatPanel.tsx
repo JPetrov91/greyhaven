@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { chatStreamUrl, fetchChatMessages, postChatMessage } from '../api/chat'
 import type { ChatMessageResponse } from '../api/types'
+import { ComingLaterButton } from '../ui/ComingLater'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
@@ -142,6 +143,20 @@ export function ChatPanel() {
               ? 'Reconnecting…'
               : 'Connecting…'}
         </p>
+      </div>
+      <div className="chat-channel-tabs" role="tablist" aria-label="Chat channels">
+        <button type="button" className="tab tab-active" role="tab" aria-selected="true">
+          GLOBAL
+        </button>
+        <ComingLaterButton className="tab" data-testid="chat-tab-trade" role="tab" aria-selected={false}>
+          TRADE
+        </ComingLaterButton>
+        <ComingLaterButton className="tab" data-testid="chat-tab-guild" role="tab" aria-selected={false}>
+          GUILD
+        </ComingLaterButton>
+        <ComingLaterButton className="tab" data-testid="chat-tab-party" role="tab" aria-selected={false}>
+          PARTY
+        </ComingLaterButton>
       </div>
 
       {historyQuery.isLoading ? (

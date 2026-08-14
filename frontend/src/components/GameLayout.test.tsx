@@ -62,10 +62,39 @@ vi.mock('./ChatPanel', () => ({
   ChatPanel: () => <section data-testid="chat-panel">chat</section>,
 }))
 
+vi.mock('./GameTopBar', () => ({
+  GameTopBar: () => <header>top</header>,
+}))
+
+vi.mock('./GameLeftNav', () => ({
+  GameLeftNav: () => <nav>nav</nav>,
+}))
+
+vi.mock('./EquipmentOverviewCard', () => ({
+  EquipmentOverviewCard: () => <div>equipment-overview</div>,
+}))
+
+vi.mock('./GuildPlaceholder', () => ({
+  GuildPlaceholder: () => <div data-testid="guild-placeholder">guild</div>,
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
 })
+
+function renderGame(path: string) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <QueryClientProvider client={queryClient}>
+        <GameLayout />
+      </QueryClientProvider>
+    </MemoryRouter>,
+  )
+}
 
 describe('GameLayout', () => {
   it('opens the marketplace from the Market navigation query', async () => {
@@ -73,19 +102,32 @@ describe('GameLayout', () => {
     vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
     vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    })
-
-    render(
-      <MemoryRouter initialEntries={['/game?panel=market']}>
-        <QueryClientProvider client={queryClient}>
-          <GameLayout />
-        </QueryClientProvider>
-      </MemoryRouter>,
-    )
+    renderGame('/game?panel=market')
 
     expect(await screen.findByTestId('market-panel')).toBeTruthy()
-    expect(screen.getByTestId('chat-panel')).toBeTruthy()
+    expect(screen.queryByTestId('chat-panel')).toBeNull()
+  })
+
+  it('shows the home dashboard with chat when idle', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+
+    renderGame('/game')
+
+    expect(await screen.findByTestId('chat-panel')).toBeTruthy()
+    expect(screen.getByTestId('guild-placeholder')).toBeTruthy()
+    expect(screen.getByText('location')).toBeTruthy()
+  })
+
+  it('replaces the dashboard with combat when a session is active', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue({ id: 'combat-1' } as never)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+
+    renderGame('/game')
+
+    expect(await screen.findByText('combat')).toBeTruthy()
+    expect(screen.queryByTestId('chat-panel')).toBeNull()
   })
 })

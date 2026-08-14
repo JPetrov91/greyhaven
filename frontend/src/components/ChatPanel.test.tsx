@@ -78,6 +78,9 @@ describe('ChatPanel', () => {
     renderChat()
 
     expect(await screen.findByText('Hello <b>Greyhaven</b>')).toBeTruthy()
+    expect((screen.getByTestId('chat-tab-trade') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTestId('chat-tab-guild') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTestId('chat-tab-party') as HTMLButtonElement).disabled).toBe(true)
     expect(document.querySelector('b')).toBeNull()
 
     await waitFor(() => expect(MockEventSource.instances[0]?.url).toContain('after=m1'))

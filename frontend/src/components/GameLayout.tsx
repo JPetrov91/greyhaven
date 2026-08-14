@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
@@ -10,24 +10,29 @@ import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 import { ChatPanel } from './ChatPanel'
 import { CombatPanel } from './CombatPanel'
 import { EncounterPrompt } from './EncounterPrompt'
+import { EquipmentOverviewCard } from './EquipmentOverviewCard'
 import { ExpeditionPanel } from './ExpeditionPanel'
+import { GameLeftNav } from './GameLeftNav'
+import { GameTopBar } from './GameTopBar'
+import { GuildPlaceholder } from './GuildPlaceholder'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 import { MarketPanel } from './MarketPanel'
 import { MasteryPanel } from './MasteryPanel'
 import { ErrorState } from '../ui/ErrorState'
+import { gameLink, gameViewFromLocation } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
 
 const MARKET_PANEL = 'market'
 
 export function GameLayout() {
   const queryClient = useQueryClient()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const view = gameViewFromLocation(location)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
-  const [showExpedition, setShowExpedition] = useState(false)
 
-  // The marketplace lives in the address bar so the Market navigation entry can open it and a
-  // refresh keeps the player where they were.
   const [searchParams, setSearchParams] = useSearchParams()
   const showMarket = searchParams.get('panel') === MARKET_PANEL
 
@@ -69,12 +74,6 @@ export function GameLayout() {
     refetchOnWindowFocus: true,
   })
 
-  useEffect(() => {
-    if (expeditionQuery.data && expeditionQuery.data.status !== 'CLAIMED') {
-      setShowExpedition(true)
-    }
-  }, [expeditionQuery.data])
-
   const combat = combatQuery.data ?? null
   const encounter = encounterQuery.data ?? null
 
@@ -104,72 +103,108 @@ export function GameLayout() {
   const showEncounter = !showCombat && encounter !== null
   const resumeLoading = combatQuery.isPending || encounterQuery.isPending
   const resumeFailed = combatQuery.isError || encounterQuery.isError
+  const claimableExpedition = expeditionQuery.data?.status === 'COMPLETED'
+
+  const locationHandlers = {
+    onSearchEncounter: () => void handleSearchEncounter(),
+    searchBusy: searching,
+    searchError,
+    onOpenExpedition: () => navigate(gameLink('expeditions')),
+    onOpenMarket: () => toggleMarket(true),
+    onOpenChat: () => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' }),
+    onOpenWorld: () => navigate(gameLink('world')),
+  }
+
+  let mainContent
+  if (resumeLoading) {
+    mainContent = (
+      <section className="game-column game-column-center" data-testid="gameplay-resume-loading">
+        <h2>Greyhaven</h2>
+        <LoadingState>Restoring combat and encounter state…</LoadingState>
+      </section>
+    )
+  } else if (resumeFailed) {
+    mainContent = (
+      <section className="game-column game-column-center" role="alert" data-testid="gameplay-resume-error">
+        <h2>Unable to restore gameplay</h2>
+        <ErrorState
+          onRetry={() => {
+            void combatQuery.refetch()
+            void encounterQuery.refetch()
+          }}
+        >
+          Combat or encounter state could not be loaded. Reconnect and retry before continuing.
+        </ErrorState>
+      </section>
+    )
+  } else if (showCombat) {
+    mainContent = (
+      <CombatPanel
+        combat={combat}
+        onCombatUpdate={(updated) => {
+          queryClient.setQueryData(['combat'], updated)
+          void queryClient.invalidateQueries({ queryKey: ['activity'] })
+        }}
+      />
+    )
+  } else if (showEncounter) {
+    mainContent = (
+      <EncounterPrompt
+        encounter={encounter}
+        onCleared={() => queryClient.setQueryData(['encounter'], null)}
+        onCombatStarted={(started) => {
+          queryClient.setQueryData(['encounter'], null)
+          queryClient.setQueryData(['combat'], started)
+        }}
+      />
+    )
+  } else if (view === 'character') {
+    mainContent = <CharacterSummaryPanel mutationsDisabled={showCombat} />
+  } else if (view === 'inventory' || view === 'equipment') {
+    mainContent = (
+      <InventoryPanel
+        mutationsDisabled={showCombat}
+        onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
+      />
+    )
+  } else if (view === 'mastery') {
+    mainContent = <MasteryPanel mutationsDisabled={showCombat} />
+  } else if (view === 'market' || showMarket) {
+    mainContent = <MarketPanel onClose={() => toggleMarket(false)} />
+  } else if (view === 'expeditions') {
+    mainContent = <ExpeditionPanel />
+  } else if (view === 'world') {
+    mainContent = <LocationPanel variant="full" {...locationHandlers} />
+  } else {
+    mainContent = (
+      <div className="home-dashboard">
+        <LocationPanel variant="hero" {...locationHandlers} />
+        <div className="home-mid-row">
+          <CharacterSummaryPanel variant="overview" mutationsDisabled={showCombat} />
+          <EquipmentOverviewCard />
+          <ExpeditionPanel variant="card" />
+        </div>
+        <div className="home-bottom-row">
+          <div id="global-chat">
+            <ChatPanel />
+          </div>
+          <GuildPlaceholder />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <section className="game-workspace" aria-label="Game workspace" data-testid="game-layout">
-      <div className="game-layout">
-        <CharacterSummaryPanel mutationsDisabled={showCombat} />
-        <div className="game-center-stack">
-        {resumeLoading ? (
-          <section className="game-column game-column-center" data-testid="gameplay-resume-loading">
-            <h2>Greyhaven</h2>
-            <LoadingState>Restoring combat and encounter state…</LoadingState>
-          </section>
-        ) : resumeFailed ? (
-          <section className="game-column game-column-center" role="alert" data-testid="gameplay-resume-error">
-            <h2>Unable to restore gameplay</h2>
-            <ErrorState
-              onRetry={() => {
-                void combatQuery.refetch()
-                void encounterQuery.refetch()
-              }}
-            >
-              Combat or encounter state could not be loaded. Reconnect and retry before continuing.
-            </ErrorState>
-          </section>
-        ) : showCombat ? (
-          <CombatPanel
-            combat={combat}
-            onCombatUpdate={(updated) => {
-              queryClient.setQueryData(['combat'], updated)
-              void queryClient.invalidateQueries({ queryKey: ['activity'] })
-            }}
-          />
-        ) : (
-          <>
-            <LocationPanel
-              onSearchEncounter={() => void handleSearchEncounter()}
-              searchBusy={searching}
-              searchError={searchError}
-              onOpenExpedition={() => setShowExpedition(true)}
-              onOpenMarket={() => toggleMarket(true)}
-              onOpenChat={() => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' })}
-            />
-            {showExpedition ? <ExpeditionPanel onClose={() => setShowExpedition(false)} /> : null}
-            {showMarket ? <MarketPanel onClose={() => toggleMarket(false)} /> : null}
-            {showEncounter ? (
-              <EncounterPrompt
-                encounter={encounter}
-                onCleared={() => queryClient.setQueryData(['encounter'], null)}
-                onCombatStarted={(started) => {
-                  queryClient.setQueryData(['encounter'], null)
-                  queryClient.setQueryData(['combat'], started)
-                }}
-              />
-            ) : null}
-          </>
-        )}
-        <InventoryPanel
-          mutationsDisabled={showCombat}
-          onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
+    <section className="game-shell" aria-label="Game workspace" data-testid="game-layout">
+      <GameTopBar />
+      <div className="game-shell-body">
+        <GameLeftNav />
+        <div className="game-shell-main">{mainContent}</div>
+        <ActivityPanel
+          claimableExpedition={claimableExpedition}
+          combatActive={showCombat}
+          encounterActive={showEncounter}
         />
-        <MasteryPanel mutationsDisabled={showCombat} />
-      </div>
-
-        <ActivityPanel />
-      </div>
-      <div id="global-chat">
-        <ChatPanel />
       </div>
     </section>
   )

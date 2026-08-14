@@ -1,5 +1,6 @@
 @import './ui/tokens.css';
 @import './ui/components.css';
+@import './ui/game-shell.css';
 @import './pages/authLanding.css';
 
 :root {
@@ -25,9 +26,9 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(circle at 12% 18%, rgba(47, 107, 79, 0.16), transparent 42%),
-    radial-gradient(circle at 88% 8%, rgba(120, 92, 54, 0.12), transparent 36%),
-    linear-gradient(160deg, #dfe8e1 0%, #eef3ee 48%, #d7e2d8 100%);
+    radial-gradient(circle at 12% 18%, rgba(90, 58, 22, 0.22), transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(40, 28, 18, 0.35), transparent 36%),
+    linear-gradient(160deg, #161310 0%, #12100e 48%, #1a1510 100%);
 }
 
 a {
@@ -65,14 +66,14 @@ h2,
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1.4rem;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.12);
-  background: rgba(247, 250, 247, 0.72);
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(18, 16, 14, 0.86);
   backdrop-filter: blur(8px);
 }
 
 .brand {
   font-size: 1.8rem;
-  color: var(--ink);
+  color: var(--accent-strong);
   text-decoration: none;
 }
 
@@ -98,17 +99,17 @@ h2,
   padding: 1.2rem;
 }
 
+.app-main-game {
+  padding: 0;
+}
+
 .game-workspace {
   display: grid;
   gap: 1rem;
 }
 
 .game-layout {
-  display: grid;
-  grid-template-columns: minmax(16rem, 1fr) minmax(22rem, 2fr) minmax(16rem, 1fr);
-  gap: var(--space-4);
-  min-height: calc(100vh - 16rem);
-  align-items: start;
+  display: contents;
 }
 
 .game-center-stack {
@@ -135,6 +136,7 @@ h2,
 .auth-page h1 {
   margin: 0 0 0.4rem;
   font-size: 2.2rem;
+  color: var(--accent-strong);
 }
 
 .auth-form {
@@ -257,7 +259,7 @@ h2,
   align-items: center;
   gap: 0.75rem;
   padding-bottom: 0.45rem;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .action-status {
@@ -374,7 +376,7 @@ h2,
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
   padding-bottom: 0.25rem;
 }
 
@@ -414,7 +416,7 @@ h2,
 .combat-rewards {
   margin-top: 1rem;
   padding-top: 0.75rem;
-  border-top: 1px solid rgba(31, 42, 36, 0.12);
+  border-top: 1px solid var(--line-soft);
 }
 
 .market-create-form {
@@ -451,7 +453,7 @@ h2,
 .expedition-rewards {
   margin: 0.85rem 0;
   padding-top: 0.65rem;
-  border-top: 1px solid rgba(31, 42, 36, 0.12);
+  border-top: 1px solid var(--line-soft);
 }
 
 .expedition-rewards ul {
@@ -474,7 +476,7 @@ h2,
 
 .activity-list li {
   padding-bottom: 0.55rem;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .activity-list p {
@@ -570,13 +572,8 @@ html[data-ui-mode='compact'] .app-main {
 }
 
 html[data-ui-mode='compact'] .game-workspace,
-html[data-ui-mode='compact'] .game-layout,
 html[data-ui-mode='compact'] .game-center-stack {
   gap: 0.45rem;
-}
-
-html[data-ui-mode='compact'] .game-layout {
-  min-height: calc(100vh - 12rem);
 }
 
 html[data-ui-mode='compact'] .game-column,
@@ -601,6 +598,7 @@ html[data-ui-mode='compact'] .auth-page h1 {
 html[data-ui-mode='compact'] .location-description,
 html[data-ui-mode='compact'] .location-region,
 html[data-ui-mode='compact'] .location-art,
+html[data-ui-mode='compact'] .location-hero-art,
 html[data-ui-mode='compact'] .portrait,
 html[data-ui-mode='compact'] .paper-doll-silhouette {
   display: none;
@@ -643,42 +641,15 @@ html[data-ui-mode='compact'] * {
 }
 
 @media (max-width: 1200px) {
-  .game-layout {
-    grid-template-columns: minmax(16rem, 0.9fr) minmax(20rem, 1.4fr);
-  }
-
-  .game-column-right {
-    grid-column: 1 / -1;
+  .game-center-stack {
+    min-width: 0;
   }
 }
 
 @media (max-width: 900px) {
-  .game-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .game-column-right {
-    grid-column: auto;
-  }
-
   .app-header {
     flex-direction: column;
     align-items: flex-start;
   }
 }
 
-html[data-ui-mode='compact'] .game-layout {
-  grid-template-columns: minmax(14rem, 0.85fr) minmax(18rem, 1.5fr) minmax(14rem, 0.9fr);
-}
-
-@media (max-width: 1200px) {
-  html[data-ui-mode='compact'] .game-layout {
-    grid-template-columns: minmax(14rem, 0.9fr) minmax(18rem, 1.3fr);
-  }
-}
-
-@media (max-width: 760px) {
-  html[data-ui-mode='compact'] .game-layout {
-    grid-template-columns: 1fr;
-  }
-}

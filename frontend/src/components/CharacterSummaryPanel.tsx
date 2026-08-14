@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { allocateAttributes, fetchCharacter, respecCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
 import { fetchCurrentLocation } from '../api/world'
@@ -11,6 +11,7 @@ import { Dialog } from '../ui/Dialog'
 import { EmptyState } from '../ui/EmptyState'
 import { EquipmentLayout } from '../ui/EquipmentLayout'
 import { ErrorState } from '../ui/ErrorState'
+import { gameLink } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
 import { ProgressBar } from '../ui/ProgressBar'
@@ -21,19 +22,21 @@ type AttrKey = 'strength' | 'agility' | 'endurance' | 'perception'
 
 type Props = {
   mutationsDisabled?: boolean
+  variant?: 'full' | 'overview'
 }
 
 function formatXp(value: number): string {
   return value.toLocaleString('en-US')
 }
 
-export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
+export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'full' }: Props) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [allocError, setAllocError] = useState<string | null>(null)
   const [allocating, setAllocating] = useState<AttrKey | null>(null)
   const [respeccing, setRespeccing] = useState(false)
   const [confirmRespec, setConfirmRespec] = useState(false)
+  const overview = variant === 'overview'
 
   const characterQuery = useQuery({
     queryKey: ['character'],
@@ -52,7 +55,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
     queryKey: ['inventory'],
     queryFn: fetchInventory,
     retry: false,
-    enabled: !!characterQuery.data,
+    enabled: !!characterQuery.data && !overview,
   })
 
   async function spendPoint(attribute: AttrKey) {
@@ -91,7 +94,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
 
   if (characterQuery.isLoading) {
     return (
-      <Panel as="aside" className="game-column game-column-left" id="character" title="Character">
+      <Panel as="aside" className="game-column game-column-left" id={overview ? undefined : 'character'} title="Character">
         <LoadingState>Loading character…</LoadingState>
       </Panel>
     )
@@ -99,7 +102,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
 
   if (characterQuery.error instanceof ApiError) {
     return (
-      <Panel as="aside" className="game-column game-column-left" id="character" title="Character">
+      <Panel as="aside" className="game-column game-column-left" id={overview ? undefined : 'character'} title="Character">
         <ErrorState onRetry={() => void characterQuery.refetch()}>{characterQuery.error.message}</ErrorState>
       </Panel>
     )
@@ -119,9 +122,10 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   return (
     <Panel
       as="aside"
-      id="character"
-      className="game-column game-column-left"
+      id={overview ? undefined : 'character'}
+      className={overview ? 'character-overview-card' : 'game-column game-column-left'}
       data-testid="character-summary"
+      title={overview ? 'Character' : undefined}
     >
       <div className="character-identity">
         <div className="portrait" aria-hidden="true">
@@ -148,11 +152,13 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
             <XpProgress progression={progression} />
           </dd>
         </div>
-        <StatRow
-          label="Attribute points"
-          testId="character-summary-attribute-points"
-          value={character.unspentAttributePoints}
-        />
+        {overview ? null : (
+          <StatRow
+            label="Attribute points"
+            testId="character-summary-attribute-points"
+            value={character.unspentAttributePoints}
+          />
+        )}
         <div className="vital-block">
           <div className="vital-block-header">
             <span>Health</span>
@@ -181,8 +187,12 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
             label={`Stamina ${character.currentStamina} of ${character.maxStamina}`}
           />
         </div>
-        <StatRow label="Gold" testId="character-summary-gold" value={character.gold} />
-        <StatRow label="Location" testId="character-summary-location" value={locationName} />
+        {overview ? null : (
+          <>
+            <StatRow label="Gold" testId="character-summary-gold" value={character.gold} />
+            <StatRow label="Location" testId="character-summary-location" value={locationName} />
+          </>
+        )}
         {(
           [
             ['Strength', 'strength', character.strength],
@@ -192,7 +202,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
           ] as const
         ).map(([label, key, value]) => (
           <StatRow key={key} label={label} testId={`character-summary-${key}`} value={value}>
-            {canAllocate ? (
+            {!overview && canAllocate ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -207,61 +217,73 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
             ) : null}
           </StatRow>
         ))}
-        <StatRow label="Damage" testId="character-summary-damage" value={character.derivedStats.physicalDamage} />
-        <StatRow label="Armor" testId="character-summary-armor" value={character.derivedStats.armor} />
+        {overview ? null : (
+          <>
+            <StatRow label="Damage" testId="character-summary-damage" value={character.derivedStats.physicalDamage} />
+            <StatRow label="Armor" testId="character-summary-armor" value={character.derivedStats.armor} />
+          </>
+        )}
       </dl>
-      <details className="advanced-stats">
-        <summary>Advanced statistics</summary>
-        <dl className="derived-stats">
-          <StatRow label="Accuracy" value={character.derivedStats.accuracy} />
-          <StatRow label="Dodge" value={character.derivedStats.dodge} />
-          <StatRow label="Crit" value={`${character.derivedStats.criticalChance}%`} />
-        </dl>
-      </details>
-      {inventoryQuery.data ? (
-        <div className="inventory-section">
-          <h3>Equipment</h3>
-          <EquipmentLayout
-            compact
-            testId="character-equipment"
-            equipment={inventoryQuery.data.equipment}
-            items={inventoryQuery.data.items}
-            onSlotClick={(slot) =>
-              navigate({ pathname: '/game', hash: 'inventory', search: `?slot=${slot}` })
-            }
-          />
-        </div>
-      ) : inventoryQuery.isLoading ? (
-        <LoadingState>Loading equipment…</LoadingState>
-      ) : null}
-      <Button
-        type="button"
-        variant="danger"
-        data-testid="character-respec"
-        disabled={busy}
-        onClick={() => setConfirmRespec(true)}
-      >
-        {respeccing ? '…' : 'Respec'}
-      </Button>
-      <Dialog
-        open={confirmRespec}
-        title="Respec character?"
-        confirmLabel="Respec"
-        confirmTestId="character-respec-confirm"
-        danger
-        onCancel={() => setConfirmRespec(false)}
-        onConfirm={() => void handleRespec()}
-      >
-        This returns spent attribute points. Equipment that no longer meets requirements will be unequipped.
-      </Dialog>
-      {mutationsDisabled ? (
-        <EmptyState>Character changes are unavailable during combat.</EmptyState>
-      ) : null}
-      {allocError ? (
-        <p className="form-error" role="alert" data-testid="allocate-error">
-          {allocError}
-        </p>
-      ) : null}
+      {overview ? (
+        <NavLink to={gameLink('character')} className="btn btn-secondary" data-testid="view-character">
+          View Character
+        </NavLink>
+      ) : (
+        <>
+          <details className="advanced-stats">
+            <summary>Advanced statistics</summary>
+            <dl className="derived-stats">
+              <StatRow label="Accuracy" value={character.derivedStats.accuracy} />
+              <StatRow label="Dodge" value={character.derivedStats.dodge} />
+              <StatRow label="Crit" value={`${character.derivedStats.criticalChance}%`} />
+            </dl>
+          </details>
+          {inventoryQuery.data ? (
+            <div className="inventory-section">
+              <h3>Equipment</h3>
+              <EquipmentLayout
+                compact
+                testId="character-equipment"
+                equipment={inventoryQuery.data.equipment}
+                items={inventoryQuery.data.items}
+                onSlotClick={(slot) =>
+                  navigate({ pathname: '/game', hash: 'inventory', search: `?slot=${slot}` })
+                }
+              />
+            </div>
+          ) : inventoryQuery.isLoading ? (
+            <LoadingState>Loading equipment…</LoadingState>
+          ) : null}
+          <Button
+            type="button"
+            variant="danger"
+            data-testid="character-respec"
+            disabled={busy}
+            onClick={() => setConfirmRespec(true)}
+          >
+            {respeccing ? '…' : 'Respec'}
+          </Button>
+          <Dialog
+            open={confirmRespec}
+            title="Respec character?"
+            confirmLabel="Respec"
+            confirmTestId="character-respec-confirm"
+            danger
+            onCancel={() => setConfirmRespec(false)}
+            onConfirm={() => void handleRespec()}
+          >
+            This returns spent attribute points. Equipment that no longer meets requirements will be unequipped.
+          </Dialog>
+          {mutationsDisabled ? (
+            <EmptyState>Character changes are unavailable during combat.</EmptyState>
+          ) : null}
+          {allocError ? (
+            <p className="form-error" role="alert" data-testid="allocate-error">
+              {allocError}
+            </p>
+          ) : null}
+        </>
+      )}
     </Panel>
   )
 }

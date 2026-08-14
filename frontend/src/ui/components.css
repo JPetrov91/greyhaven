@@ -15,13 +15,13 @@
 
 .btn-primary {
   background: var(--accent);
-  color: #f7faf7;
+  color: #16120e;
   border-color: var(--accent-strong);
 }
 
 .btn-secondary {
   background: var(--panel-solid);
-  border-color: var(--accent-strong);
+  border-color: var(--accent);
   color: var(--accent-strong);
 }
 
@@ -33,7 +33,7 @@
 .btn-danger {
   background: var(--danger);
   color: #f7faf7;
-  border-color: #6e2222;
+  border-color: #8a3328;
 }
 
 .btn-icon {
@@ -53,7 +53,7 @@
 .auth-page {
   padding: 1.1rem 1.2rem;
   background: var(--panel);
-  border: 1px solid rgba(31, 42, 36, 0.1);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
@@ -213,16 +213,16 @@
 
 .progress-bar::-webkit-progress-bar,
 .xp-bar::-webkit-progress-bar {
-  background: rgba(31, 42, 36, 0.12);
+  background: rgba(0, 0, 0, 0.45);
   border-radius: 999px;
 }
 
 .progress-health::-moz-progress-bar {
-  background: #8a2f2f;
+  background: var(--health);
 }
 
 .progress-stamina::-moz-progress-bar {
-  background: var(--accent);
+  background: var(--stamina);
 }
 
 .progress-xp::-moz-progress-bar,
@@ -231,11 +231,11 @@
 }
 
 .progress-health::-webkit-progress-value {
-  background: #8a2f2f;
+  background: var(--health);
 }
 
 .progress-stamina::-webkit-progress-value {
-  background: var(--accent);
+  background: var(--stamina);
 }
 
 .progress-xp::-webkit-progress-value,
@@ -263,7 +263,7 @@
 .derived-stats dt {
   color: var(--ink-soft);
   font-weight: 500;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
   padding-bottom: 0.25rem;
 }
 
@@ -273,7 +273,7 @@
 .stat-value {
   margin: 0;
   font-weight: 600;
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
   padding-bottom: 0.25rem;
   text-align: right;
 }
@@ -321,12 +321,12 @@
 .item-card {
   position: relative;
   padding-bottom: var(--space-3);
-  border-bottom: 1px solid rgba(31, 42, 36, 0.08);
+  border-bottom: 1px solid var(--line-soft);
   transition: background-color var(--motion);
 }
 
 .item-card:hover {
-  background-color: rgba(44, 106, 78, 0.06);
+  background-color: var(--accent-soft);
 }
 
 .item-card-badges {
@@ -407,7 +407,7 @@
 }
 
 .ui-dialog::backdrop {
-  background: rgba(22, 32, 27, 0.45);
+  background: rgba(8, 6, 5, 0.72);
 }
 
 .ui-dialog h3 {
@@ -434,8 +434,9 @@
 .toast {
   margin: 0;
   padding: 0.55rem 0.75rem;
-  background: var(--accent-strong);
-  color: #f7faf7;
+  background: var(--panel-solid);
+  color: var(--ink);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
 }
@@ -444,8 +445,9 @@
   width: 4.2rem;
   height: 4.2rem;
   border-radius: var(--radius-sm);
-  background: linear-gradient(160deg, #2c6a4e, #1a4633);
-  color: #f7faf7;
+  background: linear-gradient(160deg, #3a2a16, #1a1410);
+  color: var(--accent-strong);
+  border: 1px solid var(--line-soft);
   display: grid;
   place-items: center;
   font-family: var(--font-display);
@@ -465,8 +467,8 @@
   margin: 0 0 0.75rem;
   border-radius: var(--radius-sm);
   background:
-    linear-gradient(135deg, rgba(44, 106, 78, 0.35), rgba(90, 62, 36, 0.28)),
-    repeating-linear-gradient(-18deg, transparent, transparent 10px, rgba(255, 255, 255, 0.08) 10px, rgba(255, 255, 255, 0.08) 12px);
+    linear-gradient(135deg, rgba(80, 48, 18, 0.55), rgba(18, 14, 12, 0.72)),
+    repeating-linear-gradient(-18deg, transparent, transparent 10px, rgba(201, 162, 39, 0.08) 10px, rgba(201, 162, 39, 0.08) 12px);
   display: grid;
   place-items: end start;
   padding: 0.55rem 0.7rem;
@@ -537,8 +539,8 @@
   position: absolute;
   inset: 12% 28%;
   border-radius: 40% 40% 30% 30%;
-  background: linear-gradient(180deg, rgba(44, 106, 78, 0.18), rgba(22, 32, 27, 0.08));
-  border: 1px dashed rgba(31, 42, 36, 0.16);
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.12), rgba(18, 14, 12, 0.4));
+  border: 1px dashed var(--line-soft);
   pointer-events: none;
 }
 
@@ -552,8 +554,8 @@
   font: inherit;
   text-align: left;
   width: 100%;
-  border: 1px solid rgba(31, 42, 36, 0.1);
-  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--line-soft);
+  background: rgba(12, 10, 8, 0.55);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.5rem;
   color: inherit;

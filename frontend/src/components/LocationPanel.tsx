@@ -38,6 +38,8 @@ type Props = {
   onOpenExpedition?: () => void
   onOpenMarket?: () => void
   onOpenChat?: () => void
+  onOpenWorld?: () => void
+  variant?: 'full' | 'hero'
 }
 
 export function LocationPanel({
@@ -47,6 +49,8 @@ export function LocationPanel({
   onOpenExpedition,
   onOpenMarket,
   onOpenChat,
+  onOpenWorld,
+  variant = 'full',
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
@@ -120,11 +124,17 @@ export function LocationPanel({
   const nearby = nearbyQuery.data?.characters ?? []
   const nearbyTruncated = nearbyQuery.data?.truncated ?? false
 
+  const hero = variant === 'hero'
+  const wrapperClass = hero ? 'game-column location-hero' : 'game-column game-column-center'
+
   return (
-    <div className="game-column game-column-center" data-testid="location-panel">
-      <div className="location-art" aria-hidden="true">
-        {location.name}
-      </div>
+    <div className={wrapperClass} data-testid="location-panel" id={hero ? undefined : 'world'}>
+      {hero ? <div className="location-hero-art" aria-hidden="true" /> : (
+        <div className="location-art" aria-hidden="true">
+          {location.name}
+        </div>
+      )}
+      <div className={hero ? 'location-hero-body' : undefined}>
       <p className="location-region muted">{location.region}</p>
       <h2 data-testid="current-location">{location.name}</h2>
       <p className="location-meta">
@@ -134,6 +144,7 @@ export function LocationPanel({
         >
           {location.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
         </StatusBadge>
+        {location.safety === 'SAFE' ? <StatusBadge tone="safe">No PvP</StatusBadge> : null}
         <span className="muted" data-testid="location-code">
           {location.code}
         </span>
@@ -141,7 +152,46 @@ export function LocationPanel({
       <p className="location-description" data-testid="location-description">
         {location.description}
       </p>
+      {hero ? (
+        <div className="location-hero-actions">
+          <Button type="button" data-testid="hero-travel" onClick={() => onOpenWorld?.()}>
+            World Map
+          </Button>
+          {location.actions.includes('SEARCH_ENCOUNTER') ? (
+            <Button
+              type="button"
+              data-testid="search-encounter-button"
+              disabled={searchBusy || !onSearchEncounter}
+              onClick={() => onSearchEncounter?.()}
+            >
+              {searchBusy ? 'Searching…' : 'Search'}
+            </Button>
+          ) : null}
+          {location.actions.includes('START_EXPEDITION') || location.actions.includes('INSPECT_EXPEDITIONS') ? (
+            <Button type="button" data-testid="start-expedition-action" onClick={() => onOpenExpedition?.()}>
+              Expeditions
+            </Button>
+          ) : null}
+          {location.actions.includes('BROWSE_MARKET') ? (
+            <Button type="button" data-testid="open-market-BROWSE_MARKET" onClick={() => onOpenMarket?.()}>
+              Local Market
+            </Button>
+          ) : null}
+          {location.actions.includes('VIEW_CHAT') ? (
+            <Button type="button" data-testid="open-chat-action" onClick={() => onOpenChat?.()}>
+              Chat
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {searchError && hero ? (
+        <p className="form-error" role="alert" data-testid="search-encounter-error">
+          {searchError}
+        </p>
+      ) : null}
 
+      {hero ? null : (
+      <>
       <section className="location-section" aria-labelledby="destinations-heading">
         <h3 id="destinations-heading">Travel</h3>
         {destinationsQuery.isLoading ? (
@@ -270,6 +320,9 @@ export function LocationPanel({
           </>
         )}
       </section>
+      </>
+      )}
+      </div>
     </div>
   )
 }

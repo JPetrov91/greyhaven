@@ -12,4 +12,10 @@ describe('office mode CSS', () => {
     expect(css).not.toMatch(/\[data-ui-mode='compact'\] \.item-card \.inventory-item-meta \{\s*display:\s*none/)
     expect(css).toMatch(/max-width:\s*1200px/)
   })
+
+  it('hides decorative dashboard art in compact mode', () => {
+    const css = readFileSync(join(here, 'game-shell.css'), 'utf8')
+    expect(css).toMatch(/\[data-ui-mode='compact'\].*location-hero-art/s)
+    expect(css).toMatch(/display:\s*none/)
+  })
 })
