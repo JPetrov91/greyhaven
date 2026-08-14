@@ -283,11 +283,224 @@
 .combat-hud-viewport {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   background-color: #120f0c;
+}
+
+.combat-stage-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #120f0c;
   background-size: cover;
-  background-position: center;
+  background-position: center 40%;
+}
+
+.combat-stage-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(8, 6, 5, 0.42) 0%, transparent 38%),
+    radial-gradient(ellipse at 50% 118%, rgba(8, 6, 5, 0.55) 0%, transparent 58%);
+}
+
+.combat-stage-fighters {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.combat-fighter {
+  position: absolute;
+  top: 2%;
+  bottom: 0;
+  width: min(46%, 28rem);
+  transform: none;
+}
+
+.combat-fighter-player {
+  left: 0;
+}
+
+.combat-fighter-enemy {
+  right: 0;
+}
+
+.combat-fighter-figure {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.combat-fighter-enemy .combat-fighter-figure {
+  justify-content: flex-end;
+}
+
+.combat-fighter-figure img {
+  display: block;
+  height: 96%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.62));
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, #000 7%, #000 100%);
+  mask-image: linear-gradient(to top, transparent 0%, #000 7%, #000 100%);
+}
+
+.combat-fighter-hud {
+  pointer-events: auto;
+  position: absolute;
+  top: 46%;
+  width: 13.25rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+  border: 1px solid rgba(201, 162, 39, 0.38);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(36, 28, 22, 0.55) 0%, rgba(14, 11, 9, 0.78) 100%);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(228, 197, 106, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.combat-fighter-hud::before,
+.combat-fighter-hud::after {
+  content: '';
+  position: absolute;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 1px solid var(--accent-strong);
+  pointer-events: none;
+}
+
+.combat-fighter-hud::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.combat-fighter-hud::after {
+  right: -1px;
+  bottom: -1px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.combat-fighter-player .combat-fighter-hud {
+  left: 46%;
+}
+
+.combat-fighter-enemy .combat-fighter-hud {
+  right: 46%;
+}
+
+.combat-fighter-identity {
+  display: grid;
+  gap: 0.12rem;
+  margin-bottom: 0.65rem;
+}
+
+.combat-fighter-identity strong {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.combat-fighter-identity .muted {
+  font-size: var(--text-sm);
+}
+
+.combat-stage-vital {
+  display: grid;
+  gap: 0.22rem;
+  margin-bottom: 0.55rem;
+}
+
+.combat-stage-vital span {
+  display: none;
+}
+
+.combat-stage-vital strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.combat-stage-vital .progress-bar {
+  width: 100%;
+  height: 0.62rem;
+  border-radius: 2px;
+  border-color: rgba(201, 162, 39, 0.22);
+}
+
+.combat-intent-panel,
+.combat-status-panel {
+  margin-top: 0.55rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(201, 162, 39, 0.18);
+}
+
+.combat-intent-panel h3,
+.combat-status-panel h3 {
+  margin: 0 0 0.28rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.combat-intent-panel p,
+.combat-status-panel p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.combat-status-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.combat-status-panel li {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.combat-status-art {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: #1a1613;
+}
+
+.combat-status-icon {
+  width: 1.45rem;
+  height: 1.45rem;
+  display: block;
+}
+
+.combat-status-panel li p {
+  margin: 0.1rem 0 0;
+  font-size: var(--text-xs);
 }
 
 .combat-round-badge {
@@ -301,7 +514,7 @@
   border-radius: 999px;
   border: 1px solid var(--accent);
   background: rgba(18, 16, 14, 0.88);
-  z-index: 2;
+  z-index: 4;
 }
 
 .combat-round-badge strong {
@@ -326,7 +539,7 @@
 .combat-outcome-overlay {
   position: absolute;
   inset: auto 1rem 1rem 1rem;
-  z-index: 3;
+  z-index: 5;
   background: rgba(22, 18, 16, 0.94);
 }
 
@@ -983,7 +1196,30 @@ html[data-ui-mode='compact'] .combat-hud {
 }
 
 html[data-ui-mode='compact'] .combat-hud-viewport {
-  min-height: 8rem;
+  min-height: 10rem;
+}
+
+html[data-ui-mode='compact'] .combat-fighter {
+  width: min(48%, 22rem);
+  top: 10%;
+}
+
+html[data-ui-mode='compact'] .combat-fighter-figure img {
+  height: 100%;
+  max-width: none;
+}
+
+html[data-ui-mode='compact'] .combat-fighter-player .combat-fighter-hud {
+  left: 40%;
+}
+
+html[data-ui-mode='compact'] .combat-fighter-enemy .combat-fighter-hud {
+  right: 40%;
+}
+
+html[data-ui-mode='compact'] .combat-fighter-hud {
+  width: 10rem;
+  padding: 0.4rem;
 }
 
 html[data-ui-mode='compact'] .combat-hud-actions .combat-actions,

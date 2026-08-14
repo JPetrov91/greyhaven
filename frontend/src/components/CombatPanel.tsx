@@ -3,21 +3,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchCharacter } from '../api/character'
 import { acknowledgeCombat, submitCombatAction } from '../api/combat'
-import type {
-  CombatAction,
-  CombatActionPreviewResponse,
-  CombatResponse,
-  CombatStatusResponse,
-} from '../api/types'
+import type { CombatAction, CombatActionPreviewResponse, CombatResponse } from '../api/types'
 import { fetchCurrentLocation } from '../api/world'
+import { CombatStage } from './CombatStage'
 import { ChatPanel } from './ChatPanel'
 import { Button } from '../ui/Button'
 import { CharacterPortrait } from '../ui/CharacterPortrait'
 import { EmptyState } from '../ui/EmptyState'
 import { LocationIcon, locationArtUrl, locationWeather } from '../ui/locationMedia'
-import { ProgressBar } from '../ui/ProgressBar'
 import { StatRow } from '../ui/StatRow'
-import { StatusBadge } from '../ui/StatusBadge'
 import { Tabs } from '../ui/Tabs'
 import { classNames } from '../ui/classNames'
 
@@ -166,22 +160,6 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
             <p className="muted">Level {character?.level ?? '—'}</p>
           </div>
         </div>
-        <div className="combat-vitals" data-testid="combat-vitals">
-          <Vital
-            label="Health"
-            testId="combat-player-health"
-            value={combat.playerHealth}
-            max={combat.playerMaxHealth}
-            tone="health"
-          />
-          <Vital
-            label="Stamina"
-            testId="combat-player-stamina"
-            value={combat.playerStamina}
-            max={combat.playerMaxStamina}
-            tone="stamina"
-          />
-        </div>
         {character ? (
           <dl className="stat-list combat-stat-list">
             <StatRow label="Damage" value={character.derivedStats.physicalDamage} />
@@ -191,9 +169,6 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
             <StatRow label="Crit" value={`${character.derivedStats.criticalChance}%`} />
           </dl>
         ) : null}
-        {legacy ? null : (
-          <StatusRow label="Status effects" statuses={combat.playerStatuses ?? []} testId="combat-player-statuses" />
-        )}
         <section className="combat-hud-block">
           <h3>Encounter</h3>
           <p>
@@ -213,50 +188,16 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
         ) : null}
       </aside>
 
-      <div
-        className="combat-hud-viewport"
-        style={location ? { backgroundImage: `url(${locationArtUrl(location.code)})` } : undefined}
+      <CombatStage
+        combat={combat}
+        playerName={character?.name ?? 'You'}
+        artUrl={location ? locationArtUrl(location.code) : undefined}
+        legacy={legacy}
+        terminal={terminal}
+        turnLabel={turnLabel}
       >
-        <div className="combat-round-badge">
-          <strong>ROUND {combat.roundNumber}</strong>
-          <span>{turnLabel}</span>
-        </div>
-        <div className="combat-enemy-overlay">
-          <h2>
-            <span data-testid="combat-monster-name">{combat.monster.name}</span>
-            <span className="muted">
-              {' '}
-              Level {combat.monster.level}
-              {combat.monster.archetype ? ` · ${formatArchetype(combat.monster.archetype)}` : ''}
-            </span>
-          </h2>
-          <Vital
-            label="Enemy HP"
-            testId="combat-enemy-health"
-            value={combat.enemyHealth}
-            max={combat.enemyMaxHealth}
-            tone="health"
-          />
-          {legacy ? null : (
-            <Vital
-              label="Enemy Stamina"
-              testId="combat-enemy-stamina"
-              value={combat.enemyStamina}
-              max={combat.enemyMaxStamina}
-              tone="stamina"
-            />
-          )}
-          {legacy ? null : (
-            <StatusRow label="Status effects" statuses={combat.enemyStatuses ?? []} testId="combat-enemy-statuses" />
-          )}
-          {combat.enemyIntent && !terminal ? (
-            <p className="combat-enemy-intent" data-testid="combat-enemy-intent">
-              Enemy intent: {combat.enemyIntent.label}
-            </p>
-          ) : null}
-        </div>
         {terminal ? <div className="combat-outcome-overlay">{outcomeBlock()}</div> : null}
-      </div>
+      </CombatStage>
 
       <aside className="combat-hud-log">
         <section className="combat-log" aria-labelledby="combat-log-heading">
@@ -546,82 +487,4 @@ function matchesLogTab(type: string, tab: LogTab): boolean {
     return type.startsWith('ENEMY_')
   }
   return !type.startsWith('PLAYER_') && !type.startsWith('ENEMY_')
-}
-
-function Vital({
-  label,
-  testId,
-  value,
-  max,
-  tone,
-}: {
-  label: string
-  testId: string
-  value: number
-  max: number
-  tone: 'health' | 'stamina'
-}) {
-  return (
-    <div>
-      <span>{label}</span>
-      <strong data-testid={testId}>
-        {value} / {max}
-      </strong>
-      <ProgressBar value={value} max={Math.max(1, max)} label={label} tone={tone} />
-    </div>
-  )
-}
-
-function StatusRow({
-  label,
-  statuses,
-  testId,
-}: {
-  label: string
-  statuses: CombatStatusResponse[]
-  testId: string
-}) {
-  return (
-    <div className="combat-status-row" data-testid={testId}>
-      <span className="muted">{label}</span>
-      {statuses.length === 0 ? (
-        <span className="muted">No statuses</span>
-      ) : (
-        statuses.map((status) => (
-          <StatusBadge key={`${status.type}-${status.remainingRounds}`} tone={statusTone(status.type)}>
-            {formatStatus(status)}
-          </StatusBadge>
-        ))
-      )}
-    </div>
-  )
-}
-
-function statusTone(type: string): 'safe' | 'danger' | 'neutral' | 'upgrade' | 'downgrade' | 'mixed' {
-  switch (type) {
-    case 'BLEED':
-    case 'POISON':
-      return 'danger'
-    case 'STUN':
-      return 'mixed'
-    case 'GUARDED':
-    case 'STUN_IMMUNITY':
-      return 'safe'
-    case 'ARMOR_BREAK':
-    case 'OFF_BALANCE':
-      return 'downgrade'
-    default:
-      return 'neutral'
-  }
-}
-
-function formatStatus(status: CombatStatusResponse): string {
-  const name = status.type.replaceAll('_', ' ')
-  return status.stacks > 1
-    ? `${name} ×${status.stacks} (${status.remainingRounds}r)`
-    : `${name} (${status.remainingRounds}r)`
-}
-
-function formatArchetype(archetype: string): string {
-  return archetype.charAt(0) + archetype.slice(1).toLowerCase()
 }

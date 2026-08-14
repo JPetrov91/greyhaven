@@ -147,6 +147,10 @@ describe('CombatPanel', () => {
     expect(screen.getByTestId('combat-player-statuses').textContent).toContain('GUARDED')
     expect(screen.getByTestId('combat-enemy-statuses').textContent).toContain('BLEED')
     expect(screen.getByTestId('combat-action-QUICK_ATTACK').textContent).toContain('(8)')
+    expect(screen.getByTestId('combat-stage')).toBeTruthy()
+    expect(screen.getByTestId('combat-fighter-player')).toBeTruthy()
+    expect(screen.getByTestId('combat-fighter-enemy')).toBeTruthy()
+    expect(screen.getByTestId('combat-enemy-health').textContent).toContain('0 / 70')
   })
 
   it('lets a stunned player skip the turn', () => {
