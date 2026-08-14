@@ -25,6 +25,7 @@ export function EquipmentOverviewCard() {
         <>
           <EquipmentLayout
             testId="home-equipment"
+            showStage={false}
             equipment={inventoryQuery.data.equipment}
             items={inventoryQuery.data.items}
           />

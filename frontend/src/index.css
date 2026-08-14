@@ -600,7 +600,7 @@ html[data-ui-mode='compact'] .location-region,
 html[data-ui-mode='compact'] .location-art,
 html[data-ui-mode='compact'] .location-hero-art,
 html[data-ui-mode='compact'] .portrait,
-html[data-ui-mode='compact'] .paper-doll-silhouette {
+html[data-ui-mode='compact'] .equipment-stage {
   display: none;
 }
 

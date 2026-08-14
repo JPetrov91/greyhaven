@@ -1128,6 +1128,112 @@ html[data-ui-mode='compact'] .character-overview-portrait {
   align-items: stretch;
 }
 
+.equipment-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.equipment-header-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.equipment-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.equipment-loadout-btn {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.55rem;
+}
+
+.equipment-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
+.equipment-candidates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.equipment-candidate {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 10, 8, 0.4);
+  cursor: pointer;
+}
+
+.equipment-footer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.equipment-footer-col {
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 10, 8, 0.35);
+}
+
+.equipment-footer-col h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.equipment-footer-col .derived-stats {
+  margin: 0;
+}
+
+.equipment-footer-locked {
+  opacity: 0.55;
+}
+
+.equipment-panel .panel-header {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 1100px) {
+  .equipment-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .equipment-footer {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .inventory-bag {
   display: grid;
   gap: 0.75rem;
@@ -1567,6 +1673,18 @@ html[data-ui-mode='compact'] .inventory-workspace {
 }
 
 html[data-ui-mode='compact'] .inventory-inspector {
+  padding: 0.45rem;
+}
+
+html[data-ui-mode='compact'] .equipment-workspace {
+  grid-template-columns: 1fr;
+}
+
+html[data-ui-mode='compact'] .equipment-footer {
+  grid-template-columns: 1fr 1fr;
+}
+
+html[data-ui-mode='compact'] .equipment-inspector {
   padding: 0.45rem;
 }
 

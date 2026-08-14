@@ -4,7 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { EquipmentResponse, InventoryItemResponse } from '../api/types'
 import { EquipmentLayout } from './EquipmentLayout'
-import { EQUIPMENT_SLOTS } from './equipmentSlots'
+import { EQUIPMENT_SLOTS, FUTURE_EQUIPMENT_SLOTS } from './equipmentSlots'
 
 afterEach(() => {
   cleanup()
@@ -61,7 +61,7 @@ function sword(): InventoryItemResponse {
 }
 
 describe('EquipmentLayout', () => {
-  it('shows a distinct empty placeholder icon for every unequipped slot', () => {
+  it('shows a distinct empty placeholder icon for every unequipped live slot', () => {
     render(<EquipmentLayout includeSlotTestIds equipment={emptyEquipment} items={[]} />)
 
     expect(screen.getByTestId('equipped-weapon')).toHaveProperty('textContent', 'Empty')
@@ -72,7 +72,7 @@ describe('EquipmentLayout', () => {
     expect(new Set(titles).size).toBe(EQUIPMENT_SLOTS.length)
   })
 
-  it('hides the placeholder when a slot is filled', () => {
+  it('keeps the item icon when a slot is filled', () => {
     render(
       <EquipmentLayout
         includeSlotTestIds
@@ -84,6 +84,19 @@ describe('EquipmentLayout', () => {
     expect(screen.getByTestId('equipped-weapon')).toHaveProperty('textContent', 'Rusty Sword')
     const filled = document.querySelector('.equipment-slot-main_hand')
     expect(filled?.className).not.toMatch(/equipment-slot-empty/)
-    expect(filled?.querySelector('.equipment-slot-icon')).toBeNull()
+    expect(filled?.querySelector('.item-icon-face')).not.toBeNull()
+  })
+
+  it('renders locked future slots on the full doll without assigning compact grid areas', () => {
+    const { container } = render(
+      <EquipmentLayout includeFutureSlots compact equipment={emptyEquipment} items={[]} />,
+    )
+
+    expect(container.querySelector('.equipment-layout-compact')).not.toBeNull()
+    expect(container.querySelector('.equipment-layout-doll-full')).toBeNull()
+    for (const slot of FUTURE_EQUIPMENT_SLOTS) {
+      expect(screen.getByTestId(`equipment-slot-${slot}`)).toHaveProperty('disabled', false)
+      expect(screen.getByTestId(`equipment-slot-${slot}`).className).toMatch(/equipment-slot-locked/)
+    }
   })
 })

@@ -1,15 +1,14 @@
-import type { EquipmentSlot } from '../api/types'
-import { SLOT_LABELS } from './equipmentSlots'
+import { DESIGN_SLOT_LABELS, type DesignEquipmentSlot } from './equipmentSlots'
 
 type Props = {
-  slot: EquipmentSlot
+  slot: DesignEquipmentSlot
   className?: string
 }
 
 export function EquipmentSlotIcon({ slot, className = 'equipment-slot-icon' }: Props) {
   return (
     <svg className={className} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <title>{SLOT_LABELS[slot]}</title>
+      <title>{DESIGN_SLOT_LABELS[slot]}</title>
       {slot === 'HEAD' ? (
         <>
           <path
@@ -114,10 +113,37 @@ export function EquipmentSlotIcon({ slot, className = 'equipment-slot-icon' }: P
           <circle cx="16" cy="18.4" r="1.4" fill="currentColor" />
         </>
       ) : null}
-      {slot === 'RING' ? (
+      {slot === 'RING' || slot === 'RING_II' || slot === 'RING_III' ? (
         <>
           <circle cx="16" cy="17.2" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
           <path d="M13.4 11.4h5.2l-.8-3.2h-3.6Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </>
+      ) : null}
+      {slot === 'SHOULDERS' ? (
+        <>
+          <path
+            d="M6.5 14.2 12 9.6h8l5.5 4.6v4.2l-5.2-2.2H11.7L6.5 18.4Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+          />
+          <path d="M12 9.6 16 12.4 20 9.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </>
+      ) : null}
+      {slot === 'BELT' ? (
+        <>
+          <path d="M7 14.2h18v4.4H7Z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+          <rect x="13.2" y="13.2" width="5.6" height="6.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+        </>
+      ) : null}
+      {slot === 'EARRINGS' ? (
+        <>
+          <circle cx="11.2" cy="10.2" r="1.6" fill="currentColor" />
+          <circle cx="20.8" cy="10.2" r="1.6" fill="currentColor" />
+          <path d="M11.2 12.2v6.4M20.8 12.2v6.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <circle cx="11.2" cy="20.4" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <circle cx="20.8" cy="20.4" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
         </>
       ) : null}
     </svg>

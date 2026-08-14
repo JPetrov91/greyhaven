@@ -239,10 +239,11 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
               <h3>Equipment</h3>
               <EquipmentLayout
                 compact
+                includeFutureSlots
                 testId="character-equipment"
                 equipment={inventoryQuery.data.equipment}
                 items={inventoryQuery.data.items}
-                onSlotClick={(slot) =>
+                onLiveSlotClick={(slot) =>
                   navigate({ pathname: '/game', hash: 'inventory', search: `?slot=${slot}` })
                 }
               />

@@ -264,7 +264,7 @@ describe('CharacterSummaryPanel', () => {
 
     renderPanel()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Filter inventory by Head' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Select Head slot' }))
     expect(screen.getByTestId('location-probe').textContent).toBe('?slot=HEAD#inventory')
   })
 })
