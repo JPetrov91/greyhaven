@@ -8,6 +8,7 @@ import org.springframework.data.domain.Persistable;
 import com.example.game.character.domain.CharacterBalance;
 import com.example.game.character.domain.CharacterProgression;
 import com.example.game.character.domain.ProgressionBalance;
+import com.example.game.shared.balance.GameBalanceCatalog;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -81,6 +82,12 @@ public class CharacterEntity implements Persistable<UUID> {
 	@Column(name = "last_recovery_at", nullable = false)
 	private Instant lastRecoveryAt;
 
+	@Column(name = "arena_rating", nullable = false)
+	private int arenaRating;
+
+	@Column(name = "arena_marks", nullable = false)
+	private int arenaMarks;
+
 	/**
 	 * Identifiers are assigned by the application, so Spring Data cannot infer whether an
 	 * instance is new. Without this flag every save would be a merge and issue a redundant select.
@@ -130,6 +137,8 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.lastRecoveryAt = lastRecoveryAt;
+		this.arenaRating = GameBalanceCatalog.get().pvp().startingRating();
+		this.arenaMarks = 0;
 		this.unsaved = true;
 	}
 
@@ -221,6 +230,14 @@ public class CharacterEntity implements Persistable<UUID> {
 		return lastRecoveryAt;
 	}
 
+	public int getArenaRating() {
+		return arenaRating;
+	}
+
+	public int getArenaMarks() {
+		return arenaMarks;
+	}
+
 	public void moveTo(UUID locationId, Instant updatedAt) {
 		this.currentLocationId = locationId;
 		this.updatedAt = updatedAt;
@@ -263,6 +280,22 @@ public class CharacterEntity implements Persistable<UUID> {
 			throw new IllegalArgumentException("insufficient gold");
 		}
 		this.gold -= amount;
+		this.updatedAt = updatedAt;
+	}
+
+	public void applyArenaRating(int rating, Instant updatedAt) {
+		if (rating < 0) {
+			throw new IllegalArgumentException("arena rating must be non-negative");
+		}
+		this.arenaRating = rating;
+		this.updatedAt = updatedAt;
+	}
+
+	public void addArenaMarks(int amount, Instant updatedAt) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("arena marks amount must be non-negative");
+		}
+		this.arenaMarks = Math.addExact(this.arenaMarks, amount);
 		this.updatedAt = updatedAt;
 	}
 

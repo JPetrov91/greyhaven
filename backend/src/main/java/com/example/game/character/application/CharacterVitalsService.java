@@ -158,6 +158,24 @@ public class CharacterVitalsService {
 		return toView(character);
 	}
 
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView applyArenaSettlement(
+			UUID characterId,
+			int ratingDelta,
+			int ratingFloor,
+			int marksAwarded) {
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		Instant now = Instant.now(clock);
+		int newRating = Math.max(ratingFloor, character.getArenaRating() + ratingDelta);
+		character.applyArenaRating(newRating, now);
+		if (marksAwarded > 0) {
+			character.addArenaMarks(marksAwarded, now);
+		}
+		characterRepository.saveAndFlush(character);
+		return toView(character);
+	}
+
 	/**
 	 * Applies minor expedition injury while keeping the character playable (at least 1 HP).
 	 */
@@ -194,6 +212,8 @@ public class CharacterVitalsService {
 				character.getCurrentStamina(),
 				character.getMaxStamina(),
 				character.getGold(),
-				character.getUnspentAttributePoints());
+				character.getUnspentAttributePoints(),
+				character.getArenaRating(),
+				character.getArenaMarks());
 	}
 }

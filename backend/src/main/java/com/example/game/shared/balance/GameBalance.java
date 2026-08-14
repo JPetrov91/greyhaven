@@ -13,7 +13,8 @@ public record GameBalance(
 		Mastery mastery,
 		Inventory inventory,
 		Items items,
-		Market market
+		Market market,
+		Pvp pvp
 ) {
 
 	public record Character(
@@ -112,6 +113,28 @@ public record GameBalance(
 			double uncommonRarityModifier,
 			double rareRarityModifier,
 			double epicRarityModifier
+	) {
+	}
+
+	public record Pvp(
+			int startingRating,
+			int ratingKFactor,
+			int ratingFloor,
+			int repeatWindowHours,
+			double repeatRatingMultiplier,
+			int marksPerWin,
+			int marksPerLoss,
+			int maxSnapshotPotions,
+			int maxArenaChallengesPerDay,
+			int opponentRatingBand,
+			int opponentsPageSize,
+			int historyPageSize,
+			int duelChallengeTtlMinutes,
+			int duelActionTimeoutMinutes,
+			int duelExpireMinutes,
+			int healWhenHpPercentBelowDefault,
+			int defendWhenStaminaPercentBelowDefault,
+			int finisherWhenEnemyHpPercentBelowDefault
 	) {
 	}
 

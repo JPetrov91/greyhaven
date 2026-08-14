@@ -18,6 +18,8 @@ public record CharacterVitalsView(
 		int currentStamina,
 		int maxStamina,
 		int gold,
-		int unspentAttributePoints
+		int unspentAttributePoints,
+		int arenaRating,
+		int arenaMarks
 ) {
 }

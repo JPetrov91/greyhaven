@@ -2,8 +2,10 @@ package com.example.game.character.application;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -121,6 +123,41 @@ public class CharacterApplicationService {
 		return characterRepository.existsByAccountId(accountId);
 	}
 
+	@Transactional(readOnly = true)
+	public CharacterPublicCore requirePublic(UUID characterId) {
+		CharacterEntity character = characterRepository.findById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		return toPublicCore(character);
+	}
+
+	@Transactional(readOnly = true)
+	public List<ArenaOpponentCore> arenaOpponents(
+			UUID excludedId, int rating, int ratingBand, int page, int size) {
+		return characterRepository.findArenaOpponents(
+				excludedId, rating, ratingBand, PageRequest.of(page, size)).stream()
+				.map(character -> new ArenaOpponentCore(
+						character.getId(),
+						character.getName(),
+						character.getLevel(),
+						character.getArenaRating()))
+				.toList();
+	}
+
+	private static CharacterPublicCore toPublicCore(CharacterEntity character) {
+		return new CharacterPublicCore(
+				character.getId(),
+				character.getName(),
+				character.getLevel(),
+				character.getStrength(),
+				character.getAgility(),
+				character.getEndurance(),
+				character.getPerception(),
+				character.getMaxHealth(),
+				character.getMaxStamina(),
+				character.getArenaRating(),
+				character.getArenaMarks());
+	}
+
 	private CharacterView toView(CharacterEntity character) {
 		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(character.getId());
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
@@ -151,6 +188,8 @@ public class CharacterApplicationService {
 				character.getCurrentStamina(),
 				character.getMaxStamina(),
 				character.getGold(),
+				character.getArenaRating(),
+				character.getArenaMarks(),
 				character.getUnspentAttributePoints(),
 				ExperienceProgress.from(character.getLevel(), character.getExperience()),
 				character.getCurrentLocationId(),

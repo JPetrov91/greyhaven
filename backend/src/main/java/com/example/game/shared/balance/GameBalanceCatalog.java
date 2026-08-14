@@ -39,7 +39,8 @@ public final class GameBalanceCatalog {
 				parseMastery(map(root, "mastery")),
 				parseInventory(map(root, "inventory")),
 				parseItems(map(root, "items")),
-				parseMarket(map(root, "market")));
+				parseMarket(map(root, "market")),
+				parsePvp(map(root, "pvp")));
 	}
 
 	private static GameBalance load() {
@@ -163,6 +164,28 @@ public final class GameBalanceCatalog {
 				doubleValue(rarityModifiers, "UNCOMMON"),
 				doubleValue(rarityModifiers, "RARE"),
 				doubleValue(rarityModifiers, "EPIC"));
+	}
+
+	private static GameBalance.Pvp parsePvp(Map<String, Object> node) {
+		return new GameBalance.Pvp(
+				intValue(node, "startingRating"),
+				intValue(node, "ratingKFactor"),
+				intValue(node, "ratingFloor"),
+				intValue(node, "repeatWindowHours"),
+				doubleValue(node, "repeatRatingMultiplier"),
+				intValue(node, "marksPerWin"),
+				intValue(node, "marksPerLoss"),
+				intValue(node, "maxSnapshotPotions"),
+				intValue(node, "maxArenaChallengesPerDay"),
+				intValue(node, "opponentRatingBand"),
+				intValue(node, "opponentsPageSize"),
+				intValue(node, "historyPageSize"),
+				intValue(node, "duelChallengeTtlMinutes"),
+				intValue(node, "duelActionTimeoutMinutes"),
+				intValue(node, "duelExpireMinutes"),
+				intValue(node, "healWhenHpPercentBelowDefault"),
+				intValue(node, "defendWhenStaminaPercentBelowDefault"),
+				intValue(node, "finisherWhenEnemyHpPercentBelowDefault"));
 	}
 
 	private static GameBalance.Items parseItems(Map<String, Object> node) {

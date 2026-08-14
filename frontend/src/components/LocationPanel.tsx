@@ -7,6 +7,7 @@ import {
   fetchNearbyCharacters,
   moveToLocation,
 } from '../api/world'
+import { fetchPublicCharacter, type PublicCharacterResponse } from '../api/pvp'
 import type { DestinationResponse, LocationAction, LocationResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { ComingLaterButton } from '../ui/ComingLater'
@@ -31,10 +32,19 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   CANCEL_LISTING: 'Cancel own listing',
   SEARCH_ENCOUNTER: 'Search for encounter',
   ENTER_DUNGEON: 'Enter dungeon',
+  ENTER_ARENA: 'Enter Arena',
+  CHALLENGE_DUEL: 'Challenge to a duel',
 }
 
 /** Actions already represented by dedicated UI sections on this screen. */
-const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY', 'ENTER_DUNGEON'])
+const IMPLIED_ACTIONS = new Set<LocationAction>([
+  'INSPECT',
+  'MOVE',
+  'VIEW_NEARBY',
+  'ENTER_DUNGEON',
+  'ENTER_ARENA',
+  'CHALLENGE_DUEL',
+])
 
 type Props = {
   onSearchEncounter?: () => void
@@ -44,6 +54,7 @@ type Props = {
   onOpenMarket?: () => void
   onOpenChat?: () => void
   onOpenWorld?: () => void
+  onOpenArena?: () => void
   variant?: 'full' | 'hero'
 }
 
@@ -74,11 +85,13 @@ export function LocationPanel({
   onOpenMarket,
   onOpenChat,
   onOpenWorld,
+  onOpenArena,
   variant = 'full',
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
   const [movingToId, setMovingToId] = useState<string | null>(null)
+  const [inspected, setInspected] = useState<PublicCharacterResponse | null>(null)
 
   const locationQuery = useQuery({
     queryKey: ['location'],
@@ -148,6 +161,14 @@ export function LocationPanel({
   const nearby = nearbyQuery.data?.characters ?? []
   const nearbyTruncated = nearbyQuery.data?.truncated ?? false
 
+  async function inspectNearby(id: string) {
+    try {
+      setInspected(await fetchPublicCharacter(id))
+    } catch {
+      setInspected(null)
+    }
+  }
+
   const hero = variant === 'hero'
   const wrapperClass = hero ? 'game-column location-hero' : 'game-column game-column-center'
 
@@ -166,6 +187,7 @@ export function LocationPanel({
           onOpenMarket={onOpenMarket}
           onOpenChat={onOpenChat}
           onOpenExpedition={onOpenExpedition}
+          onOpenArena={onOpenArena}
           onMove={(id) => void handleMove(id)}
         />
       ) : (
@@ -203,6 +225,11 @@ export function LocationPanel({
             {location.description}
           </p>
           {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
+          {location.actions.includes('ENTER_ARENA') ? (
+            <Button type="button" data-testid="enter-arena-action" onClick={() => onOpenArena?.()}>
+              Open Arena
+            </Button>
+          ) : null}
 
           <section className="location-section" aria-labelledby="destinations-heading">
             <h3 id="destinations-heading">Travel</h3>
@@ -316,7 +343,9 @@ export function LocationPanel({
                 <ul className="nearby-list" data-testid="nearby-characters">
                   {nearby.map((character) => (
                     <li key={character.id} data-testid={`nearby-${character.name}`}>
-                      <strong>{character.name}</strong>
+                      <button type="button" onClick={() => void inspectNearby(character.id)}>
+                        <strong>{character.name}</strong>
+                      </button>
                       <span className="muted">Level {character.level}</span>
                     </li>
                   ))}
@@ -329,6 +358,28 @@ export function LocationPanel({
               </>
             )}
           </section>
+          {inspected ? (
+            <aside data-testid="public-inspect">
+              <h3>{inspected.name}</h3>
+              <p>
+                Level {inspected.level} · Rating {inspected.arenaRating}
+              </p>
+              <p>
+                STR {inspected.strength} AGI {inspected.agility} END {inspected.endurance} PER{' '}
+                {inspected.perception}
+              </p>
+              <ul>
+                {inspected.equipment.map((item) => (
+                  <li key={item.slot}>
+                    {item.slot}: {item.displayName}
+                  </li>
+                ))}
+              </ul>
+              <Button type="button" onClick={() => setInspected(null)}>
+                Close
+              </Button>
+            </aside>
+          ) : null}
         </>
       )}
     </div>
@@ -347,6 +398,7 @@ type HeroProps = {
   onOpenMarket?: () => void
   onOpenChat?: () => void
   onOpenExpedition?: () => void
+  onOpenArena?: () => void
   onMove: (destinationLocationId: string) => void
 }
 
@@ -370,6 +422,7 @@ function heroActionTiles({
   onOpenMarket,
   onOpenChat,
   onOpenExpedition,
+  onOpenArena,
   onMove,
 }: Pick<
   HeroProps,
@@ -382,6 +435,7 @@ function heroActionTiles({
   | 'onOpenMarket'
   | 'onOpenChat'
   | 'onOpenExpedition'
+  | 'onOpenArena'
   | 'onMove'
 >): HeroTileModel[] {
   const actions = new Set(location.actions)
@@ -405,6 +459,16 @@ function heroActionTiles({
       subtitle: 'Hunt nearby',
       disabled: searchBusy || !onSearchEncounter,
       onClick: () => onSearchEncounter?.(),
+    })
+  }
+
+  if (actions.has('ENTER_ARENA')) {
+    tiles.push({
+      testId: 'enter-arena-action',
+      icon: 'compass',
+      title: 'Arena',
+      subtitle: 'Challenge defenders',
+      onClick: () => onOpenArena?.(),
     })
   }
 
@@ -507,6 +571,7 @@ function LocationHero({
   onOpenMarket,
   onOpenChat,
   onOpenExpedition,
+  onOpenArena,
   onMove,
 }: HeroProps) {
   const clock = useGreyhavenClock()
@@ -522,6 +587,7 @@ function LocationHero({
     onOpenMarket,
     onOpenChat,
     onOpenExpedition,
+    onOpenArena,
     onMove,
   })
 

@@ -20,11 +20,11 @@ const LIVE_NAV: { item: GameNavItem; label: string; icon: ChromeIconName; testId
   { item: 'market', label: 'Market', icon: 'market', testId: 'nav-market' },
   { item: 'expeditions', label: 'Expeditions', icon: 'expeditions', testId: 'nav-expeditions' },
   { item: 'mastery', label: 'Mastery', icon: 'mastery', testId: 'nav-mastery' },
+  { item: 'pvp', label: 'PvP', icon: 'pvp', testId: 'nav-pvp' },
 ]
 
 const LATER_NAV: { label: string; icon: ChromeIconName; testId: string }[] = [
   { label: 'Crafting', icon: 'crafting', testId: 'nav-crafting' },
-  { label: 'PvP', icon: 'pvp', testId: 'nav-pvp' },
   { label: 'Guild', icon: 'guild', testId: 'nav-guild' },
   { label: 'Rankings', icon: 'rankings', testId: 'nav-rankings' },
 ]

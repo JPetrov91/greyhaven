@@ -78,6 +78,8 @@ public class CharacterController {
 				character.currentStamina(),
 				character.maxStamina(),
 				character.gold(),
+				character.arenaRating(),
+				character.arenaMarks(),
 				character.unspentAttributePoints(),
 				character.currentLocationId(),
 				toDerivedStats(character.derivedStats()),

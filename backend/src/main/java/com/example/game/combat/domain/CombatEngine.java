@@ -28,17 +28,21 @@ public final class CombatEngine {
 			CombatAction action,
 			TechniqueEffectSpec techniqueSpec) {
 		boolean technique = action == CombatAction.USE_TECHNIQUE;
-		TechniqueEffectSpec spec = technique ? techniqueSpec : coreSpec(action);
-		int accuracy = playerAccuracy(state, spec, technique);
-		boolean followUp = hasTag(spec, "COUNTER") || hasTag(spec, "ADVANCED");
-		if (StatusEffectEngine.has(state.playerStatuses(), StatusType.OFF_BALANCE) && !followUp) {
-			accuracy -= CombatV2Balance.offBalanceAccuracyPenalty();
-		}
-		int dodge = state.enemy().dodge();
-		if (StatusEffectEngine.has(state.enemyStatuses(), StatusType.OFF_BALANCE)) {
-			dodge -= CombatV2Balance.offBalanceDodgePenalty();
-		}
-		return CombatV2Balance.clampHitChance(accuracy - dodge);
+		TechniqueEffectSpec spec = technique ? techniqueSpec : CombatStrikeResolver.coreSpec(action);
+		return CombatStrikeResolver.previewHitChance(
+				state.playerStats(),
+				new CombatantStats(
+						0,
+						0,
+						state.enemy().dodge(),
+						0,
+						state.enemy().armor(),
+						0),
+				state.playerStatuses(),
+				state.enemyStatuses(),
+				spec,
+				state.masteryPassive(),
+				technique);
 	}
 
 	/**
@@ -219,7 +223,13 @@ public final class CombatEngine {
 			case QUICK_ATTACK, HEAVY_ATTACK, PRECISE_ATTACK -> {
 				working.playerStamina -= CombatV2Balance.reducedStaminaCost(
 						ActionCombatBalance.staminaCost(action), state.staminaCostReduction());
-				resolvePlayerStrike(state, working, coreSpec(action), action.name(), random, events, false);
+				applyPlayerStrike(
+						state,
+						working,
+						CombatStrikeResolver.coreSpec(action),
+						false,
+						random,
+						events);
 			}
 			case USE_TECHNIQUE -> {
 				TechniqueEffectSpec spec = state.techniqueSpecs().get(techniqueCode);
@@ -228,7 +238,7 @@ public final class CombatEngine {
 				events.add(new CombatEvent(
 						CombatEventType.PLAYER_TECHNIQUE,
 						"You use " + techniqueCode.replace('_', ' ').toLowerCase(Locale.ROOT) + "."));
-				resolvePlayerStrike(state, working, spec, techniqueCode, random, events, true);
+				applyPlayerStrike(state, working, spec, true, random, events);
 			}
 			case DEFEND -> {
 				working.playerStamina = Math.min(
@@ -269,91 +279,38 @@ public final class CombatEngine {
 		}
 	}
 
-	private static TechniqueEffectSpec coreSpec(CombatAction action) {
-		return new TechniqueEffectSpec(
-				action.name(),
-				ActionCombatBalance.staminaCost(action),
-				0,
-				(int) Math.round((ActionCombatBalance.damageMultiplier(action) - 1.0) * 100),
-				null,
-				0,
-				0,
-				"");
-	}
-
-	private static void resolvePlayerStrike(
+	private static void applyPlayerStrike(
 			Combat2State state,
 			Working working,
 			TechniqueEffectSpec spec,
-			String label,
+			boolean technique,
 			RandomProvider random,
-			List<CombatEvent> events,
-			boolean technique) {
-		CombatantStats player = state.playerStats();
-		boolean followUp = hasTag(spec, "COUNTER") || hasTag(spec, "ADVANCED");
-		int accuracy = playerAccuracy(state, spec, technique);
-		if (StatusEffectEngine.has(working.playerStatuses, StatusType.OFF_BALANCE) && !followUp) {
-			accuracy -= CombatV2Balance.offBalanceAccuracyPenalty();
-		}
-		int dodge = state.enemy().dodge();
-		if (StatusEffectEngine.has(working.enemyStatuses, StatusType.OFF_BALANCE)) {
-			dodge -= CombatV2Balance.offBalanceDodgePenalty();
-		}
-		int hitChance = CombatV2Balance.clampHitChance(accuracy - dodge);
-		if (!random.chancePercent(hitChance)) {
-			events.add(new CombatEvent(
-					CombatEventType.PLAYER_MISS,
-					"Your attack misses the " + state.enemy().name() + "."));
-			return;
-		}
-
-		double raw = playerDamage(state, spec);
-		if (hasTag(spec, "COUNTER") && (state.lastEnemyMissed() || state.lastPlayerGuarded())) {
-			raw *= 1.0 + CombatV2Balance.counterDamagePercent() / 100.0;
-		}
-		if (hasTag(spec, "CLEAVE") && StatusEffectEngine.has(working.enemyStatuses, StatusType.GUARDED)) {
-			raw *= 1.0 + CombatV2Balance.cleaveVsGuardedPercent() / 100.0;
-		}
-		int enemyHpPercent = state.enemyMaxHealth() <= 0
-				? 0
-				: (int) Math.round(working.enemyHealth * 100.0 / state.enemyMaxHealth());
-		if (hasTag(spec, "ADVANCED")
-				&& (StatusEffectEngine.has(working.enemyStatuses, StatusType.OFF_BALANCE)
-						|| enemyHpPercent <= CombatV2Balance.advancedHpThresholdPercent())) {
-			raw *= 1.0 + CombatV2Balance.advancedDamagePercent() / 100.0;
-		}
-		int critBonus = technique ? 0 : ActionCombatBalance.critBonus(CombatAction.valueOf(spec.effectCode()));
-		boolean critOverride = hasTag(spec, "CRIT_OVERRIDE");
-		int critChance = critOverride
-				? Math.min(100, player.criticalChance() + critBonus)
-				: CombatV2Balance.clampCritChance(player.criticalChance() + critBonus);
-		boolean crit = random.chancePercent(critChance);
-		int beforeArmor = (int) Math.round(raw);
-		if (crit) {
-			beforeArmor *= CombatV2Balance.criticalDamageMult();
-		}
-		beforeArmor = Math.max(1, beforeArmor);
-		boolean guarded = StatusEffectEngine.has(working.enemyStatuses, StatusType.GUARDED);
-		int damage = ArmorMitigation.apply(
-				beforeArmor,
-				state.enemy().armor(),
-				StatusEffectEngine.stacks(working.enemyStatuses, StatusType.ARMOR_BREAK),
-				guarded);
-		if (guarded) {
-			working.enemyStatuses = new ArrayList<>(StatusEffectEngine.consumeGuardedOnHit(working.enemyStatuses));
-		}
-		working.enemyHealth = Math.max(0, working.enemyHealth - damage);
-		if (crit) {
-			events.add(new CombatEvent(
-					CombatEventType.PLAYER_CRIT,
-					"Critical hit! You strike the " + state.enemy().name() + " for " + damage + " damage."));
-		}
-		else {
-			events.add(new CombatEvent(
-					CombatEventType.PLAYER_ATTACK,
-					"You strike the " + state.enemy().name() + " for " + damage + " damage."));
-		}
-		applyOnHitStatus(working, spec, CombatantSide.ENEMY, events);
+			List<CombatEvent> events) {
+		CombatStrikeResolver.Outcome outcome = CombatStrikeResolver.resolve(
+				state.playerStats(),
+				new CombatantStats(
+						0,
+						0,
+						state.enemy().dodge(),
+						0,
+						state.enemy().armor(),
+						0),
+				working.playerStatuses,
+				working.enemyStatuses,
+				working.enemyHealth,
+				state.enemyMaxHealth(),
+				spec,
+				state.masteryPassive(),
+				technique,
+				state.lastEnemyMissed() || state.lastPlayerGuarded(),
+				"You",
+				"the " + state.enemy().name(),
+				true,
+				CombatantSide.ENEMY,
+				random);
+		working.enemyHealth = outcome.defenderHealth();
+		working.enemyStatuses = new ArrayList<>(outcome.defenderStatuses());
+		events.addAll(outcome.events());
 	}
 
 	private static void resolveEnemyAction(
@@ -444,68 +401,6 @@ public final class CombatEngine {
 				}
 			}
 		}
-	}
-
-	private static void applyOnHitStatus(
-			Working working,
-			TechniqueEffectSpec spec,
-			CombatantSide target,
-			List<CombatEvent> events) {
-		if (spec.appliesStatus() == null || spec.appliesStatus().isBlank()) {
-			return;
-		}
-		StatusType type = StatusType.valueOf(spec.appliesStatus());
-		List<StatusInstance> current = target == CombatantSide.ENEMY ? working.enemyStatuses : working.playerStatuses;
-		StatusEffectEngine.StatusApplyResult applied = StatusEffectEngine.apply(
-				current,
-				type,
-				spec.statusStacks(),
-				spec.statusDurationRounds(),
-				target);
-		if (target == CombatantSide.ENEMY) {
-			working.enemyStatuses = new ArrayList<>(applied.statuses());
-		}
-		else {
-			working.playerStatuses = new ArrayList<>(applied.statuses());
-		}
-		events.addAll(applied.events());
-	}
-
-	private static int playerAccuracy(Combat2State state, TechniqueEffectSpec spec, boolean technique) {
-		int accuracy;
-		if (technique) {
-			accuracy = state.playerStats().accuracy() + spec.accuracyModifier();
-		}
-		else {
-			accuracy = (int) Math.round(state.playerStats().accuracy() * ActionCombatBalance.accuracyMultiplier(
-					CombatAction.valueOf(spec.effectCode())));
-		}
-		TechniqueEffectSpec passive = state.masteryPassive();
-		if (passive != null) {
-			accuracy += passive.accuracyModifier();
-		}
-		return accuracy;
-	}
-
-	private static double playerDamage(Combat2State state, TechniqueEffectSpec spec) {
-		double raw = state.playerStats().physicalDamage() * (1.0 + spec.damagePercentModifier() / 100.0);
-		TechniqueEffectSpec passive = state.masteryPassive();
-		if (passive != null && passive.damagePercentModifier() != 0) {
-			raw *= 1.0 + passive.damagePercentModifier() / 100.0;
-		}
-		return raw;
-	}
-
-	private static boolean hasTag(TechniqueEffectSpec spec, String tag) {
-		if (spec.tags() == null || spec.tags().isBlank()) {
-			return false;
-		}
-		for (String part : spec.tags().split("[,\\s]+")) {
-			if (tag.equalsIgnoreCase(part)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static final class Working {

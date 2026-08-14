@@ -69,6 +69,8 @@ function characterFixture(): CharacterResponse {
     currentStamina: 50,
     maxStamina: 50,
     gold: 1250,
+    arenaRating: 1000,
+    arenaMarks: 0,
     unspentAttributePoints: 0,
     currentLocationId: 'loc-1',
     derivedStats: {

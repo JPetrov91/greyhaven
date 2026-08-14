@@ -1,0 +1,18 @@
+ALTER TABLE activity_entries DROP CONSTRAINT chk_activity_entries_type;
+ALTER TABLE activity_entries ADD CONSTRAINT chk_activity_entries_type CHECK (
+	type IN (
+		'COMBAT_VICTORY',
+		'LEVEL_UP',
+		'ITEM_FOUND',
+		'EXPEDITION_COMPLETED',
+		'EXPEDITION_CLAIMED',
+		'MARKET_SOLD',
+		'MARKET_BOUGHT',
+		'MARKET_CANCELLED',
+		'MASTERY_UNLOCK',
+		'TECHNIQUE_UNLOCK',
+		'ARENA_VICTORY',
+		'ARENA_DEFEAT',
+		'DUEL_RESULT'
+	)
+);

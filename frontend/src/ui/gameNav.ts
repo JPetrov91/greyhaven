@@ -7,6 +7,7 @@ export type GameNavItem =
   | 'mastery'
   | 'market'
   | 'expeditions'
+  | 'pvp'
 
 export type GameLocation = { pathname: string; search: string; hash: string }
 
@@ -24,7 +25,8 @@ export function gameViewFromLocation(location: GameLocation): GameNavItem {
     hash === 'equipment' ||
     hash === 'mastery' ||
     hash === 'world' ||
-    hash === 'expeditions'
+    hash === 'expeditions' ||
+    hash === 'pvp'
   ) {
     return hash
   }

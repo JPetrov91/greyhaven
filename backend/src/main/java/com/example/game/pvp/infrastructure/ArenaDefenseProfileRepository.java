@@ -1,0 +1,8 @@
+package com.example.game.pvp.infrastructure;
+
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ArenaDefenseProfileRepository extends JpaRepository<ArenaDefenseProfileEntity, UUID> {
+}

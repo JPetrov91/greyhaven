@@ -49,6 +49,13 @@ public final class LocationActions {
 			LocationAction.VIEW_NEARBY,
 			LocationAction.SEARCH_ENCOUNTER);
 
+	private static final List<LocationAction> ARENA_ACTIONS = List.of(
+			LocationAction.INSPECT,
+			LocationAction.MOVE,
+			LocationAction.VIEW_NEARBY,
+			LocationAction.ENTER_ARENA,
+			LocationAction.CHALLENGE_DUEL);
+
 	private static final List<LocationAction> SAFE_HUB_ACTIONS = List.of(
 			LocationAction.INSPECT,
 			LocationAction.MOVE,
@@ -78,7 +85,7 @@ public final class LocationActions {
 			Map.entry(LocationCodes.OLD_TOWN, OLD_TOWN_ACTIONS),
 			Map.entry(LocationCodes.FOREST, FOREST_ACTIONS),
 			Map.entry(LocationCodes.NORTH_ROAD, NORTH_ROAD_ACTIONS),
-			Map.entry(LocationCodes.ARENA, SAFE_HUB_ACTIONS),
+			Map.entry(LocationCodes.ARENA, ARENA_ACTIONS),
 			Map.entry(LocationCodes.CRAFTSMEN_WARD, SAFE_HUB_ACTIONS),
 			Map.entry(LocationCodes.HARBOUR, HARBOUR_ACTIONS),
 			Map.entry(LocationCodes.SEWERS, SEWERS_ACTIONS),

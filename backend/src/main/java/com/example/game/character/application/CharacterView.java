@@ -24,6 +24,8 @@ public record CharacterView(
 		int currentStamina,
 		int maxStamina,
 		int gold,
+		int arenaRating,
+		int arenaMarks,
 		int unspentAttributePoints,
 		ExperienceProgress progression,
 		UUID currentLocationId,

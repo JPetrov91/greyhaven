@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Limit;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -40,4 +41,16 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, UUID
 			UUID currentLocationId,
 			UUID excludedCharacterId,
 			Limit limit);
+
+	@Query("""
+			select c from CharacterEntity c
+			where c.id <> :excludedId
+			and abs(c.arenaRating - :rating) <= :band
+			order by abs(c.arenaRating - :rating) asc, lower(c.name) asc
+			""")
+	List<CharacterEntity> findArenaOpponents(
+			@Param("excludedId") UUID excludedId,
+			@Param("rating") int rating,
+			@Param("band") int band,
+			Pageable pageable);
 }

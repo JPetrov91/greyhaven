@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { fetchCurrentCombat } from '../api/combat'
+import { fetchCurrentArenaMatch, fetchCurrentDuel } from '../api/pvp'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
 import { fetchCurrentExpedition } from '../api/expedition'
 import { ActivityPanel } from './ActivityPanel'
@@ -20,6 +21,8 @@ import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 import { MarketPanel } from './MarketPanel'
 import { MasteryPanel } from './MasteryPanel'
+import { ArenaPanel } from './ArenaPanel'
+import { PvpCombatPanel } from './PvpCombatPanel'
 import { ErrorState } from '../ui/ErrorState'
 import { gameLink, gameViewFromLocation } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
@@ -76,8 +79,30 @@ export function GameLayout() {
     refetchOnWindowFocus: true,
   })
 
+  const arenaMatchQuery = useQuery({
+    queryKey: ['arena-match'],
+    queryFn: fetchCurrentArenaMatch,
+    retry: false,
+    refetchOnWindowFocus: true,
+  })
+
+  const duelQuery = useQuery({
+    queryKey: ['duel'],
+    queryFn: fetchCurrentDuel,
+    retry: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      const match = query.state.data
+      if (match && (match.status === 'PENDING' || match.waitingForOpponent || match.status === 'ACTIVE')) {
+        return 4000
+      }
+      return false
+    },
+  })
+
   const combat = combatQuery.data ?? null
   const encounter = encounterQuery.data ?? null
+  const pvpMatch = arenaMatchQuery.data ?? duelQuery.data ?? null
 
   async function handleSearchEncounter() {
     setSearchError(null)
@@ -102,7 +127,9 @@ export function GameLayout() {
   }
 
   const showCombat = combat !== null
-  const showEncounter = !showCombat && encounter !== null
+  const showPvp = !showCombat && pvpMatch !== null
+  const occupied = showCombat || showPvp
+  const showEncounter = !occupied && encounter !== null
   const resumeLoading = combatQuery.isPending || encounterQuery.isPending
   const resumeFailed = combatQuery.isError || encounterQuery.isError
   const claimableExpedition = expeditionQuery.data?.status === 'COMPLETED'
@@ -115,6 +142,7 @@ export function GameLayout() {
     onOpenMarket: () => toggleMarket(true),
     onOpenChat: () => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' }),
     onOpenWorld: () => navigate(gameLink('world')),
+    onOpenArena: () => navigate(gameLink('pvp')),
   }
 
   let mainContent
@@ -154,18 +182,27 @@ export function GameLayout() {
       />
     )
   } else if (view === 'character') {
-    mainContent = <CharacterSummaryPanel mutationsDisabled={showCombat} />
+    mainContent = <CharacterSummaryPanel mutationsDisabled={occupied} />
   } else if (view === 'inventory') {
     mainContent = (
       <InventoryPanel
-        mutationsDisabled={showCombat}
-        onMutated={showCombat ? () => void refreshCombatFromServer() : undefined}
+        mutationsDisabled={occupied}
+        onMutated={occupied ? () => void refreshCombatFromServer() : undefined}
       />
     )
   } else if (view === 'equipment') {
-    mainContent = <EquipmentPanel mutationsDisabled={showCombat} />
+    mainContent = <EquipmentPanel mutationsDisabled={occupied} />
   } else if (view === 'mastery') {
-    mainContent = <MasteryPanel mutationsDisabled={showCombat} />
+    mainContent = <MasteryPanel mutationsDisabled={occupied} />
+  } else if (view === 'pvp') {
+    mainContent = (
+      <ArenaPanel
+        onMatchStarted={() => {
+          void queryClient.invalidateQueries({ queryKey: ['arena-match'] })
+          void queryClient.invalidateQueries({ queryKey: ['duel'] })
+        }}
+      />
+    )
   } else if (view === 'market' || showMarket) {
     mainContent = <MarketPanel onClose={() => toggleMarket(false)} />
   } else if (view === 'expeditions') {
@@ -177,7 +214,7 @@ export function GameLayout() {
       <div className="home-dashboard">
         <LocationPanel variant="hero" {...locationHandlers} />
         <div className="home-mid-row">
-          <CharacterSummaryPanel variant="overview" mutationsDisabled={showCombat} />
+          <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
           <EquipmentOverviewCard />
           <ExpeditionPanel variant="card" />
         </div>
@@ -196,13 +233,15 @@ export function GameLayout() {
       className="game-shell"
       aria-label="Game workspace"
       data-testid="game-layout"
-      data-combat-active={showCombat ? 'true' : undefined}
+      data-combat-active={occupied ? 'true' : undefined}
     >
       <GameTopBar
         combatContext={
           showCombat && combat?.monster
             ? { monsterName: combat.monster.name, roundNumber: combat.roundNumber }
-            : null
+            : showPvp && pvpMatch
+              ? { monsterName: pvpMatch.defenderName, roundNumber: pvpMatch.roundNumber }
+              : null
         }
       />
       {showCombat && combat ? (
@@ -213,6 +252,21 @@ export function GameLayout() {
               queryClient.setQueryData(['combat'], updated)
               void queryClient.invalidateQueries({ queryKey: ['activity'] })
               void queryClient.invalidateQueries({ queryKey: ['dungeon'] })
+            }}
+          />
+        </div>
+      ) : showPvp && pvpMatch ? (
+        <div className="game-shell-body game-shell-body-combat">
+          <PvpCombatPanel
+            match={pvpMatch}
+            onUpdate={(updated) => {
+              if (pvpMatch.matchKind === 'ARENA') {
+                queryClient.setQueryData(['arena-match'], updated)
+              } else {
+                queryClient.setQueryData(['duel'], updated)
+              }
+              void queryClient.invalidateQueries({ queryKey: ['activity'] })
+              void queryClient.invalidateQueries({ queryKey: ['character'] })
             }}
           />
         </div>

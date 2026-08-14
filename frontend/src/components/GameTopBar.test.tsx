@@ -47,6 +47,7 @@ describe('GameTopBar', () => {
       name: 'Ragnar',
       level: 11,
       gold: 4320,
+      arenaMarks: 12,
     } as never)
     vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 3, capacity: 40, items: [], equipment: { slots: {} } } as never)
 
@@ -58,7 +59,7 @@ describe('GameTopBar', () => {
     expect(silver.getAttribute('title')).toBe('Coming later')
     expect(silver.textContent?.replace('Coming later', '').trim()).toBe('Silver')
     expect(silver.querySelector('.coming-later-hint')).toBeNull()
-    expect(screen.getByTestId('topbar-honor').textContent).not.toMatch(/0/)
+    expect(screen.getByTestId('topbar-marks').textContent?.replace(/\s+/g, ' ').trim()).toBe('Marks 12')
     expect(screen.getByTestId('topbar-mail').getAttribute('aria-label')).toBe('Mail')
     expect((screen.getByTestId('topbar-mail') as HTMLButtonElement).disabled).toBe(true)
     expect(screen.queryByTestId('logout-button')).toBeNull()
@@ -73,6 +74,7 @@ describe('GameTopBar', () => {
       name: 'Ragnar',
       level: 11,
       gold: 4320,
+      arenaMarks: 12,
     } as never)
     vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
 
@@ -90,6 +92,7 @@ describe('GameTopBar', () => {
       name: 'Ragnar',
       level: 11,
       gold: 4320,
+      arenaMarks: 12,
     } as never)
     vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
 

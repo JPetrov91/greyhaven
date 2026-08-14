@@ -106,9 +106,9 @@ export function GameTopBar({ combatContext = null }: Props) {
         <span className="currency-chip" data-testid="topbar-gold">
           <CurrencyFace kind="gold" label="Gold" value={character?.gold.toLocaleString('en-US') ?? '—'} />
         </span>
-        <ComingLaterChip testId="topbar-honor">
-          <CurrencyFace kind="honor" label="Honor" />
-        </ComingLaterChip>
+        <span className="currency-chip" data-testid="topbar-marks">
+          <CurrencyFace kind="honor" label="Marks" value={character?.arenaMarks.toLocaleString('en-US') ?? '—'} />
+        </span>
         <ComingLaterChip testId="topbar-credits">
           <CurrencyFace kind="credits" label="Credits" />
         </ComingLaterChip>

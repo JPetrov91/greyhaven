@@ -46,6 +46,10 @@ class GameBalanceCatalogTest {
 		assertThat(balance.market().maxMerchantPurchaseQuantity()).isEqualTo(99);
 		assertThat(balance.market().commonRarityModifier()).isEqualTo(1.0);
 		assertThat(balance.market().epicRarityModifier()).isEqualTo(1.60);
+		assertThat(balance.pvp().startingRating()).isEqualTo(1000);
+		assertThat(balance.pvp().ratingKFactor()).isEqualTo(24);
+		assertThat(balance.pvp().marksPerWin()).isEqualTo(8);
+		assertThat(balance.pvp().maxArenaChallengesPerDay()).isEqualTo(20);
 
 		assertThat(CharacterBalance.MAX_LEVEL).isEqualTo(30);
 		assertThat(ProgressionBalance.cumulativeXpForLevel(11)).isEqualTo(7230);

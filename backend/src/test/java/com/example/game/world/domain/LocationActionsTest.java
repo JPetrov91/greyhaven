@@ -53,7 +53,9 @@ class LocationActionsTest {
 				.containsExactly(
 						LocationAction.INSPECT,
 						LocationAction.MOVE,
-						LocationAction.VIEW_NEARBY)
+						LocationAction.VIEW_NEARBY,
+						LocationAction.ENTER_ARENA,
+						LocationAction.CHALLENGE_DUEL)
 				.doesNotContain(LocationAction.SEARCH_ENCOUNTER);
 		assertThat(LocationActions.forCode(LocationCodes.HARBOUR)).contains(LocationAction.SEARCH_ENCOUNTER);
 		assertThat(LocationActions.forCode(LocationCodes.ANCIENT_RUINS))

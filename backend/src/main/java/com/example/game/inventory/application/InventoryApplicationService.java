@@ -50,7 +50,7 @@ import com.example.game.market.domain.MerchantPriceCalculator;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
-public class InventoryApplicationService {
+public class InventoryApplicationService implements HealingPotionConsumption {
 
 	private final ItemDefinitionRepository itemDefinitionRepository;
 	private final ItemInstanceRepository itemInstanceRepository;
@@ -161,6 +161,108 @@ public class InventoryApplicationService {
 				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
 				.filter(instance -> unreservedQuantity(instance) > 0)
 				.isPresent();
+	}
+
+	@Transactional(readOnly = true)
+	public HealingPotionStock healingPotionStock(UUID characterId) {
+		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+				.orElse(null);
+		if (potion == null || potion.getHealAmount() == null) {
+			return new HealingPotionStock(0, 0);
+		}
+		int quantity = itemInstanceRepository
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.map(this::unreservedQuantity)
+				.orElse(0);
+		return new HealingPotionStock(quantity, potion.getHealAmount());
+	}
+
+	@Transactional(readOnly = true)
+	public List<PublicEquippedItemView> publicEquippedItems(UUID characterId) {
+		List<ItemInstanceEntity> instances = itemInstanceRepository
+				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId);
+		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
+		AffixCatalog catalog = affixCatalogService.load();
+		Map<UUID, ItemInstanceEntity> byId = new HashMap<>();
+		for (ItemInstanceEntity instance : instances) {
+			byId.put(instance.getId(), instance);
+		}
+		List<PublicEquippedItemView> equipped = new ArrayList<>();
+		for (Map.Entry<EquipmentSlot, UUID> entry : equippedItemIds(characterId).entrySet()) {
+			ItemInstanceEntity instance = byId.get(entry.getValue());
+			if (instance == null) {
+				continue;
+			}
+			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			if (definition == null) {
+				continue;
+			}
+			ItemStats stats = statsOf(
+					instance,
+					definition,
+					loadCatalogModifiers(Set.of(definition.getId())),
+					affixesByInstance,
+					catalog);
+			List<RolledAffix> rolled = rolledAffixes(affixesByInstance.getOrDefault(instance.getId(), List.of()));
+			List<ItemAffixView> affixViews = rolled.stream()
+					.map(affix -> {
+						var def = catalog.require(affix.affixCode());
+						return new ItemAffixView(
+								def.code(),
+								def.kind(),
+								def.displayName(),
+								def.stat(),
+								affix.magnitude());
+					})
+					.toList();
+			equipped.add(new PublicEquippedItemView(
+					entry.getKey(),
+					definition.getCode(),
+					ItemDisplayNames.compose(definition.getName(), rolled, catalog),
+					instance.getRarity(),
+					stats.weaponDamage() == 0 ? null : stats.weaponDamage(),
+					stats.armor() == 0 ? null : stats.armor(),
+					affixViews));
+		}
+		return equipped;
+	}
+
+	/**
+	 * Consumes up to {@code maxCharges} healing potions. Returns the number actually taken
+	 * and the potion heal amount (0 heal if the definition is missing).
+	 */
+	@Override
+	@Transactional
+	public HealingPotionStock consumeUpTo(UUID characterId, int maxCharges) {
+		characterVitalsService.lockVitalsByCharacterId(characterId);
+		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+				.orElse(null);
+		if (potion == null || potion.getHealAmount() == null) {
+			return new HealingPotionStock(0, 0);
+		}
+		int healAmount = potion.getHealAmount();
+		if (maxCharges < 1) {
+			return new HealingPotionStock(0, healAmount);
+		}
+		ItemInstanceEntity instance = itemInstanceRepository
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.orElse(null);
+		if (instance == null) {
+			return new HealingPotionStock(0, healAmount);
+		}
+		int consumed = Math.min(maxCharges, unreservedQuantity(instance));
+		if (consumed < 1) {
+			return new HealingPotionStock(0, healAmount);
+		}
+		instance.decreaseQuantity(consumed);
+		if (instance.getQuantity() == 0) {
+			itemInstanceRepository.delete(instance);
+		}
+		else {
+			itemInstanceRepository.saveAndFlush(instance);
+		}
+		return new HealingPotionStock(consumed, healAmount);
 	}
 
 	/**

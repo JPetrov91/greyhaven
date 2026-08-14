@@ -45,6 +45,8 @@ function characterFixture(overrides: Partial<CharacterResponse> = {}): Character
     currentStamina: 85,
     maxStamina: 85,
     gold: 100,
+    arenaRating: 1000,
+    arenaMarks: 0,
     unspentAttributePoints: 0,
     currentLocationId: 'loc-1',
     derivedStats: {

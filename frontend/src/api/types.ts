@@ -43,6 +43,8 @@ export type CharacterResponse = {
   currentStamina: number
   maxStamina: number
   gold: number
+  arenaRating: number
+  arenaMarks: number
   unspentAttributePoints: number
   currentLocationId: string | null
   derivedStats: DerivedStatsResponse
@@ -280,6 +282,8 @@ export type LocationAction =
   | 'CANCEL_LISTING'
   | 'SEARCH_ENCOUNTER'
   | 'ENTER_DUNGEON'
+  | 'ENTER_ARENA'
+  | 'CHALLENGE_DUEL'
 
 export type LocationResponse = {
   id: string

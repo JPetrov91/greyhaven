@@ -120,3 +120,23 @@ items:
     LIGHT: 2
     MEDIUM: 0
     HEAVY: -3
+
+pvp:
+  startingRating: 1000
+  ratingKFactor: 24
+  ratingFloor: 0
+  repeatWindowHours: 24
+  repeatRatingMultiplier: 0.0
+  marksPerWin: 8
+  marksPerLoss: 2
+  maxSnapshotPotions: 3
+  maxArenaChallengesPerDay: 20
+  opponentRatingBand: 400
+  opponentsPageSize: 20
+  historyPageSize: 20
+  duelChallengeTtlMinutes: 10
+  duelActionTimeoutMinutes: 10
+  duelExpireMinutes: 30
+  healWhenHpPercentBelowDefault: 40
+  defendWhenStaminaPercentBelowDefault: 25
+  finisherWhenEnemyHpPercentBelowDefault: 35

@@ -18,6 +18,8 @@ public record CharacterResponse(
 		int currentStamina,
 		int maxStamina,
 		int gold,
+		int arenaRating,
+		int arenaMarks,
 		int unspentAttributePoints,
 		UUID currentLocationId,
 		DerivedStatsResponse derivedStats,
