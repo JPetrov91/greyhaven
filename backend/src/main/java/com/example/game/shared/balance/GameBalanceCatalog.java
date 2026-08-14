@@ -3,6 +3,7 @@ package com.example.game.shared.balance;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,8 @@ public final class GameBalanceCatalog {
 		return new GameBalance(
 				parseCharacter(map(root, "character")),
 				parseProgression(map(root, "progression")),
+				parseCombat(map(root, "combat")),
+				parseRecovery(map(root, "recovery")),
 				parseInventory(map(root, "inventory")));
 	}
 
@@ -60,6 +63,7 @@ public final class GameBalanceCatalog {
 				intValue(node, "maxLevel"),
 				intValue(node, "baseMaxHealth"),
 				intValue(node, "healthPerEndurance"),
+				intValue(node, "healthPerLevel"),
 				intValue(node, "baseMaxStamina"),
 				intValue(node, "staminaPerEndurance"),
 				intValue(node, "staminaPerAgility"),
@@ -70,7 +74,40 @@ public final class GameBalanceCatalog {
 		return new GameBalance.Progression(
 				intValue(node, "attributePointsPerLevel"),
 				intValue(node, "maxAttributeValue"),
+				intValue(node, "freeRespecMaxLevel"),
+				intValue(node, "respecBaseGold"),
+				intValue(node, "respecGoldPerLevel"),
 				intArray(node, "cumulativeXpToReachLevel"));
+	}
+
+	private static GameBalance.Combat parseCombat(Map<String, Object> node) {
+		return new GameBalance.Combat(
+				doubleValue(node, "physicalDamagePerStrength"),
+				intValue(node, "baseAccuracy"),
+				doubleValue(node, "accuracyPerPerception"),
+				doubleValue(node, "dodgePerAgility"),
+				doubleValue(node, "baseCriticalChance"),
+				doubleValue(node, "criticalChancePerPerception"));
+	}
+
+	private static GameBalance.Recovery parseRecovery(Map<String, Object> node) {
+		Object value = node.get("bands");
+		if (!(value instanceof List<?> list) || list.isEmpty()) {
+			throw new IllegalStateException("game-balance.yml missing list 'recovery.bands'");
+		}
+		List<GameBalance.RecoveryBand> bands = new ArrayList<>(list.size());
+		for (Object element : list) {
+			if (!(element instanceof Map<?, ?> raw)) {
+				throw new IllegalStateException("game-balance.yml recovery.bands must contain objects");
+			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> band = (Map<String, Object>) raw;
+			bands.add(new GameBalance.RecoveryBand(
+					intValue(band, "maxLevel"),
+					doubleValue(band, "healthPercentPerMinute"),
+					doubleValue(band, "staminaPercentPerMinute")));
+		}
+		return new GameBalance.Recovery(List.copyOf(bands));
 	}
 
 	private static GameBalance.Inventory parseInventory(Map<String, Object> node) {
@@ -92,6 +129,14 @@ public final class GameBalanceCatalog {
 			return number.intValue();
 		}
 		throw new IllegalStateException("game-balance.yml missing integer '" + key + "'");
+	}
+
+	private static double doubleValue(Map<String, Object> node, String key) {
+		Object value = node.get(key);
+		if (value instanceof Number number) {
+			return number.doubleValue();
+		}
+		throw new IllegalStateException("game-balance.yml missing number '" + key + "'");
 	}
 
 	private static int[] intArray(Map<String, Object> node, String key) {

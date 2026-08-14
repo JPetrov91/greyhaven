@@ -136,6 +136,15 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
           <h3 id="rewards-heading">Victory</h3>
           <p data-testid="combat-reward-xp">+{combat.rewards.xp} XP</p>
           <p data-testid="combat-reward-gold">+{combat.rewards.gold} gold</p>
+          {combat.rewards.newLevel > combat.rewards.previousLevel ? (
+            <div className="combat-level-up" data-testid="combat-level-up">
+              <p>LEVEL UP</p>
+              <p>
+                Level {combat.rewards.previousLevel} → {combat.rewards.newLevel}
+              </p>
+              <p>+{combat.rewards.attributePointsGained} Attribute Points</p>
+            </div>
+          ) : null}
           {combat.rewards.items.length > 0 ? (
             <ul data-testid="combat-reward-items">
               {combat.rewards.items.map((item) => (

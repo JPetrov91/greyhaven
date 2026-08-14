@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface CharacterCombatGuard {
 
 	void assertNotInActiveCombat(UUID characterId);
+
+	boolean inActiveCombat(UUID characterId);
 }

@@ -20,10 +20,15 @@ import com.example.game.character.infrastructure.CharacterRepository;
 public class CharacterVitalsService {
 
 	private final CharacterRepository characterRepository;
+	private final CharacterStateSyncService characterStateSyncService;
 	private final Clock clock;
 
-	public CharacterVitalsService(CharacterRepository characterRepository, Clock clock) {
+	public CharacterVitalsService(
+			CharacterRepository characterRepository,
+			CharacterStateSyncService characterStateSyncService,
+			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.characterStateSyncService = characterStateSyncService;
 		this.clock = clock;
 	}
 
@@ -39,8 +44,10 @@ public class CharacterVitalsService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView lockVitalsOf(UUID accountId) {
-		return toView(characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound));
+		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
+		return toView(character);
 	}
 
 	/**
@@ -49,8 +56,10 @@ public class CharacterVitalsService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView lockVitalsByCharacterId(UUID characterId) {
-		return toView(characterRepository.findWithLockById(characterId)
-				.orElseThrow(CharacterErrors::characterNotFound));
+		CharacterEntity character = characterRepository.findWithLockById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
+		return toView(character);
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
@@ -58,10 +67,13 @@ public class CharacterVitalsService {
 		if (amount < 1) {
 			throw new IllegalArgumentException("heal amount must be positive");
 		}
-		CharacterEntity character = characterRepository.findByAccountId(accountId)
+		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
+		Instant now = Instant.now(clock);
 		int healed = Math.min(character.getMaxHealth(), character.getCurrentHealth() + amount);
-		character.applyHealth(healed, Instant.now(clock));
+		character.applyHealth(healed, now);
+		character.restartRecoveryBaseline(now);
 		characterRepository.saveAndFlush(character);
 	}
 
@@ -70,11 +82,24 @@ public class CharacterVitalsService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView syncCombatVitals(UUID characterId, int currentHealth, int currentStamina) {
+		return syncCombatVitals(characterId, currentHealth, currentStamina, false);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView syncCombatVitals(
+			UUID characterId,
+			int currentHealth,
+			int currentStamina,
+			boolean restartRecoveryBaseline) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		Instant now = Instant.now(clock);
 		int health = Math.max(0, Math.min(currentHealth, character.getMaxHealth()));
 		int stamina = Math.max(0, Math.min(currentStamina, character.getMaxStamina()));
-		character.syncCombatVitals(health, stamina, Instant.now(clock));
+		character.syncCombatVitals(health, stamina, now);
+		if (restartRecoveryBaseline) {
+			character.restartRecoveryBaseline(now);
+		}
 		characterRepository.saveAndFlush(character);
 		return toView(character);
 	}
@@ -87,10 +112,12 @@ public class CharacterVitalsService {
 	public CharacterVitalsView applyDefeatRecovery(UUID characterId) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		Instant now = Instant.now(clock);
 		character.syncCombatVitals(
 				CharacterBalance.defeatRecovery(character.getMaxHealth()),
 				CharacterBalance.defeatRecovery(character.getMaxStamina()),
-				Instant.now(clock));
+				now);
+		character.restartRecoveryBaseline(now);
 		characterRepository.saveAndFlush(character);
 		return toView(character);
 	}
@@ -102,6 +129,7 @@ public class CharacterVitalsService {
 		}
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
 		if (character.getGold() < amount) {
 			throw CharacterErrors.insufficientGold();
 		}
@@ -113,6 +141,7 @@ public class CharacterVitalsService {
 	public void addGold(UUID characterId, int amount) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
 		character.addGold(amount, Instant.now(clock));
 		characterRepository.saveAndFlush(character);
 	}
@@ -121,6 +150,7 @@ public class CharacterVitalsService {
 	public CharacterVitalsView grantCombatRewards(UUID characterId, int xp, int gold) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
 		Instant now = Instant.now(clock);
 		character.grantExperience(xp, now);
 		character.addGold(gold, now);
@@ -138,11 +168,14 @@ public class CharacterVitalsService {
 		}
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
 		if (damage == 0) {
 			return toView(character);
 		}
+		Instant now = Instant.now(clock);
 		int remaining = Math.max(1, character.getCurrentHealth() - damage);
-		character.applyHealth(remaining, Instant.now(clock));
+		character.applyHealth(remaining, now);
+		character.restartRecoveryBaseline(now);
 		characterRepository.saveAndFlush(character);
 		return toView(character);
 	}

@@ -15,6 +15,7 @@ import com.example.game.activity.infrastructure.ActivityEntryEntity;
 import com.example.game.activity.infrastructure.ActivityEntryRepository;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
+import com.example.game.character.domain.ProgressionBalance;
 
 @Service
 public class ActivityApplicationService {
@@ -81,7 +82,11 @@ public class ActivityApplicationService {
 			return;
 		}
 		for (int level = previousLevel + 1; level <= newLevel; level++) {
-			record(characterId, ActivityType.LEVEL_UP, "You reached level " + level + ".");
+			record(
+					characterId,
+					ActivityType.LEVEL_UP,
+					"LEVEL UP — Level " + (level - 1) + " → " + level
+							+ " (+" + ProgressionBalance.ATTRIBUTE_POINTS_PER_LEVEL + " Attribute Points)");
 		}
 	}
 

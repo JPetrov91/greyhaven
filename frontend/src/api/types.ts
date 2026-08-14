@@ -18,6 +18,16 @@ export type DerivedStatsResponse = {
   armor: number
 }
 
+export type ProgressionResponse = {
+  level: number
+  totalExperience: number
+  experienceIntoCurrentLevel: number
+  experienceRequiredForNextLevel: number | null
+  experienceRemaining: number | null
+  progressPercent: number
+  maxLevel: boolean
+}
+
 export type CharacterResponse = {
   id: string
   accountId: string
@@ -36,6 +46,7 @@ export type CharacterResponse = {
   unspentAttributePoints: number
   currentLocationId: string | null
   derivedStats: DerivedStatsResponse
+  progression: ProgressionResponse
   createdAt: string
   updatedAt: string
 }
@@ -87,6 +98,9 @@ export type CombatRewardItemResponse = {
 export type CombatRewardsResponse = {
   xp: number
   gold: number
+  previousLevel: number
+  newLevel: number
+  attributePointsGained: number
   items: CombatRewardItemResponse[]
 }
 

@@ -17,9 +17,9 @@ class CharacterBalanceTest {
 	}
 
 	@Test
-	void derivedStatsUseIsolatedFormulas() {
-		assertThat(CharacterBalance.maxHealth(5)).isEqualTo(160);
-		assertThat(CharacterBalance.maxStamina(5, 5)).isEqualTo(80);
+	void derivedVitalsUsePhase2Formulas() {
+		assertThat(CharacterBalance.maxHealth(5, 1)).isEqualTo(165);
+		assertThat(CharacterBalance.maxStamina(5, 5)).isEqualTo(85);
 	}
 
 	@Test

@@ -7,13 +7,13 @@ import org.junit.jupiter.api.Test;
 class CharacterStatCalculatorTest {
 
 	@Test
-	void derivedStatsMatchMvpFormulasWithStarterEquipment() {
+	void derivedStatsMatchPhase2FormulasWithStarterEquipment() {
 		DerivedCombatStats stats = CharacterStatCalculator.calculate(5, 5, 5, 6, 3);
 
 		assertThat(stats.physicalDamage()).isEqualTo(14); // 6 + 5 * 1.5
-		assertThat(stats.accuracy()).isEqualTo(80); // 70 + 5 * 2
-		assertThat(stats.dodge()).isEqualTo(8); // 5 * 1.5
-		assertThat(stats.criticalChance()).isEqualTo(8); // 5 + 5 * 0.5
+		assertThat(stats.accuracy()).isEqualTo(83); // round(75 + 5 * 1.5)
+		assertThat(stats.dodge()).isEqualTo(6); // round(5 * 1.2)
+		assertThat(stats.criticalChance()).isEqualTo(7); // round(5 + 5 * 0.35)
 		assertThat(stats.armor()).isEqualTo(3);
 	}
 

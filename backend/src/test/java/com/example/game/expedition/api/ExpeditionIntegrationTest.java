@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Clock;
 import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -365,7 +366,10 @@ class ExpeditionIntegrationTest {
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
 		moveToTavern(session);
-		jdbcTemplate.update("update characters set current_health = 5 where id = ?", characterId);
+		jdbcTemplate.update(
+				"update characters set current_health = 5, last_recovery_at = ? where id = ?",
+				Timestamp.from(START),
+				characterId);
 
 		// Aggressive injury hit for 18 damage, followed by an empty haul.
 		mutableRandomProvider.queue(1, 18, 1);
@@ -385,10 +389,10 @@ class ExpeditionIntegrationTest {
 		mockMvc.perform(withCsrf(post("/api/v1/expeditions/" + expeditionId + "/claim")).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("CLAIMED"))
-				.andExpect(jsonPath("$.rewards.injuryDamage").value(4));
+				.andExpect(jsonPath("$.rewards.injuryDamage").value(18));
 
-		assertThat(intColumn("select current_health from characters where id = ?", characterId)).isEqualTo(1);
-		assertThat(intColumn("select injury_applied from expeditions where id = ?", expeditionId)).isEqualTo(4);
+		assertThat(intColumn("select current_health from characters where id = ?", characterId)).isEqualTo(147);
+		assertThat(intColumn("select injury_applied from expeditions where id = ?", expeditionId)).isEqualTo(18);
 	}
 
 	@Test

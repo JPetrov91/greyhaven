@@ -307,7 +307,11 @@ public class InventoryApplicationService {
 		if (!definition.getType().isEquippable()) {
 			throw InventoryErrors.itemNotEquippable();
 		}
-		if (vitals.level() < definition.getRequiredLevel()) {
+		if (vitals.level() < definition.getRequiredLevel()
+				|| vitals.strength() < definition.getRequiredStrength()
+				|| vitals.agility() < definition.getRequiredAgility()
+				|| vitals.endurance() < definition.getRequiredEndurance()
+				|| vitals.perception() < definition.getRequiredPerception()) {
 			throw InventoryErrors.equipRequirementsNotMet();
 		}
 

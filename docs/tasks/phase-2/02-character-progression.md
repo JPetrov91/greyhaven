@@ -51,3 +51,14 @@ derived stat calculation
 legacy character progression
 
 Do not implement item affixes or mastery yet.
+
+## Fast Improvements assigned to this task
+
+The following Fast Improvements from
+docs/PHASE_2_FAST_IMPROVEMENTS.md
+are mandatory parts of this task:
+
+- FI-001 — Passive Health and Stamina Recovery
+- FI-002 — Experience Progress Visibility
+
+They must be implemented and tested before Task 2 is considered complete.

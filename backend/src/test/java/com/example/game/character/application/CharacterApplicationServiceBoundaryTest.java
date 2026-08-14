@@ -21,5 +21,13 @@ class CharacterApplicationServiceBoundaryTest {
 				.getMethod("current", UUID.class)
 				.getReturnType())
 				.isEqualTo(CharacterView.class);
+		assertThat(CharacterProgressionService.class
+				.getMethod("allocateAttributes", UUID.class, int.class, int.class, int.class, int.class)
+				.getReturnType())
+				.isEqualTo(CharacterView.class);
+		assertThat(CharacterProgressionService.class
+				.getMethod("respec", UUID.class)
+				.getReturnType())
+				.isEqualTo(CharacterView.class);
 	}
 }

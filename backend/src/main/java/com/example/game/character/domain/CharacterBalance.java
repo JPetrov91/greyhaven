@@ -4,7 +4,7 @@ import com.example.game.shared.balance.GameBalance;
 import com.example.game.shared.balance.GameBalanceCatalog;
 
 /**
- * Isolated MVP balance constants and derived-stat formulas for characters.
+ * Isolated balance constants and derived-stat formulas for characters.
  */
 public final class CharacterBalance {
 
@@ -21,6 +21,7 @@ public final class CharacterBalance {
 
 	public static final int BASE_MAX_HEALTH = VALUES.baseMaxHealth();
 	public static final int HEALTH_PER_ENDURANCE = VALUES.healthPerEndurance();
+	public static final int HEALTH_PER_LEVEL = VALUES.healthPerLevel();
 
 	public static final int BASE_MAX_STAMINA = VALUES.baseMaxStamina();
 	public static final int STAMINA_PER_ENDURANCE = VALUES.staminaPerEndurance();
@@ -35,8 +36,8 @@ public final class CharacterBalance {
 	private CharacterBalance() {
 	}
 
-	public static int maxHealth(int endurance) {
-		return BASE_MAX_HEALTH + (endurance * HEALTH_PER_ENDURANCE);
+	public static int maxHealth(int endurance, int level) {
+		return BASE_MAX_HEALTH + (endurance * HEALTH_PER_ENDURANCE) + (level * HEALTH_PER_LEVEL);
 	}
 
 	public static int maxStamina(int endurance, int agility) {

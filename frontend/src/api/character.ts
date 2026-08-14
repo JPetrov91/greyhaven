@@ -23,3 +23,9 @@ export function allocateAttributes(deltas: {
     body: JSON.stringify(deltas),
   })
 }
+
+export function respecCharacter(): Promise<CharacterResponse> {
+  return apiRequest<CharacterResponse>('/api/v1/character/respec', {
+    method: 'POST',
+  })
+}

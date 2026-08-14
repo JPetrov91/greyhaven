@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.example.game.character.domain.DerivedCombatStats;
+import com.example.game.character.domain.ExperienceProgress;
 
 /**
  * Application-layer character snapshot. Controllers map this to API DTOs.
@@ -24,6 +25,7 @@ public record CharacterView(
 		int maxStamina,
 		int gold,
 		int unspentAttributePoints,
+		ExperienceProgress progression,
 		UUID currentLocationId,
 		DerivedCombatStats derivedStats,
 		Instant createdAt,

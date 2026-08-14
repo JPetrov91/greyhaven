@@ -15,7 +15,8 @@ public final class CharacterStatCalculator {
 			int weaponDamage,
 			int armorValue) {
 		int physicalDamage = (int) Math.round(weaponDamage + (strength * CombatBalance.PHYSICAL_DAMAGE_PER_STRENGTH));
-		int accuracy = CombatBalance.BASE_ACCURACY + (perception * CombatBalance.ACCURACY_PER_PERCEPTION);
+		int accuracy = (int) Math.round(
+				CombatBalance.BASE_ACCURACY + (perception * CombatBalance.ACCURACY_PER_PERCEPTION));
 		int dodge = (int) Math.round(agility * CombatBalance.DODGE_PER_AGILITY);
 		int criticalChance = (int) Math.round(
 				CombatBalance.BASE_CRITICAL_CHANCE

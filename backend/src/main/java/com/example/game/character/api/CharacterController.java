@@ -14,6 +14,7 @@ import com.example.game.character.application.CharacterApplicationService;
 import com.example.game.character.application.CharacterProgressionService;
 import com.example.game.character.application.CharacterView;
 import com.example.game.character.domain.DerivedCombatStats;
+import com.example.game.character.domain.ExperienceProgress;
 
 import jakarta.validation.Valid;
 
@@ -56,6 +57,11 @@ public class CharacterController {
 				request.perception()));
 	}
 
+	@PostMapping("/character/respec")
+	public CharacterResponse respec(@AuthenticationPrincipal AccountPrincipal principal) {
+		return toResponse(characterProgressionService.respec(principal.getAccountId()));
+	}
+
 	private static CharacterResponse toResponse(CharacterView character) {
 		return new CharacterResponse(
 				character.id(),
@@ -75,8 +81,20 @@ public class CharacterController {
 				character.unspentAttributePoints(),
 				character.currentLocationId(),
 				toDerivedStats(character.derivedStats()),
+				toProgression(character.progression()),
 				character.createdAt(),
 				character.updatedAt());
+	}
+
+	private static ProgressionResponse toProgression(ExperienceProgress progression) {
+		return new ProgressionResponse(
+				progression.level(),
+				progression.totalExperience(),
+				progression.experienceIntoCurrentLevel(),
+				progression.experienceRequiredForNextLevel(),
+				progression.experienceRemaining(),
+				progression.progressPercent(),
+				progression.maxLevel());
 	}
 
 	private static DerivedStatsResponse toDerivedStats(DerivedCombatStats stats) {

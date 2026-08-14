@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.game.character.domain.CharacterBalance;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
+import com.example.game.character.domain.ExperienceProgress;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.shared.api.ApiException;
@@ -27,6 +28,7 @@ public class CharacterApplicationService {
 	private final StartingLocationProvider startingLocationProvider;
 	private final StarterLoadoutGranter starterLoadoutGranter;
 	private final EquippedBonusProvider equippedBonusProvider;
+	private final CharacterStateSyncService characterStateSyncService;
 	private final Clock clock;
 
 	public CharacterApplicationService(
@@ -34,11 +36,13 @@ public class CharacterApplicationService {
 			StartingLocationProvider startingLocationProvider,
 			StarterLoadoutGranter starterLoadoutGranter,
 			EquippedBonusProvider equippedBonusProvider,
+			CharacterStateSyncService characterStateSyncService,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.startingLocationProvider = startingLocationProvider;
 		this.starterLoadoutGranter = starterLoadoutGranter;
 		this.equippedBonusProvider = equippedBonusProvider;
+		this.characterStateSyncService = characterStateSyncService;
 		this.clock = clock;
 	}
 
@@ -58,7 +62,7 @@ public class CharacterApplicationService {
 		int agility = CharacterBalance.STARTING_AGILITY;
 		int endurance = CharacterBalance.STARTING_ENDURANCE;
 		int perception = CharacterBalance.STARTING_PERCEPTION;
-		int maxHealth = CharacterBalance.maxHealth(endurance);
+		int maxHealth = CharacterBalance.maxHealth(endurance, CharacterBalance.STARTING_LEVEL);
 		int maxStamina = CharacterBalance.maxStamina(endurance, agility);
 		Instant now = Instant.now(clock);
 
@@ -80,6 +84,7 @@ public class CharacterApplicationService {
 				0,
 				startingLocationId,
 				now,
+				now,
 				now);
 
 		try {
@@ -98,10 +103,11 @@ public class CharacterApplicationService {
 		}
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public CharacterView current(UUID accountId) {
-		CharacterEntity character = characterRepository.findByAccountId(accountId)
+		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
 				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
 		return toView(character);
 	}
 
@@ -134,6 +140,7 @@ public class CharacterApplicationService {
 				character.getMaxStamina(),
 				character.getGold(),
 				character.getUnspentAttributePoints(),
+				ExperienceProgress.from(character.getLevel(), character.getExperience()),
 				character.getCurrentLocationId(),
 				derivedStats,
 				character.getCreatedAt(),

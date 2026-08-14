@@ -1,4 +1,4 @@
-# Phase 1 gameplay values. Task 2 may replace the XP table; do not put the Phase 2 1–30 curve here yet.
+# Phase 2 character progression, combat-derived stats, and out-of-combat recovery.
 character:
   startingLevel: 1
   startingExperience: 0
@@ -7,19 +7,49 @@ character:
   startingEndurance: 5
   startingPerception: 5
   startingGold: 100
-  maxLevel: 10
+  maxLevel: 30
   baseMaxHealth: 100
   healthPerEndurance: 12
+  healthPerLevel: 5
   baseMaxStamina: 50
   staminaPerEndurance: 4
-  staminaPerAgility: 2
+  staminaPerAgility: 3
   defeatRecoveryPercent: 50
 
 progression:
   attributePointsPerLevel: 2
   maxAttributeValue: 40
+  freeRespecMaxLevel: 10
+  respecBaseGold: 500
+  respecGoldPerLevel: 100
   # Index 0 unused. Index n is total XP required to reach level n.
-  cumulativeXpToReachLevel: [0, 0, 100, 350, 800, 1500, 2500, 3700, 5100, 6700, 8500]
+  cumulativeXpToReachLevel:
+    [0, 0, 100, 280, 560, 960, 1510, 2230, 3130, 4230, 5580,
+     7230, 9230, 11630, 14480, 17830, 21730, 26230, 31430, 37430, 44330,
+     52230, 61230, 71430, 82930, 95830, 110230, 126230, 143930, 163430, 184830]
+
+combat:
+  physicalDamagePerStrength: 1.5
+  baseAccuracy: 75
+  accuracyPerPerception: 1.5
+  dodgePerAgility: 1.2
+  baseCriticalChance: 5.0
+  criticalChancePerPerception: 0.35
+
+recovery:
+  bands:
+    - maxLevel: 5
+      healthPercentPerMinute: 20.0
+      staminaPercentPerMinute: 40.0
+    - maxLevel: 10
+      healthPercentPerMinute: 15.0
+      staminaPercentPerMinute: 30.0
+    - maxLevel: 20
+      healthPercentPerMinute: 10.0
+      staminaPercentPerMinute: 20.0
+    - maxLevel: 30
+      healthPercentPerMinute: 7.5
+      staminaPercentPerMinute: 15.0
 
 inventory:
   defaultCapacity: 40

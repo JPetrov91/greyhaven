@@ -94,7 +94,7 @@ class InventoryIntegrationTest {
 				.andExpect(jsonPath("$.equipment.armorItemId").isNotEmpty())
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
-				.andExpect(jsonPath("$.derivedStats.accuracy").value(80));
+				.andExpect(jsonPath("$.derivedStats.accuracy").value(83));
 
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())
@@ -118,6 +118,28 @@ class InventoryIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.equipment.weaponItemId").value(weaponId.toString()))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14));
+	}
+
+	@Test
+	void equipmentAttributeRequirementsAreEnforced() throws Exception {
+		String email = "inv-attr-req-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		UUID weaponId = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/unequip")).session(session))
+				.andExpect(status().isOk());
+		jdbcTemplate.update(
+				"update item_definitions set required_strength = 40 where code = ?",
+				ItemCodes.RUSTY_SWORD);
+
+		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/equip")).session(session))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("EQUIP_REQUIREMENTS_NOT_MET"));
+
+		jdbcTemplate.update(
+				"update item_definitions set required_strength = 0 where code = ?",
+				ItemCodes.RUSTY_SWORD);
 	}
 
 	@Test
@@ -249,7 +271,7 @@ class InventoryIntegrationTest {
 		UUID potionId = itemInstanceId(characterId, ItemCodes.HEALING_POTION);
 
 		jdbcTemplate.update(
-				"update characters set current_health = 100 where id = ?",
+				"update characters set current_health = 100, last_recovery_at = now() where id = ?",
 				characterId);
 
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + potionId + "/use")).session(session))
@@ -281,7 +303,7 @@ class InventoryIntegrationTest {
 				"select current_health from characters where id = ?",
 				Integer.class,
 				characterId);
-		assertThat(clampedHealth).isEqualTo(160);
+		assertThat(clampedHealth).isEqualTo(165);
 	}
 
 	@Test

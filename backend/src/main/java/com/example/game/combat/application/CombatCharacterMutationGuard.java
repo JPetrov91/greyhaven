@@ -21,11 +21,16 @@ public class CombatCharacterMutationGuard implements CharacterCombatGuard {
 
 	@Override
 	public void assertNotInActiveCombat(UUID characterId) {
-		if (combatSessionRepository.existsByCharacterIdAndStatus(characterId, CombatSessionStatus.ACTIVE)) {
+		if (inActiveCombat(characterId)) {
 			throw new ApiException(
 					"COMBAT_IN_PROGRESS",
 					"That action is unavailable while combat is in progress.",
 					HttpStatus.CONFLICT);
 		}
+	}
+
+	@Override
+	public boolean inActiveCombat(UUID characterId) {
+		return combatSessionRepository.existsByCharacterIdAndStatus(characterId, CombatSessionStatus.ACTIVE);
 	}
 }

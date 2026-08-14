@@ -102,6 +102,9 @@ public class CombatController {
 		return new CombatRewardsResponse(
 				rewards.xp(),
 				rewards.gold(),
+				rewards.previousLevel(),
+				rewards.newLevel(),
+				rewards.attributePointsGained(),
 				rewards.items().stream().map(CombatController::toRewardItem).toList());
 	}
 

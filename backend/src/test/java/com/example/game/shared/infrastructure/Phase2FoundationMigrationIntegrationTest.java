@@ -132,7 +132,7 @@ class Phase2FoundationMigrationIntegrationTest {
 			flyway(dataSource).load().migrate();
 
 			assertThat(jdbc.queryForObject(
-					"select count(*) from flyway_schema_history where version = '18' and success = true",
+					"select count(*) from flyway_schema_history where version = '19' and success = true",
 					Integer.class)).isEqualTo(1);
 
 			List<String> slots = jdbc.queryForList(
@@ -153,7 +153,7 @@ class Phase2FoundationMigrationIntegrationTest {
 			Map<String, Object> character = jdbc.queryForMap(
 					"""
 							select level, experience, gold, strength, agility, endurance, perception,
-								unspent_attribute_points
+								unspent_attribute_points, last_recovery_at
 							from characters where id = ?
 							""",
 					characterId);
@@ -165,6 +165,7 @@ class Phase2FoundationMigrationIntegrationTest {
 			assertThat(character.get("endurance")).isEqualTo(6);
 			assertThat(character.get("perception")).isEqualTo(5);
 			assertThat(character.get("unspent_attribute_points")).isEqualTo(2);
+			assertThat(character.get("last_recovery_at")).isNotNull();
 
 			assertThat(jdbc.queryForObject(
 					"select id from item_instances where item_definition_id = ?",
@@ -217,8 +218,8 @@ class Phase2FoundationMigrationIntegrationTest {
 							insert into characters (
 								id, account_id, name, level, experience, strength, agility, endurance, perception,
 								current_health, max_health, current_stamina, max_stamina, gold,
-								unspent_attribute_points, current_location_id, created_at, updated_at)
-							values (?, ?, 'CapThirty', 30, 184830, 5, 5, 5, 5, 160, 160, 80, 80, 100, 0, ?, now(), now())
+								unspent_attribute_points, current_location_id, created_at, updated_at, last_recovery_at)
+							values (?, ?, 'CapThirty', 30, 184830, 5, 5, 5, 5, 160, 160, 80, 80, 100, 0, ?, now(), now(), now())
 							""",
 					UUID.fromString("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
 					UUID.fromString("99999999-9999-4999-8999-999999999999"),
@@ -240,7 +241,7 @@ class Phase2FoundationMigrationIntegrationTest {
 
 			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(7);
 			assertThat(jdbc.queryForObject(
-					"select count(*) from flyway_schema_history where version = '18' and success = true",
+					"select count(*) from flyway_schema_history where version = '19' and success = true",
 					Integer.class)).isEqualTo(1);
 			assertCatalogSlots(jdbc);
 			assertThat(jdbc.queryForObject(
@@ -260,8 +261,8 @@ class Phase2FoundationMigrationIntegrationTest {
 							insert into characters (
 								id, account_id, name, level, experience, strength, agility, endurance, perception,
 								current_health, max_health, current_stamina, max_stamina, gold,
-								unspent_attribute_points, current_location_id, created_at, updated_at)
-							values (?, ?, 'FreshHero', 1, 0, 5, 5, 5, 5, 160, 160, 80, 80, 100, 0, ?, now(), now())
+								unspent_attribute_points, current_location_id, created_at, updated_at, last_recovery_at)
+							values (?, ?, 'FreshHero', 1, 0, 5, 5, 5, 5, 160, 160, 80, 80, 100, 0, ?, now(), now(), now())
 							""",
 					characterId, accountId, CITY_SQUARE);
 			assertThat(jdbc.queryForObject(

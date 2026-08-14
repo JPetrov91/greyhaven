@@ -71,6 +71,12 @@ public class CombatSessionEntity implements Persistable<UUID> {
 	@Column(name = "gold_awarded")
 	private Integer goldAwarded;
 
+	@Column(name = "reward_previous_level")
+	private Integer rewardPreviousLevel;
+
+	@Column(name = "reward_new_level")
+	private Integer rewardNewLevel;
+
 	@Version
 	@Column(nullable = false)
 	private long version;
@@ -196,6 +202,14 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		return goldAwarded;
 	}
 
+	public Integer getRewardPreviousLevel() {
+		return rewardPreviousLevel;
+	}
+
+	public Integer getRewardNewLevel() {
+		return rewardNewLevel;
+	}
+
 	public long getVersion() {
 		return version;
 	}
@@ -257,7 +271,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.updatedAt = updatedAt;
 	}
 
-	public void markRewards(int xp, int gold, Instant updatedAt) {
+	public void markRewards(int xp, int gold, int previousLevel, int newLevel, Instant updatedAt) {
 		if (rewardsApplied) {
 			throw new IllegalStateException("rewards already applied");
 		}
@@ -270,6 +284,8 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.rewardsApplied = true;
 		this.xpAwarded = xp;
 		this.goldAwarded = gold;
+		this.rewardPreviousLevel = previousLevel;
+		this.rewardNewLevel = newLevel;
 		this.updatedAt = updatedAt;
 	}
 

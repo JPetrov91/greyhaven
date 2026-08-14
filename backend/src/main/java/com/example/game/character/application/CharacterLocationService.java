@@ -21,10 +21,15 @@ import com.example.game.character.infrastructure.CharacterRepository;
 public class CharacterLocationService {
 
 	private final CharacterRepository characterRepository;
+	private final CharacterStateSyncService characterStateSyncService;
 	private final Clock clock;
 
-	public CharacterLocationService(CharacterRepository characterRepository, Clock clock) {
+	public CharacterLocationService(
+			CharacterRepository characterRepository,
+			CharacterStateSyncService characterStateSyncService,
+			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.characterStateSyncService = characterStateSyncService;
 		this.clock = clock;
 	}
 
@@ -41,8 +46,10 @@ public class CharacterLocationService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterLocationView lockLocationOf(UUID accountId) {
-		return toView(characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound));
+		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		characterStateSyncService.sync(character);
+		return toView(character);
 	}
 
 	/**

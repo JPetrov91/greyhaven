@@ -501,7 +501,10 @@ class CombatIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"action\":\"QUICK_ATTACK\",\"expectedRoundNumber\":0}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("PLAYER_WON"));
+				.andExpect(jsonPath("$.status").value("PLAYER_WON"))
+				.andExpect(jsonPath("$.rewards.previousLevel").value(1))
+				.andExpect(jsonPath("$.rewards.newLevel").value(2))
+				.andExpect(jsonPath("$.rewards.attributePointsGained").value(2));
 
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())
@@ -517,7 +520,7 @@ class CombatIntegrationTest {
 		assertThat(entries.stream()
 				.filter(entry -> "LEVEL_UP".equals(entry.get("type")))
 				.map(entry -> entry.get("message")))
-				.containsExactly("You reached level 2.");
+				.containsExactly("LEVEL UP — Level 1 → 2 (+2 Attribute Points)");
 
 		mockMvc.perform(withCsrf(post("/api/v1/character/attributes"))
 						.session(session)

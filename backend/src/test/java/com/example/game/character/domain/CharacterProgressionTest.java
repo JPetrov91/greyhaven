@@ -38,6 +38,15 @@ class CharacterProgressionTest {
 	}
 
 	@Test
+	void zeroGainCatchUpAwardsPendingLevelsOnThePhase2Curve() {
+		CharacterProgression.ProgressionResult result = CharacterProgression.applyExperience(5, 1600, 0);
+
+		assertThat(result.level()).isEqualTo(6);
+		assertThat(result.experience()).isEqualTo(1600);
+		assertThat(result.unspentAttributePointsGained()).isEqualTo(2);
+	}
+
+	@Test
 	void rejectsNegativeXp() {
 		assertThatThrownBy(() -> CharacterProgression.applyExperience(1, 0, -1))
 				.isInstanceOf(IllegalArgumentException.class);

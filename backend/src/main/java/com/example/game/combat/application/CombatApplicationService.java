@@ -17,6 +17,7 @@ import com.example.game.character.application.EquippedBonusProvider;
 import com.example.game.character.application.EquippedBonuses;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
+import com.example.game.character.domain.ProgressionBalance;
 import com.example.game.combat.domain.CombatAction;
 import com.example.game.combat.domain.CombatEngine;
 import com.example.game.combat.domain.CombatEvent;
@@ -275,14 +276,16 @@ public class CombatApplicationService {
 			synced = characterVitalsService.syncCombatVitals(
 					vitals.characterId(),
 					result.playerHealth(),
-					result.playerStamina());
+					result.playerStamina(),
+					true);
 			resolveEncounter(session.getEncounterId(), now);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_WON) {
 			synced = characterVitalsService.syncCombatVitals(
 					vitals.characterId(),
 					result.playerHealth(),
-					result.playerStamina());
+					result.playerStamina(),
+					true);
 			applyRewardsExactlyOnce(session, monster, now);
 			resolveEncounter(session.getEncounterId(), now);
 			synced = characterVitalsService.lockVitalsByCharacterId(vitals.characterId());
@@ -340,8 +343,17 @@ public class CombatApplicationService {
 		activityApplicationService.recordCombatVictory(session.getCharacterId(), monster.getName());
 		activityApplicationService.recordLevelUps(session.getCharacterId(), previousLevel, after.level());
 
-		session.markRewards(xp, gold, now);
+		session.markRewards(xp, gold, previousLevel, after.level(), now);
 		combatSessionRepository.saveAndFlush(session);
+	}
+
+	private static int attributePointsGained(CombatSessionEntity session) {
+		Integer previous = session.getRewardPreviousLevel();
+		Integer next = session.getRewardNewLevel();
+		if (previous == null || next == null || next <= previous) {
+			return 0;
+		}
+		return (next - previous) * ProgressionBalance.ATTRIBUTE_POINTS_PER_LEVEL;
 	}
 
 	private void createRewardPlan(
@@ -434,6 +446,9 @@ public class CombatApplicationService {
 		return new CombatRewardsView(
 				session.getXpAwarded() == null ? 0 : session.getXpAwarded(),
 				session.getGoldAwarded() == null ? 0 : session.getGoldAwarded(),
+				session.getRewardPreviousLevel() == null ? 0 : session.getRewardPreviousLevel(),
+				session.getRewardNewLevel() == null ? 0 : session.getRewardNewLevel(),
+				attributePointsGained(session),
 				items);
 	}
 

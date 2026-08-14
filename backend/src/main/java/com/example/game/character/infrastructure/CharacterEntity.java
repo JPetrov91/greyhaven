@@ -78,6 +78,9 @@ public class CharacterEntity implements Persistable<UUID> {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Column(name = "last_recovery_at", nullable = false)
+	private Instant lastRecoveryAt;
+
 	/**
 	 * Identifiers are assigned by the application, so Spring Data cannot infer whether an
 	 * instance is new. Without this flag every save would be a merge and issue a redundant select.
@@ -106,7 +109,8 @@ public class CharacterEntity implements Persistable<UUID> {
 			int unspentAttributePoints,
 			UUID currentLocationId,
 			Instant createdAt,
-			Instant updatedAt) {
+			Instant updatedAt,
+			Instant lastRecoveryAt) {
 		this.id = id;
 		this.accountId = accountId;
 		this.name = name;
@@ -125,6 +129,7 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.currentLocationId = currentLocationId;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
+		this.lastRecoveryAt = lastRecoveryAt;
 		this.unsaved = true;
 	}
 
@@ -212,6 +217,10 @@ public class CharacterEntity implements Persistable<UUID> {
 		return updatedAt;
 	}
 
+	public Instant getLastRecoveryAt() {
+		return lastRecoveryAt;
+	}
+
 	public void moveTo(UUID locationId, Instant updatedAt) {
 		this.currentLocationId = locationId;
 		this.updatedAt = updatedAt;
@@ -255,6 +264,37 @@ public class CharacterEntity implements Persistable<UUID> {
 		}
 		this.gold -= amount;
 		this.updatedAt = updatedAt;
+	}
+
+	public int applyPendingLevelCatchUp(Instant updatedAt) {
+		return grantExperience(0, updatedAt);
+	}
+
+	public void checkpointRecovery(int currentHealth, int currentStamina, Instant now) {
+		applyHealth(Math.min(currentHealth, maxHealth), now);
+		applyStamina(Math.min(currentStamina, maxStamina), now);
+		this.lastRecoveryAt = now;
+	}
+
+	public void restartRecoveryBaseline(Instant now) {
+		this.lastRecoveryAt = now;
+		this.updatedAt = now;
+	}
+
+	public void respec(Instant updatedAt) {
+		int allocated = (strength - CharacterBalance.STARTING_STRENGTH)
+				+ (agility - CharacterBalance.STARTING_AGILITY)
+				+ (endurance - CharacterBalance.STARTING_ENDURANCE)
+				+ (perception - CharacterBalance.STARTING_PERCEPTION);
+		if (allocated < 0) {
+			throw new IllegalStateException("allocated attributes below starting values");
+		}
+		this.unspentAttributePoints = Math.addExact(this.unspentAttributePoints, allocated);
+		this.strength = CharacterBalance.STARTING_STRENGTH;
+		this.agility = CharacterBalance.STARTING_AGILITY;
+		this.endurance = CharacterBalance.STARTING_ENDURANCE;
+		this.perception = CharacterBalance.STARTING_PERCEPTION;
+		recomputeMaxVitalsPreservingCurrentRatios(updatedAt);
 	}
 
 	public int grantExperience(int xpGain, Instant updatedAt) {
@@ -310,7 +350,7 @@ public class CharacterEntity implements Persistable<UUID> {
 	private void recomputeMaxVitalsPreservingCurrentRatios(Instant updatedAt) {
 		int previousMaxHealth = this.maxHealth;
 		int previousMaxStamina = this.maxStamina;
-		this.maxHealth = CharacterBalance.maxHealth(endurance);
+		this.maxHealth = CharacterBalance.maxHealth(endurance, level);
 		this.maxStamina = CharacterBalance.maxStamina(endurance, agility);
 		if (previousMaxHealth > 0) {
 			this.currentHealth = Math.min(

@@ -21,6 +21,7 @@ public record CharacterResponse(
 		int unspentAttributePoints,
 		UUID currentLocationId,
 		DerivedStatsResponse derivedStats,
+		ProgressionResponse progression,
 		Instant createdAt,
 		Instant updatedAt
 ) {

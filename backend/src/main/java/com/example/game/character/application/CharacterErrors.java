@@ -22,4 +22,11 @@ final class CharacterErrors {
 				"You do not have enough gold to purchase this item.",
 				HttpStatus.BAD_REQUEST);
 	}
+
+	static ApiException insufficientGoldForRespec() {
+		return new ApiException(
+				"INSUFFICIENT_GOLD",
+				"You do not have enough gold to respec.",
+				HttpStatus.BAD_REQUEST);
+	}
 }
