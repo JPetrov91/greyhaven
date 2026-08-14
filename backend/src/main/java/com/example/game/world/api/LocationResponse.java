@@ -13,6 +13,8 @@ public record LocationResponse(
 		String description,
 		LocationSafety safety,
 		String region,
+		Integer recommendedLevelMin,
+		Integer recommendedLevelMax,
 		List<LocationAction> actions
 ) {
 }

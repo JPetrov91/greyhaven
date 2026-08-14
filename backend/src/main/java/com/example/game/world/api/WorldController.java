@@ -65,6 +65,8 @@ public class WorldController {
 				location.description(),
 				location.safety(),
 				location.region(),
+				location.recommendedLevelMin(),
+				location.recommendedLevelMax(),
 				location.actions());
 	}
 
@@ -73,7 +75,9 @@ public class WorldController {
 				destination.id(),
 				destination.code(),
 				destination.name(),
-				destination.safety());
+				destination.safety(),
+				destination.recommendedLevelMin(),
+				destination.recommendedLevelMax());
 	}
 
 	private static NearbyCharacterResponse toNearbyResponse(NearbyCharacterView character) {

@@ -74,6 +74,7 @@ public class EncounterController {
 				monster.name(),
 				monster.level(),
 				monster.maxHealth(),
-				monster.archetype());
+				monster.archetype(),
+				monster.tier());
 	}
 }

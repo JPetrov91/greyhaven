@@ -63,6 +63,9 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
       <h3 data-testid="encounter-monster-name">{encounter.monster.name}</h3>
       <p className="muted">
         Level {encounter.monster.level}
+        {encounter.monster.tier && encounter.monster.tier !== 'NORMAL'
+          ? ` · ${encounter.monster.tier.charAt(0)}${encounter.monster.tier.slice(1).toLowerCase().replaceAll('_', ' ')}`
+          : ''}
         {encounter.monster.archetype ? ` · ${encounter.monster.archetype.charAt(0)}${encounter.monster.archetype.slice(1).toLowerCase()}` : ''}
       </p>
       <p>A hostile presence blocks the path. Fight or ignore?</p>

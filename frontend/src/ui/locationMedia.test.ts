@@ -6,6 +6,8 @@ describe('locationArtUrl', () => {
     expect(locationArtUrl('FOREST')).toBe('/locations/forest.webp')
     expect(locationArtUrl('CITY_SQUARE')).toBe('/locations/city_square.webp')
     expect(locationArtUrl('UNKNOWN')).toBe('/locations/city_square.webp')
+    expect(locationArtUrl('HARBOUR')).toBe('/locations/north_road.webp')
+    expect(locationArtUrl('ANCIENT_RUINS')).toBe('/locations/forest.webp')
   })
 })
 

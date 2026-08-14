@@ -172,7 +172,11 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
         <section className="combat-hud-block">
           <h3>Encounter</h3>
           <p>
-            Defeat {combat.monster.name}.
+            Defeat {combat.monster.name}
+            {combat.monster.tier && combat.monster.tier !== 'NORMAL'
+              ? ` (${combat.monster.tier.charAt(0) + combat.monster.tier.slice(1).toLowerCase().replaceAll('_', ' ')})`
+              : ''}
+            .
           </p>
         </section>
         {location && weather ? (

@@ -8,6 +8,7 @@ public record MonsterView(
 		String name,
 		int level,
 		int maxHealth,
-		String archetype
+		String archetype,
+		String tier
 ) {
 }

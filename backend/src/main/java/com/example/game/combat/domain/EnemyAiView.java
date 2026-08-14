@@ -15,8 +15,25 @@ public record EnemyAiView(
 		int playerHealth,
 		int playerMaxHealth,
 		List<StatusInstance> playerStatuses,
-		StatusType signatureStatus
+		StatusType signatureStatus,
+		MonsterTier tier
 ) {
+
+	public MonsterTier tier() {
+		return tier == null ? MonsterTier.NORMAL : tier;
+	}
+
+	public boolean enraged() {
+		MonsterTier rank = tier();
+		return (rank == MonsterTier.MINI_BOSS || rank == MonsterTier.BOSS) && ownHealthPercent() < 50;
+	}
+
+	public int playerHealthPercent() {
+		if (playerMaxHealth <= 0) {
+			return 0;
+		}
+		return (int) Math.round(playerHealth * 100.0 / playerMaxHealth);
+	}
 
 	public int ownHealthPercent() {
 		if (ownMaxHealth <= 0) {

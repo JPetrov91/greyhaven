@@ -43,6 +43,15 @@ public class EncounterEntity implements Persistable<UUID> {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Column(name = "dungeon_run_id")
+	private UUID dungeonRunId;
+
+	@Column(name = "dungeon_room_code", length = 64)
+	private String dungeonRoomCode;
+
+	@Column(name = "dungeon_optional", nullable = false)
+	private boolean dungeonOptional;
+
 	@Transient
 	private boolean unsaved;
 
@@ -65,6 +74,12 @@ public class EncounterEntity implements Persistable<UUID> {
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
 		this.unsaved = true;
+	}
+
+	public void bindDungeon(UUID dungeonRunId, String dungeonRoomCode, boolean optional) {
+		this.dungeonRunId = dungeonRunId;
+		this.dungeonRoomCode = dungeonRoomCode;
+		this.dungeonOptional = optional;
 	}
 
 	@Override
@@ -107,6 +122,22 @@ public class EncounterEntity implements Persistable<UUID> {
 		return updatedAt;
 	}
 
+	public UUID getDungeonRunId() {
+		return dungeonRunId;
+	}
+
+	public String getDungeonRoomCode() {
+		return dungeonRoomCode;
+	}
+
+	public boolean isDungeonOptional() {
+		return dungeonOptional;
+	}
+
+	public boolean isDungeonEncounter() {
+		return dungeonRunId != null;
+	}
+
 	public void markCombatStarted(Instant updatedAt) {
 		if (status != EncounterStatus.AVAILABLE) {
 			throw new IllegalStateException("encounter must be AVAILABLE to start combat");
@@ -123,6 +154,14 @@ public class EncounterEntity implements Persistable<UUID> {
 			throw new IllegalStateException("encounter is already closed");
 		}
 		this.status = EncounterStatus.RESOLVED;
+		this.updatedAt = updatedAt;
+	}
+
+	public void expire(Instant updatedAt) {
+		if (status != EncounterStatus.AVAILABLE) {
+			throw new IllegalStateException("only an available encounter can be deferred");
+		}
+		this.status = EncounterStatus.EXPIRED;
 		this.updatedAt = updatedAt;
 	}
 }

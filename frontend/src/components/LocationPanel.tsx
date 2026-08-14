@@ -16,6 +16,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { StatusBadge } from '../ui/StatusBadge'
 import { LocationCrest, LocationIcon, locationArtUrl, locationWeather } from '../ui/locationMedia'
 import type { LocationActionIconName } from '../ui/locationMedia'
+import { DungeonPanel } from './DungeonPanel'
 
 const ACTION_LABELS: Record<LocationAction, string> = {
   INSPECT: 'Inspect location',
@@ -29,10 +30,11 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   BUY_ITEM: 'Buy item',
   CANCEL_LISTING: 'Cancel own listing',
   SEARCH_ENCOUNTER: 'Search for encounter',
+  ENTER_DUNGEON: 'Enter dungeon',
 }
 
 /** Actions already represented by dedicated UI sections on this screen. */
-const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY'])
+const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY', 'ENTER_DUNGEON'])
 
 type Props = {
   onSearchEncounter?: () => void
@@ -192,9 +194,15 @@ export function LocationPanel({
               {location.code}
             </span>
           </p>
+          {location.recommendedLevelMin != null && location.recommendedLevelMax != null ? (
+            <p className="muted" data-testid="location-band">
+              Recommended levels {location.recommendedLevelMin}–{location.recommendedLevelMax}
+            </p>
+          ) : null}
           <p className="location-description" data-testid="location-description">
             {location.description}
           </p>
+          {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
 
           <section className="location-section" aria-labelledby="destinations-heading">
             <h3 id="destinations-heading">Travel</h3>
@@ -211,6 +219,9 @@ export function LocationPanel({
                       <span className="muted">
                         {' '}
                         · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
+                        {destination.recommendedLevelMin != null
+                          ? ` · Lv ${destination.recommendedLevelMin}–${destination.recommendedLevelMax}`
+                          : ''}
                       </span>
                     </div>
                     <Button
@@ -561,6 +572,12 @@ function LocationHero({
         <p className="location-description" data-testid="location-description">
           {location.description}
         </p>
+        {location.recommendedLevelMin != null && location.recommendedLevelMax != null ? (
+          <p className="muted" data-testid="location-band">
+            Recommended levels {location.recommendedLevelMin}–{location.recommendedLevelMax}
+          </p>
+        ) : null}
+        {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
         <p className="location-hero-pills">
           <span
             className={safe ? 'location-hero-pill location-hero-pill-safe' : 'location-hero-pill location-hero-pill-danger'}

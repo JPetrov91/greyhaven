@@ -72,6 +72,10 @@ public class MonsterDefinitionEntity implements Persistable<UUID> {
 	@Column(name = "signature_status", length = 32)
 	private com.example.game.combat.domain.StatusType signatureStatus;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "monster_tier", nullable = false, length = 16)
+	private com.example.game.combat.domain.MonsterTier monsterTier;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -185,6 +189,10 @@ public class MonsterDefinitionEntity implements Persistable<UUID> {
 
 	public com.example.game.combat.domain.StatusType getSignatureStatus() {
 		return signatureStatus;
+	}
+
+	public com.example.game.combat.domain.MonsterTier getMonsterTier() {
+		return monsterTier == null ? com.example.game.combat.domain.MonsterTier.NORMAL : monsterTier;
 	}
 
 	public Instant getCreatedAt() {

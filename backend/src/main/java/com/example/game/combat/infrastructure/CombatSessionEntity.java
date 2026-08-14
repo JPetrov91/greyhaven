@@ -8,6 +8,7 @@ import org.springframework.data.domain.Persistable;
 import com.example.game.combat.domain.CombatSessionStatus;
 import com.example.game.combat.domain.CombatRulesVersion;
 import com.example.game.combat.domain.EnemyAiArchetype;
+import com.example.game.combat.domain.MonsterTier;
 import com.example.game.combat.domain.StatusType;
 import com.example.game.item.domain.WeaponFamily;
 
@@ -88,6 +89,10 @@ public class CombatSessionEntity implements Persistable<UUID> {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "snap_signature_status", length = 32)
 	private StatusType snapSignatureStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "snap_monster_tier", length = 16)
+	private MonsterTier snapMonsterTier;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "weapon_family", length = 16)
@@ -279,6 +284,10 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		return snapSignatureStatus;
 	}
 
+	public MonsterTier getSnapMonsterTier() {
+		return snapMonsterTier == null ? MonsterTier.NORMAL : snapMonsterTier;
+	}
+
 	public WeaponFamily getWeaponFamily() {
 		return weaponFamily;
 	}
@@ -358,6 +367,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 			int damageMax,
 			EnemyAiArchetype archetype,
 			StatusType signatureStatus,
+			MonsterTier monsterTier,
 			WeaponFamily weaponFamily,
 			String techniqueCodes,
 			int staminaCostReduction) {
@@ -372,6 +382,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.snapEnemyDamageMax = damageMax;
 		this.snapAiArchetype = archetype;
 		this.snapSignatureStatus = signatureStatus;
+		this.snapMonsterTier = monsterTier;
 		this.weaponFamily = weaponFamily;
 		this.techniqueCodes = techniqueCodes;
 		this.staminaCostReduction = staminaCostReduction;

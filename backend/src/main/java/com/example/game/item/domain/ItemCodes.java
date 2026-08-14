@@ -31,6 +31,7 @@ public final class ItemCodes {
 	public static final String SPLINT_VEST = "SPLINT_VEST";
 	public static final String MILITIA_SHORTSWORD = "MILITIA_SHORTSWORD";
 	public static final String ARMING_SWORD = "ARMING_SWORD";
+	public static final String WARDENS_SIGNET = "WARDENS_SIGNET";
 
 	private ItemCodes() {
 	}

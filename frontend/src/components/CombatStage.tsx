@@ -42,7 +42,7 @@ export function CombatStage({ combat, playerName, artUrl, legacy, terminal, turn
         <CombatFighter
           side="enemy"
           name={combat.monster.name}
-          subtitle={`Level ${combat.monster.level}${combat.monster.archetype ? ` · ${formatArchetype(combat.monster.archetype)}` : ''}`}
+          subtitle={`Level ${combat.monster.level}${combat.monster.tier && combat.monster.tier !== 'NORMAL' ? ` · ${formatArchetype(combat.monster.tier)}` : ''}${combat.monster.archetype ? ` · ${formatArchetype(combat.monster.archetype)}` : ''}`}
           nameTestId="combat-monster-name"
           imageSrc={monsterCombatArtUrl(combat.monster.code)}
           health={combat.enemyHealth}

@@ -93,8 +93,8 @@ class CombatIntegrationTest {
 				"select count(*) from flyway_schema_history where version = '12' and success = true",
 				Integer.class);
 
-		assertThat(monsters).isEqualTo(5);
-		assertThat(weights).isEqualTo(11);
+		assertThat(monsters).isEqualTo(18);
+		assertThat(weights).isEqualTo(28);
 		assertThat(flywayV9).isEqualTo(1);
 		assertThat(flywayV10).isEqualTo(1);
 		assertThat(flywayV12).isEqualTo(1);

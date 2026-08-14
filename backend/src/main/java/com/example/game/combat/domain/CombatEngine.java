@@ -55,7 +55,8 @@ public final class CombatEngine {
 				state.playerHealth(),
 				state.playerMaxHealth(),
 				state.playerStatuses(),
-				state.enemy().signatureStatus()));
+				state.enemy().signatureStatus(),
+				state.enemy().tier()));
 	}
 
 	public static CombatRoundResult resolve(
@@ -370,7 +371,8 @@ public final class CombatEngine {
 				working.playerHealth,
 				state.playerMaxHealth(),
 				List.copyOf(working.playerStatuses),
-				state.enemy().signatureStatus());
+				state.enemy().signatureStatus(),
+				state.enemy().tier());
 		EnemyActionKind chosen = EnemyAi.choose(view);
 		switch (chosen) {
 			case DEFEND -> {

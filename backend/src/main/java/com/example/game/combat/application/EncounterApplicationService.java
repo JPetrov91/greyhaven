@@ -6,6 +6,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +46,7 @@ public class EncounterApplicationService {
 	private final CombatApplicationService combatApplicationService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public EncounterApplicationService(
 			CharacterLocationService characterLocationService,
@@ -56,7 +58,8 @@ public class EncounterApplicationService {
 			CombatSessionRepository combatSessionRepository,
 			CombatApplicationService combatApplicationService,
 			RandomProvider randomProvider,
-			Clock clock) {
+			Clock clock,
+			ApplicationEventPublisher eventPublisher) {
 		this.characterLocationService = characterLocationService;
 		this.characterVitalsService = characterVitalsService;
 		this.worldApplicationService = worldApplicationService;
@@ -67,6 +70,7 @@ public class EncounterApplicationService {
 		this.combatApplicationService = combatApplicationService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional(readOnly = true)
@@ -150,8 +154,15 @@ public class EncounterApplicationService {
 		if (encounter.getStatus() != EncounterStatus.AVAILABLE) {
 			throw CombatErrors.encounterNotAvailable();
 		}
+		if (encounter.isDungeonEncounter() && !encounter.isDungeonOptional()) {
+			throw CombatErrors.dungeonEncounterRequired();
+		}
 		encounter.resolve(Instant.now(clock));
 		encounterRepository.saveAndFlush(encounter);
+		if (encounter.isDungeonEncounter()) {
+			eventPublisher.publishEvent(new EncounterClosedEvent(
+					vitals.characterId(), encounter.getId(), EncounterCloseReason.IGNORED));
+		}
 
 		MonsterView monster = null;
 		if (encounter.getMonsterDefinitionId() != null) {
@@ -162,13 +173,48 @@ public class EncounterApplicationService {
 		return new EncounterView(encounter.getId(), encounter.getStatus(), monster);
 	}
 
-	static MonsterView toMonsterView(MonsterDefinitionEntity monster) {
+	public static MonsterView toMonsterView(MonsterDefinitionEntity monster) {
 		return new MonsterView(
 				monster.getId(),
 				monster.getCode(),
 				monster.getName(),
 				monster.getLevel(),
 				monster.getMaxHealth(),
-				monster.getAiArchetype() == null ? null : monster.getAiArchetype().name());
+				monster.getAiArchetype() == null ? null : monster.getAiArchetype().name(),
+				monster.getMonsterTier().name());
+	}
+
+	@Transactional
+	public EncounterSearchView createScriptedEncounter(
+			UUID characterId,
+			UUID locationId,
+			UUID monsterDefinitionId,
+			UUID dungeonRunId,
+			String dungeonRoomCode,
+			boolean optional) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsByCharacterId(characterId);
+		if (combatSessionRepository.existsByCharacterIdAndStatus(vitals.characterId(), CombatSessionStatus.ACTIVE)) {
+			throw CombatErrors.combatInProgress();
+		}
+		if (encounterRepository.existsByCharacterIdAndStatusIn(vitals.characterId(), UNRESOLVED)) {
+			throw CombatErrors.unresolvedEncounter();
+		}
+		if (combatSessionRepository.existsByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())) {
+			throw CombatErrors.outcomePending();
+		}
+		MonsterDefinitionEntity monster = monsterDefinitionRepository.findById(monsterDefinitionId)
+				.orElseThrow(() -> new IllegalStateException("monster definition missing: " + monsterDefinitionId));
+		Instant now = Instant.now(clock);
+		EncounterEntity encounter = new EncounterEntity(
+				UUID.randomUUID(),
+				vitals.characterId(),
+				locationId,
+				monster.getId(),
+				EncounterStatus.AVAILABLE,
+				now,
+				now);
+		encounter.bindDungeon(dungeonRunId, dungeonRoomCode, optional);
+		encounterRepository.saveAndFlush(encounter);
+		return EncounterSearchView.found(encounter.getId(), toMonsterView(monster));
 	}
 }

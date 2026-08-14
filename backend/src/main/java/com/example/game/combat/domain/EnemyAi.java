@@ -23,12 +23,38 @@ public final class EnemyAi {
 			}
 			case AGGRESSIVE -> EnemyActionKind.HEAVY_ATTACK;
 			case ASSASSIN -> canStatusAttack(view) ? EnemyActionKind.STATUS_ATTACK : EnemyActionKind.BASIC_ATTACK;
-			case ARMORED -> EnemyActionKind.HEAVY_ATTACK;
+			case ARMORED -> {
+				if (canStatusAttack(view)
+						&& StatusEffectEngine.stacks(view.playerStatuses(), view.signatureStatus())
+								< CombatV2Balance.armorBreakMaxStacks()) {
+					yield EnemyActionKind.STATUS_ATTACK;
+				}
+				yield EnemyActionKind.HEAVY_ATTACK;
+			}
+			case SHIELDED -> {
+				if (!StatusEffectEngine.has(view.ownStatuses(), StatusType.GUARDED) || view.ownStaminaPercent() < 35) {
+					yield EnemyActionKind.DEFEND;
+				}
+				if (canStatusAttack(view)) {
+					yield EnemyActionKind.STATUS_ATTACK;
+				}
+				yield EnemyActionKind.BASIC_ATTACK;
+			}
+			case MARKSMAN -> {
+				if (canStatusAttack(view)
+						&& !StatusEffectEngine.has(view.playerStatuses(), StatusType.OFF_BALANCE)) {
+					yield EnemyActionKind.STATUS_ATTACK;
+				}
+				if (view.playerHealthPercent() < 35 || view.enraged()) {
+					yield EnemyActionKind.HEAVY_ATTACK;
+				}
+				yield EnemyActionKind.BASIC_ATTACK;
+			}
 			case BERSERKER -> {
 				if (canStatusAttack(view) && StatusEffectEngine.stacks(view.playerStatuses(), StatusType.BLEED) < 3) {
 					yield EnemyActionKind.STATUS_ATTACK;
 				}
-				if (view.ownHealthPercent() < 50) {
+				if (view.ownHealthPercent() < 50 || view.enraged()) {
 					yield EnemyActionKind.HEAVY_ATTACK;
 				}
 				yield EnemyActionKind.BASIC_ATTACK;
@@ -38,6 +64,9 @@ public final class EnemyAi {
 						&& !StatusEffectEngine.has(view.playerStatuses(), StatusType.STUN)
 						&& !StatusEffectEngine.has(view.playerStatuses(), StatusType.STUN_IMMUNITY)) {
 					yield EnemyActionKind.STATUS_ATTACK;
+				}
+				if (view.enraged()) {
+					yield EnemyActionKind.HEAVY_ATTACK;
 				}
 				yield EnemyActionKind.BASIC_ATTACK;
 			}

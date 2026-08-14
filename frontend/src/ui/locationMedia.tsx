@@ -2,9 +2,25 @@ const KNOWN = ['CITY_SQUARE', 'TAVERN', 'MARKET', 'OLD_TOWN', 'FOREST', 'NORTH_R
 
 export type LocationArtCode = (typeof KNOWN)[number]
 
+const ART_ALIAS: Record<string, string> = {
+  ARENA: 'city_square',
+  CRAFTSMEN_WARD: 'market',
+  HARBOUR: 'north_road',
+  SEWERS: 'old_town',
+  OLD_MINE: 'forest',
+  BANDIT_CAMP: 'north_road',
+  ANCIENT_RUINS: 'forest',
+}
+
 export function locationArtUrl(code: string): string {
-  const key = KNOWN.includes(code as LocationArtCode) ? code.toLowerCase() : 'city_square'
-  return `/locations/${key}.webp`
+  if (KNOWN.includes(code as LocationArtCode)) {
+    return `/locations/${code.toLowerCase()}.webp`
+  }
+  const alias = ART_ALIAS[code]
+  if (alias) {
+    return `/locations/${alias}.webp`
+  }
+  return '/locations/city_square.webp'
 }
 
 export type LocationWeather = {

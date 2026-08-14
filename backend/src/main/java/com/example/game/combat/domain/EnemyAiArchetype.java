@@ -6,5 +6,7 @@ public enum EnemyAiArchetype {
 	CONTROL,
 	ASSASSIN,
 	ARMORED,
-	BERSERKER
+	BERSERKER,
+	SHIELDED,
+	MARKSMAN
 }

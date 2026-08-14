@@ -149,6 +149,7 @@ export function GameLayout() {
         onCombatStarted={(started) => {
           queryClient.setQueryData(['encounter'], null)
           queryClient.setQueryData(['combat'], started)
+          void queryClient.invalidateQueries({ queryKey: ['dungeon'] })
         }}
       />
     )
@@ -211,6 +212,7 @@ export function GameLayout() {
             onCombatUpdate={(updated) => {
               queryClient.setQueryData(['combat'], updated)
               void queryClient.invalidateQueries({ queryKey: ['activity'] })
+              void queryClient.invalidateQueries({ queryKey: ['dungeon'] })
             }}
           />
         </div>

@@ -118,7 +118,8 @@ public class CombatController {
 				monster.name(),
 				monster.level(),
 				monster.maxHealth(),
-				monster.archetype());
+				monster.archetype(),
+				monster.tier());
 	}
 
 	private static CombatStatusResponse toStatus(CombatStatusView status) {

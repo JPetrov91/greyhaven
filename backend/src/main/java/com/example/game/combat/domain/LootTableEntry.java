@@ -7,6 +7,7 @@ public record LootTableEntry(
 		String itemCode,
 		int dropChancePercent,
 		int quantityMin,
-		int quantityMax
+		int quantityMax,
+		boolean oncePerCharacter
 ) {
 }

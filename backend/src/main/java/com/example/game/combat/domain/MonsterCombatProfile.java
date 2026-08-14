@@ -15,6 +15,12 @@ public record MonsterCombatProfile(
 		int maxHealth,
 		int maxStamina,
 		EnemyAiArchetype archetype,
-		StatusType signatureStatus
+		StatusType signatureStatus,
+		MonsterTier tier
 ) {
+	public MonsterCombatProfile {
+		if (tier == null) {
+			tier = MonsterTier.NORMAL;
+		}
+	}
 }

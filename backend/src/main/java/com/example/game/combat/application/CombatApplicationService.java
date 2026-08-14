@@ -3,11 +3,14 @@ package com.example.game.combat.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +48,9 @@ import com.example.game.combat.domain.Phase1CombatEngine;
 import com.example.game.combat.domain.StatusEffectEngine;
 import com.example.game.combat.domain.StatusInstance;
 import com.example.game.combat.domain.StatusType;
+import com.example.game.combat.domain.UniqueLoot;
+import com.example.game.combat.infrastructure.CharacterUniqueDropEntity;
+import com.example.game.combat.infrastructure.CharacterUniqueDropRepository;
 import com.example.game.combat.infrastructure.CombatEventEntity;
 import com.example.game.combat.infrastructure.CombatEventRepository;
 import com.example.game.combat.infrastructure.CombatRewardItemEntity;
@@ -89,6 +95,7 @@ public class CombatApplicationService {
 	private final CombatStatusEffectRepository combatStatusEffectRepository;
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final MonsterLootEntryRepository monsterLootEntryRepository;
+	private final CharacterUniqueDropRepository characterUniqueDropRepository;
 	private final ItemCatalogService itemCatalogService;
 	private final MasteryApplicationService masteryApplicationService;
 	private final TechniqueLoadoutQuery techniqueLoadoutQuery;
@@ -97,6 +104,7 @@ public class CombatApplicationService {
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 	private final TransactionTemplate transactionTemplate;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public CombatApplicationService(
 			CharacterVitalsService characterVitalsService,
@@ -110,6 +118,7 @@ public class CombatApplicationService {
 			CombatStatusEffectRepository combatStatusEffectRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			MonsterLootEntryRepository monsterLootEntryRepository,
+			CharacterUniqueDropRepository characterUniqueDropRepository,
 			ItemCatalogService itemCatalogService,
 			MasteryApplicationService masteryApplicationService,
 			TechniqueLoadoutQuery techniqueLoadoutQuery,
@@ -117,7 +126,8 @@ public class CombatApplicationService {
 			EquippedWeaponQuery equippedWeaponQuery,
 			RandomProvider randomProvider,
 			Clock clock,
-			PlatformTransactionManager transactionManager) {
+			PlatformTransactionManager transactionManager,
+			ApplicationEventPublisher eventPublisher) {
 		this.characterVitalsService = characterVitalsService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.inventoryApplicationService = inventoryApplicationService;
@@ -129,6 +139,7 @@ public class CombatApplicationService {
 		this.combatStatusEffectRepository = combatStatusEffectRepository;
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.monsterLootEntryRepository = monsterLootEntryRepository;
+		this.characterUniqueDropRepository = characterUniqueDropRepository;
 		this.itemCatalogService = itemCatalogService;
 		this.masteryApplicationService = masteryApplicationService;
 		this.techniqueLoadoutQuery = techniqueLoadoutQuery;
@@ -137,6 +148,7 @@ public class CombatApplicationService {
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
+		this.eventPublisher = eventPublisher;
 	}
 
 	@Transactional
@@ -377,7 +389,7 @@ public class CombatApplicationService {
 		CharacterVitalsView synced;
 		if (result.status() == CombatSessionStatus.PLAYER_LOST) {
 			synced = characterVitalsService.applyDefeatRecovery(vitals.characterId());
-			resolveEncounter(session.getEncounterId(), now);
+			resolveEncounter(session.getEncounterId(), EncounterCloseReason.LOST, now);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_ESCAPED) {
 			synced = characterVitalsService.syncCombatVitals(
@@ -385,7 +397,7 @@ public class CombatApplicationService {
 					result.playerHealth(),
 					result.playerStamina(),
 					true);
-			resolveEncounter(session.getEncounterId(), now);
+			resolveEncounter(session.getEncounterId(), EncounterCloseReason.ESCAPED, now);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_WON) {
 			synced = characterVitalsService.syncCombatVitals(
@@ -393,7 +405,7 @@ public class CombatApplicationService {
 					result.playerHealth(),
 					result.playerStamina(),
 					true);
-			resolveEncounter(session.getEncounterId(), now);
+			resolveEncounter(session.getEncounterId(), EncounterCloseReason.WON, now);
 		}
 		else {
 			synced = characterVitalsService.syncCombatVitals(
@@ -446,6 +458,7 @@ public class CombatApplicationService {
 
 		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
 		masteryApplicationService.grantVictoryMastery(session.getCharacterId());
+		Set<String> uniqueCodes = uniqueItemCodes(monster.getId());
 
 		for (CombatRewardItemEntity reward : rewardRows) {
 			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
@@ -466,6 +479,15 @@ public class CombatApplicationService {
 					session.getCharacterId(),
 					item.name(),
 					reward.getQuantity());
+			if (uniqueCodes.contains(item.code())
+					&& !characterUniqueDropRepository.existsByCharacterIdAndItemCode(
+							session.getCharacterId(), item.code())) {
+				characterUniqueDropRepository.saveAndFlush(new CharacterUniqueDropEntity(
+						UUID.randomUUID(),
+						session.getCharacterId(),
+						item.code(),
+						now));
+			}
 		}
 
 		CharacterVitalsView after = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
@@ -493,7 +515,11 @@ public class CombatApplicationService {
 			return;
 		}
 		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
-		List<LootDrop> drops = LootGenerator.generate(buildLootTable(monster.getId()), randomProvider);
+		Set<String> granted = new HashSet<>(
+				characterUniqueDropRepository.findItemCodesByCharacterId(session.getCharacterId()));
+		List<LootTableEntry> table = UniqueLoot.excludingGranted(buildLootTable(monster.getId()), granted);
+		Set<String> uniqueCodes = uniqueItemCodes(monster.getId());
+		List<LootDrop> drops = LootGenerator.generate(table, randomProvider);
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
 				drops.stream().map(LootDrop::itemDefinitionId).toList());
 		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
@@ -506,6 +532,20 @@ public class CombatApplicationService {
 						drop.itemDefinitionId(),
 						drop.quantity(),
 						new GeneratedItem(item.rarity(), null, null, List.of())));
+			}
+			else if (uniqueCodes.contains(item.code())) {
+				for (int i = 0; i < drop.quantity(); i++) {
+					rewardRows.add(new CombatRewardItemEntity(
+							UUID.randomUUID(),
+							session.getId(),
+							drop.itemDefinitionId(),
+							1,
+							new GeneratedItem(
+									item.rarity(),
+									item.weaponDamage(),
+									item.armorValue(),
+									List.of())));
+				}
 			}
 			else {
 				for (int i = 0; i < drop.quantity(); i++) {
@@ -526,12 +566,15 @@ public class CombatApplicationService {
 		combatSessionRepository.saveAndFlush(session);
 	}
 
-	private void resolveEncounter(UUID encounterId, Instant now) {
+	private void resolveEncounter(UUID encounterId, EncounterCloseReason reason, Instant now) {
 		EncounterEntity encounter = encounterRepository.findWithLockById(encounterId)
 				.orElseThrow(CombatErrors::encounterNotFound);
 		if (encounter.getStatus() != EncounterStatus.RESOLVED && encounter.getStatus() != EncounterStatus.EXPIRED) {
 			encounter.resolve(now);
 			encounterRepository.saveAndFlush(encounter);
+		}
+		if (encounter.isDungeonEncounter()) {
+			eventPublisher.publishEvent(new EncounterClosedEvent(encounter.getCharacterId(), encounterId, reason));
 		}
 	}
 
@@ -547,9 +590,20 @@ public class CombatApplicationService {
 					item.code(),
 					row.getDropChancePercent(),
 					row.getQuantityMin(),
-					row.getQuantityMax()));
+					row.getQuantityMax(),
+					row.isOncePerCharacter()));
 		}
 		return table;
+	}
+
+	private Set<String> uniqueItemCodes(UUID monsterDefinitionId) {
+		Set<String> codes = new HashSet<>();
+		for (LootTableEntry entry : buildLootTable(monsterDefinitionId)) {
+			if (entry.oncePerCharacter()) {
+				codes.add(entry.itemCode());
+			}
+		}
+		return codes;
 	}
 
 	private void persistEvents(UUID sessionId, int roundNumber, List<CombatEvent> events, Instant now) {
@@ -708,6 +762,7 @@ public class CombatApplicationService {
 				monster.getDamageMax(),
 				monster.getAiArchetype(),
 				monster.getSignatureStatus(),
+				monster.getMonsterTier(),
 				family,
 				codes.isEmpty() ? null : String.join(",", codes),
 				bonuses.staminaCostReduction());
@@ -738,7 +793,8 @@ public class CombatApplicationService {
 				requireMonster(session.getMonsterDefinitionId()).getMaxHealth(),
 				session.getEnemyMaxStamina(),
 				session.getSnapAiArchetype(),
-				session.getSnapSignatureStatus());
+				session.getSnapSignatureStatus(),
+				session.getSnapMonsterTier());
 		return new Combat2State(
 				session.getRoundNumber(),
 				session.getPlayerHealth(),

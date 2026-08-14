@@ -72,6 +72,13 @@ final class CombatErrors {
 				HttpStatus.BAD_REQUEST);
 	}
 
+	static ApiException dungeonEncounterRequired() {
+		return new ApiException(
+				"DUNGEON_ENCOUNTER_REQUIRED",
+				"You must fight this dungeon encounter.",
+				HttpStatus.CONFLICT);
+	}
+
 	static ApiException encounterNotAvailable() {
 		return new ApiException(
 				"ENCOUNTER_NOT_AVAILABLE",

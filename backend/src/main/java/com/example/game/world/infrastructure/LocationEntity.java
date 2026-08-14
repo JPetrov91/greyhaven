@@ -40,6 +40,12 @@ public class LocationEntity implements Persistable<UUID> {
 	@Column(nullable = false, length = 64)
 	private String region;
 
+	@Column(name = "recommended_level_min")
+	private Integer recommendedLevelMin;
+
+	@Column(name = "recommended_level_max")
+	private Integer recommendedLevelMax;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 
@@ -101,6 +107,14 @@ public class LocationEntity implements Persistable<UUID> {
 
 	public String getRegion() {
 		return region;
+	}
+
+	public Integer getRecommendedLevelMin() {
+		return recommendedLevelMin;
+	}
+
+	public Integer getRecommendedLevelMax() {
+		return recommendedLevelMax;
 	}
 
 	public Instant getCreatedAt() {

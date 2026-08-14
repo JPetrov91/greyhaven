@@ -48,6 +48,19 @@ class LocationActionsTest {
 	}
 
 	@Test
+	void phaseTwoLocationsKeepSafeHubsAndDungeonEntrance() {
+		assertThat(LocationActions.forCode(LocationCodes.ARENA))
+				.containsExactly(
+						LocationAction.INSPECT,
+						LocationAction.MOVE,
+						LocationAction.VIEW_NEARBY)
+				.doesNotContain(LocationAction.SEARCH_ENCOUNTER);
+		assertThat(LocationActions.forCode(LocationCodes.HARBOUR)).contains(LocationAction.SEARCH_ENCOUNTER);
+		assertThat(LocationActions.forCode(LocationCodes.ANCIENT_RUINS))
+				.contains(LocationAction.SEARCH_ENCOUNTER, LocationAction.ENTER_DUNGEON);
+	}
+
+	@Test
 	void unknownCodeIsRejected() {
 		assertThatThrownBy(() -> LocationActions.forCode("MOON_BASE"))
 				.isInstanceOf(IllegalArgumentException.class)

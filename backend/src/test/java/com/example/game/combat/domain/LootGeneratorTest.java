@@ -15,7 +15,7 @@ class LootGeneratorTest {
 	void generatesDropWhenChanceSucceeds() {
 		UUID itemId = UUID.fromString("c0000000-0000-4000-8000-000000000007");
 		List<LootTableEntry> table = List.of(
-				new LootTableEntry(itemId, "WOLF_PELT", 70, 1, 1));
+				new LootTableEntry(itemId, "WOLF_PELT", 70, 1, 1, false));
 		// chancePercent(70) uses nextInt(0,99); 10 < 70 => drop; quantity nextInt(1,1)=1
 		ScriptedRandomProvider random = new ScriptedRandomProvider(10, 1);
 
@@ -28,7 +28,7 @@ class LootGeneratorTest {
 	void skipsDropWhenChanceFails() {
 		UUID itemId = UUID.fromString("c0000000-0000-4000-8000-000000000007");
 		List<LootTableEntry> table = List.of(
-				new LootTableEntry(itemId, "WOLF_PELT", 70, 1, 1));
+				new LootTableEntry(itemId, "WOLF_PELT", 70, 1, 1, false));
 		ScriptedRandomProvider random = new ScriptedRandomProvider(80);
 
 		assertThat(LootGenerator.generate(table, random)).isEmpty();

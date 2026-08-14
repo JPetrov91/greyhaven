@@ -71,9 +71,56 @@ class WorldLocationIntegrationTest {
 				"select count(*) from flyway_schema_history where version = '4' and success = true",
 				Integer.class);
 
-		assertThat(locationCount).isEqualTo(6);
-		assertThat(connectionCount).isEqualTo(10);
+		assertThat(locationCount).isEqualTo(13);
+		assertThat(connectionCount).isEqualTo(26);
 		assertThat(flywayCount).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from location_connections c
+						join locations a on a.id = c.from_location_id
+						join locations b on b.id = c.to_location_id
+						where a.code = 'HARBOUR' and b.code = 'ANCIENT_RUINS'
+						""",
+				Integer.class)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from location_connections c
+						join locations a on a.id = c.from_location_id
+						join locations b on b.id = c.to_location_id
+						where a.code = 'BANDIT_CAMP' and b.code = 'ANCIENT_RUINS'
+						""",
+				Integer.class)).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from location_encounter_weights w
+						join locations l on l.id = w.location_id
+						join monster_definitions m on m.id = w.monster_definition_id
+						where l.code = 'SEWERS' and m.code = 'GIANT_RAT'
+						""",
+				Integer.class)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from location_encounter_weights w
+						join locations l on l.id = w.location_id
+						join monster_definitions m on m.id = w.monster_definition_id
+						where l.code = 'BANDIT_CAMP' and m.code = 'BANDIT'
+						""",
+				Integer.class)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from location_encounter_weights w
+						join locations l on l.id = w.location_id
+						join monster_definitions m on m.id = w.monster_definition_id
+						where l.code = 'ANCIENT_RUINS' and m.code = 'BANDIT_VETERAN'
+						""",
+				Integer.class)).isZero();
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select skip_room_code from dungeon_room_edges e
+						join dungeon_rooms r on r.id = e.from_room_id
+						where r.code = 'COMMAND_HALL' and e.edge_code = 'CONTINUE'
+						""",
+				String.class)).isEqualTo("CRYPT");
 	}
 
 	@Test
@@ -108,11 +155,14 @@ class WorldLocationIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/world/destinations").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.destinations.length()").value(4))
+				.andExpect(jsonPath("$.destinations.length()").value(7))
 				.andExpect(jsonPath("$.destinations[?(@.code=='FOREST')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='OLD_TOWN')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='MARKET')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='NORTH_ROAD')]").exists())
+				.andExpect(jsonPath("$.destinations[?(@.code=='ARENA')]").exists())
+				.andExpect(jsonPath("$.destinations[?(@.code=='CRAFTSMEN_WARD')]").exists())
+				.andExpect(jsonPath("$.destinations[?(@.code=='HARBOUR')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='TAVERN')]").isEmpty());
 	}
 
@@ -154,8 +204,9 @@ class WorldLocationIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/world/destinations").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.destinations.length()").value(1))
-				.andExpect(jsonPath("$.destinations[0].code").value(LocationCodes.CITY_SQUARE));
+				.andExpect(jsonPath("$.destinations.length()").value(2))
+				.andExpect(jsonPath("$.destinations[?(@.code=='CITY_SQUARE')]").exists())
+				.andExpect(jsonPath("$.destinations[?(@.code=='OLD_MINE')]").exists());
 	}
 
 	@Test

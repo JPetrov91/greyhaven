@@ -15,7 +15,7 @@ class CombatEngineV2Test {
 
 	private static final CombatantStats PLAYER = new CombatantStats(20, 90, 8, 10, 10, 10);
 	private static final MonsterCombatProfile THUG = new MonsterCombatProfile(
-			"Street Thug", 1, 5, 8, 4, 72, 4, 5, 70, 40, EnemyAiArchetype.AGGRESSIVE, null);
+			"Street Thug", 1, 5, 8, 4, 72, 4, 5, 70, 40, EnemyAiArchetype.AGGRESSIVE, null, MonsterTier.NORMAL);
 
 	@Test
 	void previewHitChanceMatchesQuickAttackAccuracyMinusDodge() {
@@ -96,7 +96,7 @@ class CombatEngineV2Test {
 	@Test
 	void armorDiminishingReturnsNeverZeroWithoutGuard() {
 		MonsterCombatProfile armored = new MonsterCombatProfile(
-				"Veteran", 5, 15, 22, 150, 80, 4, 5, 220, 55, EnemyAiArchetype.ARMORED, null);
+				"Veteran", 5, 15, 22, 150, 80, 4, 5, 220, 55, EnemyAiArchetype.ARMORED, null, MonsterTier.NORMAL);
 		CombatRoundResult result = CombatEngine.resolve(
 				base().enemy(armored).enemyHealth(220).enemyMaxHealth(220).build(),
 				CombatAction.QUICK_ATTACK,
@@ -111,7 +111,7 @@ class CombatEngineV2Test {
 	@Test
 	void armorBreakIncreasesDamage() {
 		MonsterCombatProfile armored = new MonsterCombatProfile(
-				"Veteran", 5, 15, 22, 50, 80, 4, 5, 220, 55, EnemyAiArchetype.ARMORED, null);
+				"Veteran", 5, 15, 22, 50, 80, 4, 5, 220, 55, EnemyAiArchetype.ARMORED, null, MonsterTier.NORMAL);
 		Combat2State broken = base()
 				.enemy(armored)
 				.enemyHealth(220)
@@ -437,7 +437,7 @@ class CombatEngineV2Test {
 	@Test
 	void defensiveAiDefendsAtLowHealth() {
 		MonsterCombatProfile bandit = new MonsterCombatProfile(
-				"Bandit", 3, 10, 15, 8, 76, 6, 5, 130, 50, EnemyAiArchetype.DEFENSIVE, null);
+				"Bandit", 3, 10, 15, 8, 76, 6, 5, 130, 50, EnemyAiArchetype.DEFENSIVE, null, MonsterTier.NORMAL);
 		CombatRoundResult result = CombatEngine.resolve(
 				base().enemy(bandit).enemyHealth(20).enemyMaxHealth(130).enemyStamina(50).build(),
 				CombatAction.QUICK_ATTACK,
@@ -470,7 +470,7 @@ class CombatEngineV2Test {
 	@Test
 	void enemyGuardCarriesIntoTheNextRound() {
 		MonsterCombatProfile bandit = new MonsterCombatProfile(
-				"Bandit", 3, 10, 15, 8, 76, 6, 5, 130, 50, EnemyAiArchetype.DEFENSIVE, null);
+				"Bandit", 3, 10, 15, 8, 76, 6, 5, 130, 50, EnemyAiArchetype.DEFENSIVE, null, MonsterTier.NORMAL);
 		CombatRoundResult defended = CombatEngine.resolve(
 				base().enemy(bandit).enemyHealth(45).enemyMaxHealth(130).enemyStamina(50).build(),
 				CombatAction.QUICK_ATTACK,

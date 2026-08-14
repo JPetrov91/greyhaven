@@ -1,0 +1,402 @@
+-- Phase 2 Task 7: Greyhaven expansion, enemy catalog, loot, Ruined Keep dungeon.
+
+ALTER TABLE locations
+    ADD COLUMN recommended_level_min INTEGER,
+    ADD COLUMN recommended_level_max INTEGER;
+
+ALTER TABLE locations
+    ADD CONSTRAINT chk_locations_recommended_level CHECK (
+        (recommended_level_min IS NULL AND recommended_level_max IS NULL)
+        OR (
+            recommended_level_min IS NOT NULL
+            AND recommended_level_max IS NOT NULL
+            AND recommended_level_min >= 1
+            AND recommended_level_max >= recommended_level_min
+        )
+    );
+
+UPDATE locations SET recommended_level_min = 1, recommended_level_max = 5 WHERE code = 'OLD_TOWN';
+UPDATE locations SET recommended_level_min = 3, recommended_level_max = 8 WHERE code = 'FOREST';
+UPDATE locations SET recommended_level_min = 3, recommended_level_max = 10 WHERE code = 'NORTH_ROAD';
+
+INSERT INTO locations (id, code, name, description, safety, region, created_at, recommended_level_min, recommended_level_max)
+VALUES
+    ('a0000000-0000-4000-8000-000000000007', 'ARENA', 'Arena',
+     'Sand, stone tiers, and a gate that will one day open for duels. For now the pit is quiet — a place to gather, not to fight.',
+     'SAFE', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, NULL),
+    ('a0000000-0000-4000-8000-000000000008', 'CRAFTSMEN_WARD', 'Craftsmen Ward',
+     'Hammers ring on anvils and quench-steam hangs in the lanes. The forges of Greyhaven wait for those who would take up a trade.',
+     'SAFE', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', NULL, NULL),
+    ('a0000000-0000-4000-8000-000000000009', 'HARBOUR', 'Harbour',
+     'Slick stones, tar, and shouting from the wharves. Smugglers and dock brawlers test anyone who lingers after dusk.',
+     'DANGEROUS', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', 4, 9),
+    ('a0000000-0000-4000-8000-00000000000a', 'SEWERS', 'Sewers',
+     'A brick throat under Old Town. The air bites, and things that should not hunt still do.',
+     'DANGEROUS', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', 5, 10),
+    ('a0000000-0000-4000-8000-00000000000b', 'OLD_MINE', 'Old Mine',
+     'Collapsed galleries and a rusted cage-winch. Something still works the dark with pick and fist.',
+     'DANGEROUS', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', 8, 15),
+    ('a0000000-0000-4000-8000-00000000000c', 'BANDIT_CAMP', 'Bandit Camp',
+     'Palings, stolen banners, and cookfires. The road''s predators keep their own order here.',
+     'DANGEROUS', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', 12, 20),
+    ('a0000000-0000-4000-8000-00000000000d', 'ANCIENT_RUINS', 'Ancient Ruins',
+     'Broken colonnades above a sealed keep. The stones remember a warden who never left.',
+     'DANGEROUS', 'Greyhaven', TIMESTAMPTZ '2026-01-01 00:00:00+00', 18, 30);
+
+INSERT INTO location_connections (id, from_location_id, to_location_id) VALUES
+    ('b0000000-0000-4000-8000-00000000000b', 'a0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000007'),
+    ('b0000000-0000-4000-8000-00000000000c', 'a0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001'),
+    ('b0000000-0000-4000-8000-00000000000d', 'a0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000008'),
+    ('b0000000-0000-4000-8000-00000000000e', 'a0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000001'),
+    ('b0000000-0000-4000-8000-00000000000f', 'a0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000009'),
+    ('b0000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000001'),
+    ('b0000000-0000-4000-8000-000000000011', 'a0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000004'),
+    ('b0000000-0000-4000-8000-000000000012', 'a0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000008'),
+    ('b0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-00000000000a'),
+    ('b0000000-0000-4000-8000-000000000014', 'a0000000-0000-4000-8000-00000000000a', 'a0000000-0000-4000-8000-000000000004'),
+    ('b0000000-0000-4000-8000-000000000015', 'a0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-00000000000b'),
+    ('b0000000-0000-4000-8000-000000000016', 'a0000000-0000-4000-8000-00000000000b', 'a0000000-0000-4000-8000-000000000005'),
+    ('b0000000-0000-4000-8000-000000000017', 'a0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-00000000000c'),
+    ('b0000000-0000-4000-8000-000000000018', 'a0000000-0000-4000-8000-00000000000c', 'a0000000-0000-4000-8000-000000000006'),
+    ('b0000000-0000-4000-8000-000000000019', 'a0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-00000000000d'),
+    ('b0000000-0000-4000-8000-00000000001a', 'a0000000-0000-4000-8000-00000000000d', 'a0000000-0000-4000-8000-000000000009');
+
+ALTER TABLE monster_definitions
+    ADD COLUMN monster_tier VARCHAR(16) NOT NULL DEFAULT 'NORMAL';
+
+ALTER TABLE monster_definitions
+    DROP CONSTRAINT chk_monster_ai_archetype;
+
+ALTER TABLE monster_definitions
+    ADD CONSTRAINT chk_monster_ai_archetype CHECK (
+        ai_archetype IN (
+            'AGGRESSIVE', 'DEFENSIVE', 'CONTROL', 'ASSASSIN', 'ARMORED', 'BERSERKER', 'SHIELDED', 'MARKSMAN'
+        )
+    ),
+    ADD CONSTRAINT chk_monster_tier CHECK (
+        monster_tier IN ('NORMAL', 'ELITE', 'MINI_BOSS', 'BOSS')
+    );
+
+ALTER TABLE combat_sessions
+    DROP CONSTRAINT chk_combat_sessions_ai_archetype;
+
+ALTER TABLE combat_sessions
+    ADD CONSTRAINT chk_combat_sessions_ai_archetype CHECK (
+        snap_ai_archetype IS NULL OR snap_ai_archetype IN (
+            'AGGRESSIVE', 'DEFENSIVE', 'CONTROL', 'ASSASSIN', 'ARMORED', 'BERSERKER', 'SHIELDED', 'MARKSMAN'
+        )
+    );
+
+ALTER TABLE combat_sessions
+    ADD COLUMN snap_monster_tier VARCHAR(16);
+
+ALTER TABLE combat_sessions
+    ADD CONSTRAINT chk_combat_sessions_monster_tier CHECK (
+        snap_monster_tier IS NULL OR snap_monster_tier IN ('NORMAL', 'ELITE', 'MINI_BOSS', 'BOSS')
+    );
+
+UPDATE monster_definitions SET monster_tier = 'NORMAL'
+WHERE code IN ('STREET_THUG', 'GIANT_RAT', 'FOREST_WOLF', 'BANDIT');
+
+UPDATE monster_definitions SET monster_tier = 'ELITE'
+WHERE code = 'BANDIT_VETERAN';
+
+INSERT INTO monster_definitions (
+    id, code, name, level, max_health, damage_min, damage_max, xp_reward, gold_min, gold_max, created_at,
+    armor, accuracy, dodge, critical_chance, max_stamina, ai_archetype, signature_status, monster_tier
+) VALUES
+    ('d0000000-0000-4000-8000-000000000006', 'DOCK_BRAWLER', 'Dock Brawler',
+     4, 120, 8, 12, 40, 8, 18, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     6, 74, 6, 5, 55, 'AGGRESSIVE', NULL, 'NORMAL'),
+    ('d0000000-0000-4000-8000-000000000007', 'SMUGGLER', 'Smuggler',
+     6, 95, 9, 13, 50, 12, 24, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     4, 92, 8, 8, 45, 'MARKSMAN', 'OFF_BALANCE', 'NORMAL'),
+    ('d0000000-0000-4000-8000-000000000008', 'PLAGUE_RAT', 'Plague Rat',
+     6, 80, 6, 10, 48, 6, 14, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     3, 76, 16, 10, 40, 'ASSASSIN', 'POISON', 'NORMAL'),
+    ('d0000000-0000-4000-8000-000000000009', 'SEWER_WATCHMAN', 'Sewer Watchman',
+     7, 150, 8, 12, 55, 10, 20, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     12, 74, 4, 4, 50, 'SHIELDED', NULL, 'NORMAL'),
+    ('d0000000-0000-4000-8000-00000000000a', 'MINE_CRAWLER', 'Mine Crawler',
+     9, 140, 10, 15, 70, 12, 26, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     6, 78, 14, 7, 48, 'BERSERKER', 'BLEED', 'NORMAL'),
+    ('d0000000-0000-4000-8000-00000000000b', 'CAVE_BRUTE', 'Cave Brute',
+     11, 200, 12, 16, 90, 16, 32, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     28, 70, 2, 4, 50, 'ARMORED', NULL, 'NORMAL'),
+    ('d0000000-0000-4000-8000-00000000000c', 'PIT_OVERSEER', 'Pit Overseer',
+     13, 240, 13, 18, 120, 22, 40, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     14, 80, 6, 6, 60, 'CONTROL', 'STUN', 'MINI_BOSS'),
+    ('d0000000-0000-4000-8000-00000000000d', 'CAMP_CUTTHROAT', 'Camp Cutthroat',
+     14, 130, 12, 18, 100, 18, 36, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     5, 84, 18, 14, 48, 'ASSASSIN', 'POISON', 'NORMAL'),
+    ('d0000000-0000-4000-8000-00000000000e', 'SHIELDED_RAIDER', 'Shielded Raider',
+     15, 210, 11, 16, 115, 20, 38, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     18, 76, 5, 5, 58, 'SHIELDED', NULL, 'ELITE'),
+    ('d0000000-0000-4000-8000-00000000000f', 'BANDIT_LIEUTENANT', 'Bandit Lieutenant',
+     16, 260, 16, 22, 140, 28, 48, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     10, 80, 8, 8, 62, 'BERSERKER', 'BLEED', 'MINI_BOSS'),
+    ('d0000000-0000-4000-8000-000000000010', 'RUIN_STALKER', 'Ruin Stalker',
+     20, 170, 14, 20, 150, 24, 44, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     6, 86, 20, 12, 52, 'ASSASSIN', 'OFF_BALANCE', 'NORMAL'),
+    ('d0000000-0000-4000-8000-000000000011', 'RUIN_GUARDIAN', 'Ruin Guardian',
+     22, 280, 14, 19, 180, 30, 55, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     26, 78, 4, 5, 64, 'ARMORED', 'ARMOR_BREAK', 'ELITE'),
+    ('d0000000-0000-4000-8000-000000000012', 'WARDEN_OF_THE_KEEP', 'Warden of the Keep',
+     24, 360, 16, 22, 260, 50, 80, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     22, 82, 6, 6, 70, 'CONTROL', 'STUN', 'BOSS');
+
+INSERT INTO item_definitions (
+    id, code, name, description, type, rarity, base_value, required_level,
+    weapon_damage, armor_value, heal_amount, created_at,
+    equipment_slot, two_handed, weapon_family, armor_category,
+    required_strength, required_agility, required_endurance, required_perception, legacy
+) VALUES
+    ('c0000000-0000-4000-8000-00000000001b', 'VENOM_GLAND', 'Venom Gland',
+     'A swollen sac of sewer toxin. Alchemists will want this.',
+     'MATERIAL', 'UNCOMMON', 14, 1, NULL, NULL, NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     NULL, FALSE, NULL, NULL, 0, 0, 0, 0, FALSE),
+    ('c0000000-0000-4000-8000-00000000001c', 'IRON_ORE', 'Iron Ore',
+     'Rough ore pried from the old galleries.',
+     'MATERIAL', 'COMMON', 8, 1, NULL, NULL, NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     NULL, FALSE, NULL, NULL, 0, 0, 0, 0, FALSE),
+    ('c0000000-0000-4000-8000-00000000001d', 'BANDIT_TOKEN', 'Bandit Token',
+     'A notched iron coin elites use to mark their own.',
+     'MATERIAL', 'UNCOMMON', 20, 1, NULL, NULL, NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     NULL, FALSE, NULL, NULL, 0, 0, 0, 0, FALSE),
+    ('c0000000-0000-4000-8000-00000000001e', 'RUIN_FRAGMENT', 'Ruin Fragment',
+     'A shard of warded stone from the keep below the ruins.',
+     'MATERIAL', 'RARE', 35, 1, NULL, NULL, NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     NULL, FALSE, NULL, NULL, 0, 0, 0, 0, FALSE),
+    ('c0000000-0000-4000-8000-00000000001f', 'WARDENS_SIGNET', 'Warden''s Signet',
+     'A heavy signet taken from the keep''s last warden. It still remembers the gate.',
+     'ACCESSORY', 'EPIC', 180, 18, NULL, NULL, NULL, TIMESTAMPTZ '2026-01-01 00:00:00+00',
+     'AMULET', FALSE, NULL, NULL, 0, 0, 0, 0, FALSE);
+
+INSERT INTO monster_loot_entries (
+    id, monster_definition_id, item_definition_id, drop_chance_percent, quantity_min, quantity_max
+) VALUES
+    ('e0000000-0000-4000-8000-00000000000c', 'd0000000-0000-4000-8000-000000000005',
+     'c0000000-0000-4000-8000-00000000001d', 100, 1, 1),
+    ('e0000000-0000-4000-8000-00000000000d', 'd0000000-0000-4000-8000-000000000006',
+     'c0000000-0000-4000-8000-000000000006', 30, 1, 1),
+    ('e0000000-0000-4000-8000-00000000000e', 'd0000000-0000-4000-8000-000000000007',
+     'c0000000-0000-4000-8000-000000000008', 12, 1, 1),
+    ('e0000000-0000-4000-8000-00000000000f', 'd0000000-0000-4000-8000-000000000007',
+     'c0000000-0000-4000-8000-000000000006', 25, 1, 1),
+    ('e0000000-0000-4000-8000-000000000010', 'd0000000-0000-4000-8000-000000000008',
+     'c0000000-0000-4000-8000-00000000001b', 70, 1, 1),
+    ('e0000000-0000-4000-8000-000000000011', 'd0000000-0000-4000-8000-000000000008',
+     'c0000000-0000-4000-8000-000000000006', 35, 1, 1),
+    ('e0000000-0000-4000-8000-000000000012', 'd0000000-0000-4000-8000-000000000009',
+     'c0000000-0000-4000-8000-00000000000b', 20, 1, 1),
+    ('e0000000-0000-4000-8000-000000000013', 'd0000000-0000-4000-8000-000000000009',
+     'c0000000-0000-4000-8000-000000000006', 30, 1, 1),
+    ('e0000000-0000-4000-8000-000000000014', 'd0000000-0000-4000-8000-00000000000a',
+     'c0000000-0000-4000-8000-00000000001c', 55, 1, 2),
+    ('e0000000-0000-4000-8000-000000000015', 'd0000000-0000-4000-8000-00000000000a',
+     'c0000000-0000-4000-8000-000000000006', 30, 1, 1),
+    ('e0000000-0000-4000-8000-000000000016', 'd0000000-0000-4000-8000-00000000000b',
+     'c0000000-0000-4000-8000-00000000001c', 80, 1, 2),
+    ('e0000000-0000-4000-8000-000000000017', 'd0000000-0000-4000-8000-00000000000b',
+     'c0000000-0000-4000-8000-00000000000a', 10, 1, 1),
+    ('e0000000-0000-4000-8000-000000000018', 'd0000000-0000-4000-8000-00000000000c',
+     'c0000000-0000-4000-8000-00000000001c', 100, 1, 2),
+    ('e0000000-0000-4000-8000-000000000019', 'd0000000-0000-4000-8000-00000000000c',
+     'c0000000-0000-4000-8000-00000000000a', 25, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001a', 'd0000000-0000-4000-8000-00000000000d',
+     'c0000000-0000-4000-8000-00000000001b', 40, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001b', 'd0000000-0000-4000-8000-00000000000d',
+     'c0000000-0000-4000-8000-000000000005', 15, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001c', 'd0000000-0000-4000-8000-00000000000e',
+     'c0000000-0000-4000-8000-00000000001d', 100, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001d', 'd0000000-0000-4000-8000-00000000000e',
+     'c0000000-0000-4000-8000-00000000000b', 30, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001e', 'd0000000-0000-4000-8000-00000000000f',
+     'c0000000-0000-4000-8000-00000000001d', 100, 1, 1),
+    ('e0000000-0000-4000-8000-00000000001f', 'd0000000-0000-4000-8000-00000000000f',
+     'c0000000-0000-4000-8000-000000000009', 20, 1, 1),
+    ('e0000000-0000-4000-8000-000000000020', 'd0000000-0000-4000-8000-000000000010',
+     'c0000000-0000-4000-8000-00000000001e', 40, 1, 1),
+    ('e0000000-0000-4000-8000-000000000021', 'd0000000-0000-4000-8000-000000000011',
+     'c0000000-0000-4000-8000-00000000001e', 100, 1, 1),
+    ('e0000000-0000-4000-8000-000000000022', 'd0000000-0000-4000-8000-000000000011',
+     'c0000000-0000-4000-8000-000000000012', 12, 1, 1),
+    ('e0000000-0000-4000-8000-000000000023', 'd0000000-0000-4000-8000-000000000012',
+     'c0000000-0000-4000-8000-00000000001f', 100, 1, 1),
+    ('e0000000-0000-4000-8000-000000000024', 'd0000000-0000-4000-8000-000000000012',
+     'c0000000-0000-4000-8000-00000000001e', 100, 1, 2),
+    ('e0000000-0000-4000-8000-000000000025', 'd0000000-0000-4000-8000-000000000012',
+     'c0000000-0000-4000-8000-000000000006', 60, 1, 2);
+
+INSERT INTO location_encounter_weights (id, location_id, monster_definition_id, weight) VALUES
+    ('f0000000-0000-4000-8000-00000000000c', 'a0000000-0000-4000-8000-000000000009',
+     'd0000000-0000-4000-8000-000000000006', 50),
+    ('f0000000-0000-4000-8000-00000000000d', 'a0000000-0000-4000-8000-000000000009',
+     'd0000000-0000-4000-8000-000000000007', 35),
+    ('f0000000-0000-4000-8000-00000000000e', 'a0000000-0000-4000-8000-000000000009',
+     NULL, 15),
+    ('f0000000-0000-4000-8000-00000000000f', 'a0000000-0000-4000-8000-00000000000a',
+     'd0000000-0000-4000-8000-000000000008', 40),
+    ('f0000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-00000000000a',
+     'd0000000-0000-4000-8000-000000000009', 35),
+    ('f0000000-0000-4000-8000-000000000011', 'a0000000-0000-4000-8000-00000000000a',
+     'd0000000-0000-4000-8000-000000000002', 10),
+    ('f0000000-0000-4000-8000-000000000012', 'a0000000-0000-4000-8000-00000000000a',
+     NULL, 15),
+    ('f0000000-0000-4000-8000-000000000013', 'a0000000-0000-4000-8000-00000000000b',
+     'd0000000-0000-4000-8000-00000000000a', 40),
+    ('f0000000-0000-4000-8000-000000000014', 'a0000000-0000-4000-8000-00000000000b',
+     'd0000000-0000-4000-8000-00000000000b', 35),
+    ('f0000000-0000-4000-8000-000000000015', 'a0000000-0000-4000-8000-00000000000b',
+     'd0000000-0000-4000-8000-00000000000c', 10),
+    ('f0000000-0000-4000-8000-000000000016', 'a0000000-0000-4000-8000-00000000000b',
+     NULL, 15),
+    ('f0000000-0000-4000-8000-000000000017', 'a0000000-0000-4000-8000-00000000000c',
+     'd0000000-0000-4000-8000-00000000000d', 30),
+    ('f0000000-0000-4000-8000-000000000018', 'a0000000-0000-4000-8000-00000000000c',
+     'd0000000-0000-4000-8000-00000000000e', 25),
+    ('f0000000-0000-4000-8000-000000000019', 'a0000000-0000-4000-8000-00000000000c',
+     'd0000000-0000-4000-8000-00000000000f', 12),
+    ('f0000000-0000-4000-8000-00000000001a', 'a0000000-0000-4000-8000-00000000000c',
+     'd0000000-0000-4000-8000-000000000004', 18),
+    ('f0000000-0000-4000-8000-00000000001b', 'a0000000-0000-4000-8000-00000000000c',
+     NULL, 15),
+    ('f0000000-0000-4000-8000-00000000001c', 'a0000000-0000-4000-8000-00000000000d',
+     'd0000000-0000-4000-8000-000000000010', 40),
+    ('f0000000-0000-4000-8000-00000000001d', 'a0000000-0000-4000-8000-00000000000d',
+     'd0000000-0000-4000-8000-000000000011', 25),
+    ('f0000000-0000-4000-8000-00000000001e', 'a0000000-0000-4000-8000-00000000000d',
+     'd0000000-0000-4000-8000-000000000005', 15),
+    ('f0000000-0000-4000-8000-00000000001f', 'a0000000-0000-4000-8000-00000000000d',
+     NULL, 20);
+
+ALTER TABLE encounters
+    ADD COLUMN dungeon_run_id UUID,
+    ADD COLUMN dungeon_room_code VARCHAR(64),
+    ADD COLUMN dungeon_optional BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE dungeon_definitions (
+    id                     UUID PRIMARY KEY,
+    code                   VARCHAR(64) NOT NULL,
+    name                   VARCHAR(128) NOT NULL,
+    entrance_location_id   UUID NOT NULL,
+    CONSTRAINT uq_dungeon_definitions_code UNIQUE (code),
+    CONSTRAINT fk_dungeon_definitions_entrance FOREIGN KEY (entrance_location_id) REFERENCES locations (id)
+);
+
+CREATE TABLE dungeon_rooms (
+    id                      UUID PRIMARY KEY,
+    dungeon_id              UUID NOT NULL,
+    code                    VARCHAR(64) NOT NULL,
+    name                    VARCHAR(128) NOT NULL,
+    description             TEXT NOT NULL,
+    room_kind               VARCHAR(16) NOT NULL,
+    monster_definition_id   UUID,
+    sort_order              INT NOT NULL,
+    CONSTRAINT fk_dungeon_rooms_dungeon FOREIGN KEY (dungeon_id) REFERENCES dungeon_definitions (id),
+    CONSTRAINT fk_dungeon_rooms_monster FOREIGN KEY (monster_definition_id) REFERENCES monster_definitions (id),
+    CONSTRAINT uq_dungeon_rooms_code UNIQUE (dungeon_id, code),
+    CONSTRAINT chk_dungeon_rooms_kind CHECK (room_kind IN ('ENTRANCE', 'COMBAT', 'CHOICE', 'OPTIONAL', 'BOSS')),
+    CONSTRAINT chk_dungeon_rooms_monster CHECK (
+        (room_kind IN ('COMBAT', 'OPTIONAL', 'BOSS') AND monster_definition_id IS NOT NULL)
+        OR (room_kind IN ('ENTRANCE', 'CHOICE') AND monster_definition_id IS NULL)
+    )
+);
+
+CREATE TABLE dungeon_room_edges (
+    id              UUID PRIMARY KEY,
+    from_room_id    UUID NOT NULL,
+    to_room_id      UUID NOT NULL,
+    edge_code       VARCHAR(32) NOT NULL,
+    CONSTRAINT fk_dungeon_edges_from FOREIGN KEY (from_room_id) REFERENCES dungeon_rooms (id),
+    CONSTRAINT fk_dungeon_edges_to FOREIGN KEY (to_room_id) REFERENCES dungeon_rooms (id),
+    CONSTRAINT uq_dungeon_edges UNIQUE (from_room_id, edge_code),
+    CONSTRAINT chk_dungeon_edges_not_self CHECK (from_room_id <> to_room_id)
+);
+
+CREATE TABLE dungeon_runs (
+    id                      UUID PRIMARY KEY,
+    character_id            UUID NOT NULL,
+    dungeon_id              UUID NOT NULL,
+    status                  VARCHAR(16) NOT NULL,
+    paused                  BOOLEAN NOT NULL DEFAULT FALSE,
+    current_room_code       VARCHAR(64) NOT NULL,
+    chosen_branch           VARCHAR(32),
+    unique_reward_granted   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at              TIMESTAMPTZ NOT NULL,
+    updated_at              TIMESTAMPTZ NOT NULL,
+    CONSTRAINT fk_dungeon_runs_character FOREIGN KEY (character_id) REFERENCES characters (id),
+    CONSTRAINT fk_dungeon_runs_dungeon FOREIGN KEY (dungeon_id) REFERENCES dungeon_definitions (id),
+    CONSTRAINT chk_dungeon_runs_status CHECK (status IN ('ACTIVE', 'COMPLETED', 'ABANDONED'))
+);
+
+CREATE UNIQUE INDEX uq_dungeon_runs_one_active_per_character
+    ON dungeon_runs (character_id)
+    WHERE status = 'ACTIVE';
+
+CREATE TABLE dungeon_run_rooms (
+    id          UUID PRIMARY KEY,
+    run_id      UUID NOT NULL,
+    room_code   VARCHAR(64) NOT NULL,
+    state       VARCHAR(16) NOT NULL,
+    CONSTRAINT fk_dungeon_run_rooms_run FOREIGN KEY (run_id) REFERENCES dungeon_runs (id),
+    CONSTRAINT uq_dungeon_run_rooms UNIQUE (run_id, room_code),
+    CONSTRAINT chk_dungeon_run_room_state CHECK (state IN ('LOCKED', 'AVAILABLE', 'CLEARED', 'SKIPPED'))
+);
+
+CREATE INDEX idx_dungeon_run_rooms_run ON dungeon_run_rooms (run_id);
+
+ALTER TABLE encounters
+    ADD CONSTRAINT fk_encounters_dungeon_run FOREIGN KEY (dungeon_run_id) REFERENCES dungeon_runs (id);
+
+INSERT INTO dungeon_definitions (id, code, name, entrance_location_id) VALUES
+    ('90000000-0000-4000-8000-000000000001', 'RUINED_KEEP', 'Ruined Keep',
+     'a0000000-0000-4000-8000-00000000000d');
+
+INSERT INTO dungeon_rooms (
+    id, dungeon_id, code, name, description, room_kind, monster_definition_id, sort_order
+) VALUES
+    ('91000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000001',
+     'ENTRANCE', 'Keep Gate', 'A cracked portcullis hangs over the threshold.',
+     'ENTRANCE', NULL, 1),
+    ('91000000-0000-4000-8000-000000000002', '90000000-0000-4000-8000-000000000001',
+     'GUARD_ROOM', 'Guard Room', 'The first hall still has a brute on watch.',
+     'COMBAT', 'd0000000-0000-4000-8000-00000000000b', 2),
+    ('91000000-0000-4000-8000-000000000003', '90000000-0000-4000-8000-000000000001',
+     'COURTYARD', 'Courtyard', 'Two doors: the armory, or the prison stair.',
+     'CHOICE', NULL, 3),
+    ('91000000-0000-4000-8000-000000000004', '90000000-0000-4000-8000-000000000001',
+     'ARMORY', 'Armory', 'Shields still hang. So does their owner.',
+     'COMBAT', 'd0000000-0000-4000-8000-00000000000e', 4),
+    ('91000000-0000-4000-8000-000000000005', '90000000-0000-4000-8000-000000000001',
+     'PRISON', 'Prison', 'Rusted cages and a cutthroat who never left.',
+     'COMBAT', 'd0000000-0000-4000-8000-00000000000d', 5),
+    ('91000000-0000-4000-8000-000000000006', '90000000-0000-4000-8000-000000000001',
+     'COMMAND_HALL', 'Command Hall', 'An overseer still drills the dark.',
+     'COMBAT', 'd0000000-0000-4000-8000-00000000000c', 6),
+    ('91000000-0000-4000-8000-000000000007', '90000000-0000-4000-8000-000000000001',
+     'CRYPT', 'Crypt', 'An optional descent. A guardian waits among the urns.',
+     'OPTIONAL', 'd0000000-0000-4000-8000-000000000011', 7),
+    ('91000000-0000-4000-8000-000000000008', '90000000-0000-4000-8000-000000000001',
+     'THRONE', 'Warden''s Seat', 'The keep''s last command has not been relieved.',
+     'BOSS', 'd0000000-0000-4000-8000-000000000012', 8);
+
+INSERT INTO dungeon_room_edges (id, from_room_id, to_room_id, edge_code) VALUES
+    ('92000000-0000-4000-8000-000000000001',
+     '91000000-0000-4000-8000-000000000001', '91000000-0000-4000-8000-000000000002', 'CONTINUE'),
+    ('92000000-0000-4000-8000-000000000002',
+     '91000000-0000-4000-8000-000000000002', '91000000-0000-4000-8000-000000000003', 'CONTINUE'),
+    ('92000000-0000-4000-8000-000000000003',
+     '91000000-0000-4000-8000-000000000003', '91000000-0000-4000-8000-000000000004', 'ARMORY'),
+    ('92000000-0000-4000-8000-000000000004',
+     '91000000-0000-4000-8000-000000000003', '91000000-0000-4000-8000-000000000005', 'PRISON'),
+    ('92000000-0000-4000-8000-000000000005',
+     '91000000-0000-4000-8000-000000000004', '91000000-0000-4000-8000-000000000006', 'CONTINUE'),
+    ('92000000-0000-4000-8000-000000000006',
+     '91000000-0000-4000-8000-000000000005', '91000000-0000-4000-8000-000000000006', 'CONTINUE'),
+    ('92000000-0000-4000-8000-000000000007',
+     '91000000-0000-4000-8000-000000000006', '91000000-0000-4000-8000-000000000007', 'OPTIONAL'),
+    ('92000000-0000-4000-8000-000000000008',
+     '91000000-0000-4000-8000-000000000006', '91000000-0000-4000-8000-000000000008', 'CONTINUE'),
+    ('92000000-0000-4000-8000-000000000009',
+     '91000000-0000-4000-8000-000000000007', '91000000-0000-4000-8000-000000000008', 'CONTINUE');

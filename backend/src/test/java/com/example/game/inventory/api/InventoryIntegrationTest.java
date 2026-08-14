@@ -99,13 +99,13 @@ class InventoryIntegrationTest {
 						""",
 				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(26);
+		assertThat(definitionCount).isEqualTo(31);
 		assertThat(flywayV6).isEqualTo(1);
 		assertThat(flywayV8).isEqualTo(1);
 		assertThat(flywayV18).isEqualTo(1);
 		assertThat(flywayV20).isEqualTo(1);
 		assertThat(flywayV27).isEqualTo(1);
-		assertThat(modifierCount).isEqualTo(27);
+		assertThat(modifierCount).isEqualTo(29);
 		assertThat(rustyAccuracy).isEqualTo(4);
 		assertThat(chestModifiers).isZero();
 	}

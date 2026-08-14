@@ -35,9 +35,22 @@ class EnemyAiTest {
 	}
 
 	@Test
-	void armoredPrefersHeavy() {
+	void armoredAppliesArmorBreakUntilCapped() {
 		assertThat(EnemyAi.choose(view(EnemyAiArchetype.ARMORED, 200, 220, 55, 55, StatusType.ARMOR_BREAK)))
-				.isEqualTo(EnemyActionKind.HEAVY_ATTACK);
+				.isEqualTo(EnemyActionKind.STATUS_ATTACK);
+		EnemyAiView capped = new EnemyAiView(
+				EnemyAiArchetype.ARMORED,
+				200,
+				220,
+				55,
+				55,
+				List.of(),
+				100,
+				160,
+				List.of(new StatusInstance(StatusType.ARMOR_BREAK, 3, 3)),
+				StatusType.ARMOR_BREAK,
+				MonsterTier.NORMAL);
+		assertThat(EnemyAi.choose(capped)).isEqualTo(EnemyActionKind.HEAVY_ATTACK);
 	}
 
 	@Test
@@ -54,10 +67,95 @@ class EnemyAiTest {
 				100,
 				160,
 				List.of(new StatusInstance(StatusType.BLEED, 3, 2)),
-				StatusType.BLEED);
+				StatusType.BLEED,
+				MonsterTier.NORMAL);
 		assertThat(EnemyAi.choose(capped)).isEqualTo(EnemyActionKind.BASIC_ATTACK);
 	}
 
+	@Test
+	void shieldedDefendsUntilGuarded() {
+		assertThat(EnemyAi.choose(view(EnemyAiArchetype.SHIELDED, 150, 150, 50, 50, null)))
+				.isEqualTo(EnemyActionKind.DEFEND);
+		EnemyAiView guarded = new EnemyAiView(
+				EnemyAiArchetype.SHIELDED,
+				150,
+				150,
+				50,
+				50,
+				List.of(new StatusInstance(StatusType.GUARDED, 1, 1)),
+				100,
+				160,
+				List.of(),
+				null,
+				MonsterTier.NORMAL);
+		assertThat(EnemyAi.choose(guarded)).isEqualTo(EnemyActionKind.BASIC_ATTACK);
+		EnemyAiView bleedAfterGuard = new EnemyAiView(
+				EnemyAiArchetype.SHIELDED,
+				210,
+				210,
+				58,
+				58,
+				List.of(new StatusInstance(StatusType.GUARDED, 1, 1)),
+				100,
+				160,
+				List.of(),
+				StatusType.BLEED,
+				MonsterTier.ELITE);
+		assertThat(EnemyAi.choose(bleedAfterGuard)).isEqualTo(EnemyActionKind.STATUS_ATTACK);
+	}
+
+	@Test
+	void marksmanPressesWithBasicAttacksUntilThePlayerIsLow() {
+		assertThat(EnemyAi.choose(view(EnemyAiArchetype.MARKSMAN, 95, 95, 45, 45, null)))
+				.isEqualTo(EnemyActionKind.BASIC_ATTACK);
+		EnemyAiView execute = new EnemyAiView(
+				EnemyAiArchetype.MARKSMAN,
+				95,
+				95,
+				45,
+				45,
+				List.of(),
+				20,
+				160,
+				List.of(),
+				null,
+				MonsterTier.NORMAL);
+		assertThat(EnemyAi.choose(execute)).isEqualTo(EnemyActionKind.HEAVY_ATTACK);
+	}
+
+	@Test
+	void miniBossControlEnragesIntoHeavyWhenStunIsUnavailable() {
+		EnemyAiView enraged = new EnemyAiView(
+				EnemyAiArchetype.CONTROL,
+				40,
+				240,
+				60,
+				60,
+				List.of(),
+				100,
+				160,
+				List.of(new StatusInstance(StatusType.STUN_IMMUNITY, 1, 1)),
+				StatusType.STUN,
+				MonsterTier.MINI_BOSS);
+		assertThat(EnemyAi.choose(enraged)).isEqualTo(EnemyActionKind.HEAVY_ATTACK);
+	}
+
+	@Test
+	void bossMarksmanEnragesIntoHeavyWhenOffBalanceIsUp() {
+		EnemyAiView enraged = new EnemyAiView(
+				EnemyAiArchetype.MARKSMAN,
+				160,
+				360,
+				70,
+				70,
+				List.of(),
+				100,
+				160,
+				List.of(new StatusInstance(StatusType.OFF_BALANCE, 1, 2)),
+				StatusType.OFF_BALANCE,
+				MonsterTier.BOSS);
+		assertThat(EnemyAi.choose(enraged)).isEqualTo(EnemyActionKind.HEAVY_ATTACK);
+	}
 	@Test
 	void heavyFallsBackToBasicWhenExhausted() {
 		EnemyActionKind action = EnemyAi.choose(view(EnemyAiArchetype.AGGRESSIVE, 70, 70, 10, 40, null));
@@ -81,6 +179,7 @@ class EnemyAiTest {
 				100,
 				160,
 				List.of(),
-				signature);
+				signature,
+				MonsterTier.NORMAL);
 	}
 }

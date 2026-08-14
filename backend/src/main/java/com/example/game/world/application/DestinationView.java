@@ -8,6 +8,8 @@ public record DestinationView(
 		UUID id,
 		String code,
 		String name,
-		LocationSafety safety
+		LocationSafety safety,
+		Integer recommendedLevelMin,
+		Integer recommendedLevelMax
 ) {
 }

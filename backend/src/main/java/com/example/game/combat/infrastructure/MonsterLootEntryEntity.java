@@ -34,6 +34,9 @@ public class MonsterLootEntryEntity implements Persistable<UUID> {
 	@Column(name = "quantity_max", nullable = false)
 	private int quantityMax;
 
+	@Column(name = "once_per_character", nullable = false)
+	private boolean oncePerCharacter;
+
 	@Transient
 	private boolean unsaved;
 
@@ -53,6 +56,7 @@ public class MonsterLootEntryEntity implements Persistable<UUID> {
 		this.dropChancePercent = dropChancePercent;
 		this.quantityMin = quantityMin;
 		this.quantityMax = quantityMax;
+		this.oncePerCharacter = false;
 		this.unsaved = true;
 	}
 
@@ -90,5 +94,9 @@ public class MonsterLootEntryEntity implements Persistable<UUID> {
 
 	public int getQuantityMax() {
 		return quantityMax;
+	}
+
+	public boolean isOncePerCharacter() {
+		return oncePerCharacter;
 	}
 }

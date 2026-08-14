@@ -90,6 +90,7 @@ export type MonsterResponse = {
   level: number
   maxHealth: number
   archetype?: string | null
+  tier?: string | null
 }
 
 export type EncounterSearchResponse = {
@@ -278,6 +279,7 @@ export type LocationAction =
   | 'BUY_ITEM'
   | 'CANCEL_LISTING'
   | 'SEARCH_ENCOUNTER'
+  | 'ENTER_DUNGEON'
 
 export type LocationResponse = {
   id: string
@@ -286,6 +288,8 @@ export type LocationResponse = {
   description: string
   safety: LocationSafety
   region: string
+  recommendedLevelMin?: number | null
+  recommendedLevelMax?: number | null
   actions: LocationAction[]
 }
 
@@ -294,6 +298,8 @@ export type DestinationResponse = {
   code: string
   name: string
   safety: LocationSafety
+  recommendedLevelMin?: number | null
+  recommendedLevelMax?: number | null
 }
 
 export type DestinationsResponse = {
@@ -511,4 +517,39 @@ export type TechniquesResponse = {
   equippedWeaponFamily: WeaponFamily | null
   techniques: TechniqueDefinitionResponse[]
   loadout: TechniqueLoadoutResponse
+}
+
+export type DungeonRunStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED'
+export type DungeonRoomKind = 'ENTRANCE' | 'COMBAT' | 'CHOICE' | 'OPTIONAL' | 'BOSS'
+export type DungeonRoomState = 'LOCKED' | 'AVAILABLE' | 'CLEARED' | 'SKIPPED'
+
+export type DungeonRoomResponse = {
+  code: string
+  name: string
+  kind: DungeonRoomKind
+  state: DungeonRoomState
+}
+
+export type DungeonChoiceResponse = {
+  edgeCode: string
+  roomCode: string
+  roomName: string
+  optional: boolean
+}
+
+export type DungeonRunResponse = {
+  runId: string
+  dungeonCode: string
+  dungeonName: string
+  status: DungeonRunStatus
+  paused: boolean
+  currentRoomCode: string
+  currentRoomName: string
+  currentRoomDescription: string
+  currentRoomKind: DungeonRoomKind
+  chosenBranch: string | null
+  uniqueRewardGranted: boolean
+  rooms: DungeonRoomResponse[]
+  choices: DungeonChoiceResponse[]
+  encounter: EncounterSearchResponse | null
 }

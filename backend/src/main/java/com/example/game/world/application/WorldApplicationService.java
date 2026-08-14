@@ -113,6 +113,8 @@ public class WorldApplicationService {
 				location.getDescription(),
 				location.getSafety(),
 				location.getRegion(),
+				location.getRecommendedLevelMin(),
+				location.getRecommendedLevelMax(),
 				LocationActions.forCode(location.getCode()));
 	}
 
@@ -121,6 +123,8 @@ public class WorldApplicationService {
 				location.getId(),
 				location.getCode(),
 				location.getName(),
-				location.getSafety());
+				location.getSafety(),
+				location.getRecommendedLevelMin(),
+				location.getRecommendedLevelMax());
 	}
 }
