@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
@@ -172,9 +172,9 @@ export function ExpeditionPanel({ onClose, variant = 'full' }: Props) {
         ) : (
           <p className="muted">No expedition in progress.</p>
         )}
-        <NavLink to={gameLink('expeditions')} className="btn btn-secondary" data-testid="view-expeditions">
+        <Link to={gameLink('expeditions')} className="btn btn-secondary" data-testid="view-expeditions">
           {expedition && expedition.status !== 'CLAIMED' ? 'View' : 'Start New Expedition'}
-        </NavLink>
+        </Link>
         {error ? (
           <p className="form-error" role="alert" data-testid="expedition-error">
             {error}

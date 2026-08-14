@@ -16,6 +16,7 @@ vi.mock('../api/chat', () => ({
 class MockEventSource {
   static instances: MockEventSource[] = []
   onerror: ((event: Event) => void) | null = null
+  onopen: ((event: Event) => void) | null = null
   readonly listeners = new Map<string, ((event: MessageEvent<string>) => void)[]>()
 
   readonly url: string
@@ -23,6 +24,10 @@ class MockEventSource {
   constructor(url: string, _init?: EventSourceInit) {
     this.url = url
     MockEventSource.instances.push(this)
+  }
+
+  open() {
+    this.onopen?.(new Event('open'))
   }
 
   addEventListener(type: string, listener: (event: MessageEvent<string>) => void) {
@@ -79,11 +84,16 @@ describe('ChatPanel', () => {
 
     expect(await screen.findByText('Hello <b>Greyhaven</b>')).toBeTruthy()
     expect((screen.getByTestId('chat-tab-trade') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('chat-tab-trade').getAttribute('title')).toBe('Coming later')
+    expect(screen.getByTestId('chat-tab-trade').querySelector('.coming-later-hint')).toBeNull()
     expect((screen.getByTestId('chat-tab-guild') as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByTestId('chat-tab-party') as HTMLButtonElement).disabled).toBe(true)
     expect(document.querySelector('b')).toBeNull()
 
     await waitFor(() => expect(MockEventSource.instances[0]?.url).toContain('after=m1'))
+    expect(screen.getByTestId('chat-stream-status').textContent).toBe('History')
+    MockEventSource.instances[0]?.open()
+    expect(await screen.findByText('Live')).toBeTruthy()
     MockEventSource.instances[0]?.emit(
       JSON.stringify({
         id: 'm2',

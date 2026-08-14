@@ -463,12 +463,13 @@
 }
 
 .location-art {
-  height: 5.5rem;
+  height: 8rem;
   margin: 0 0 0.75rem;
   border-radius: var(--radius-sm);
-  background:
-    linear-gradient(135deg, rgba(80, 48, 18, 0.55), rgba(18, 14, 12, 0.72)),
-    repeating-linear-gradient(-18deg, transparent, transparent 10px, rgba(201, 162, 39, 0.08) 10px, rgba(201, 162, 39, 0.08) 12px);
+  background-color: #14110f;
+  background-size: cover;
+  background-position: 70% 40%;
+  background-repeat: no-repeat;
   display: grid;
   place-items: end start;
   padding: 0.55rem 0.7rem;
@@ -477,6 +478,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: var(--text-xs);
+  box-shadow: inset 0 -3rem 2.5rem rgba(10, 8, 6, 0.35);
 }
 
 .equipment-layout {
@@ -537,11 +539,62 @@
 
 .paper-doll-silhouette {
   position: absolute;
-  inset: 12% 28%;
-  border-radius: 40% 40% 30% 30%;
-  background: linear-gradient(180deg, rgba(201, 162, 39, 0.12), rgba(18, 14, 12, 0.4));
-  border: 1px dashed var(--line-soft);
+  inset: 10% 26%;
+  border-radius: 42% 42% 32% 32%;
+  background: linear-gradient(180deg, rgba(201, 162, 39, 0.22), rgba(18, 14, 12, 0.55));
+  border: 1px solid var(--line-soft);
   pointer-events: none;
+}
+
+.equipment-layout-doll .equipment-slot {
+  min-height: 3.1rem;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.equipment-layout-doll .equipment-slot-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.equipment-slot-name {
+  display: block;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.equipment-layout-doll .equipment-slot-value {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rarity-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex: none;
+}
+
+.rarity-dot-common {
+  background: var(--rarity-common);
+}
+
+.rarity-dot-uncommon {
+  background: var(--rarity-uncommon);
+}
+
+.rarity-dot-rare {
+  background: var(--rarity-rare);
+}
+
+.rarity-dot-epic {
+  background: var(--rarity-epic);
 }
 
 .equipment-slot {

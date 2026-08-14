@@ -41,7 +41,7 @@ describe('ActivityPanel', () => {
 
     expect(await screen.findByText('Your Forest Patrol returned.')).toBeTruthy()
     expect(screen.getByTestId('activity-EXPEDITION_COMPLETED')).toBeTruthy()
-    expect(screen.getByTestId('activity-view-all').textContent).toContain('View All')
+    expect(screen.queryByTestId('activity-view-all')).toBeNull()
   })
 
   it('shows a claimable expedition action without inventing world events', async () => {
@@ -62,5 +62,6 @@ describe('ActivityPanel', () => {
     expect(screen.getByTestId('rail-claim-expedition')).toBeTruthy()
     expect(screen.getByTestId('activity-alerts').textContent).toContain('Combat is in progress')
     expect(screen.queryByText(/rift/i)).toBeNull()
+    expect(screen.queryByTestId('activity-view-all')).toBeNull()
   })
 })

@@ -1,15 +1,17 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
 import { fetchCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
 import { Button } from '../ui/Button'
+import { ChromeIcon } from '../ui/chromeIcons'
 import { ComingLaterButton, ComingLaterChip } from '../ui/ComingLater'
-import { gameLink } from '../ui/gameNav'
+import { gameLink, isGameNavActive } from '../ui/gameNav'
 
 export function GameTopBar() {
   const { me, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const characterQuery = useQuery({
     queryKey: ['character'],
     queryFn: fetchCharacter,
@@ -25,6 +27,7 @@ export function GameTopBar() {
   const character = characterQuery.data
   const initial = character?.name.trim().charAt(0).toUpperCase() || '?'
   const itemCount = inventoryQuery.data?.usedSlots ?? 0
+  const packActive = isGameNavActive('inventory', location)
 
   async function handleLogout() {
     try {
@@ -37,9 +40,10 @@ export function GameTopBar() {
   return (
     <header className="game-topbar">
       <div className="game-topbar-left">
-        <NavLink to={gameLink('home')} className="brand">
+        <Link to={gameLink('home')} className="brand">
           Greyhaven
-        </NavLink>
+        </Link>
+        <span className="topbar-divider" aria-hidden="true" />
         {character ? (
           <div className="game-topbar-identity" data-testid="topbar-identity">
             <div className="portrait topbar-portrait" aria-hidden="true">
@@ -56,7 +60,7 @@ export function GameTopBar() {
       </div>
       <div className="currency-row" aria-label="Currencies">
         <span className="currency-chip" data-testid="topbar-gold">
-          <span className="muted">Gold</span>
+          <span className="muted">Gold</span>{' '}
           <strong>{character?.gold.toLocaleString('en-US') ?? '—'}</strong>
         </span>
         <ComingLaterChip testId="topbar-silver">Silver</ComingLaterChip>
@@ -64,13 +68,25 @@ export function GameTopBar() {
         <ComingLaterChip testId="topbar-credits">Credits</ComingLaterChip>
       </div>
       <div className="game-topbar-right utility-row">
-        <ComingLaterButton data-testid="topbar-achievements">Trophy</ComingLaterButton>
-        <ComingLaterButton data-testid="topbar-mail">Mail</ComingLaterButton>
-        <NavLink to={gameLink('inventory')} data-testid="topbar-inventory" className="btn btn-ghost">
-          Pack
+        <ComingLaterButton data-testid="topbar-achievements" className="btn-icon-chrome" aria-label="Trophy">
+          <ChromeIcon name="trophy" />
+        </ComingLaterButton>
+        <ComingLaterButton data-testid="topbar-mail" className="btn-icon-chrome" aria-label="Mail">
+          <ChromeIcon name="mail" />
+        </ComingLaterButton>
+        <Link
+          to={gameLink('inventory')}
+          data-testid="topbar-inventory"
+          className="btn btn-ghost btn-icon-chrome"
+          aria-label="Inventory"
+          aria-current={packActive ? 'page' : undefined}
+        >
+          <ChromeIcon name="pack" />
           {itemCount > 0 ? <span className="inventory-badge">{itemCount}</span> : null}
-        </NavLink>
-        <ComingLaterButton data-testid="topbar-friends">Friends</ComingLaterButton>
+        </Link>
+        <ComingLaterButton data-testid="topbar-friends" className="btn-icon-chrome" aria-label="Friends">
+          <ChromeIcon name="friends" />
+        </ComingLaterButton>
         <Button type="button" variant="ghost" data-testid="logout-button" onClick={() => void handleLogout()}>
           Logout
         </Button>

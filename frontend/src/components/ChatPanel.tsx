@@ -64,6 +64,10 @@ export function ChatPanel() {
         return
       }
       source = new EventSource(chatStreamUrl(lastIdRef.current), { withCredentials: true })
+      source.onopen = () => {
+        attempt = 0
+        setStreamState('live')
+      }
       source.addEventListener('message', (event: MessageEvent<string>) => {
         attempt = 0
         setStreamState('live')
@@ -141,7 +145,9 @@ export function ChatPanel() {
             ? 'Live'
             : streamState === 'reconnecting'
               ? 'Reconnecting…'
-              : 'Connecting…'}
+              : historyQuery.isSuccess
+                ? 'History'
+                : 'Connecting…'}
         </p>
       </div>
       <div className="chat-channel-tabs" role="tablist" aria-label="Chat channels">

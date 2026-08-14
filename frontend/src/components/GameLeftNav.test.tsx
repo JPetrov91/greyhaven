@@ -55,6 +55,8 @@ describe('GameLeftNav', () => {
     )
 
     expect(await screen.findByTestId('nav-home')).toBeTruthy()
+    expect(screen.getByTestId('nav-home').getAttribute('aria-current')).toBe('page')
+    expect(screen.getByTestId('nav-world').getAttribute('aria-current')).toBeNull()
     expect(screen.getByTestId('nav-character').getAttribute('href')).toContain('character')
     expect((screen.getByTestId('nav-guild') as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByTestId('nav-pvp') as HTMLButtonElement).disabled).toBe(true)
@@ -63,5 +65,33 @@ describe('GameLeftNav', () => {
     expect(await screen.findByTestId('quick-claim-expedition')).toBeTruthy()
     expect(screen.getByTestId('quick-tavern').getAttribute('href')).toContain('expeditions')
     expect(screen.getByTestId('ui-mode-toggle')).toBeTruthy()
+  })
+
+  it('marks only Locations as the current page on the world hash', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-1',
+      code: 'CITY_SQUARE',
+      name: 'City Square',
+      description: 'The square',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY'],
+    })
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null as never)
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <MemoryRouter initialEntries={['/game#world']}>
+        <QueryClientProvider client={queryClient}>
+          <GameLeftNav />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByTestId('nav-world')).toBeTruthy()
+    expect(screen.getByTestId('nav-world').getAttribute('aria-current')).toBe('page')
+    expect(screen.getByTestId('nav-home').getAttribute('aria-current')).toBeNull()
+    expect(screen.getByTestId('nav-character').getAttribute('aria-current')).toBeNull()
+    expect(screen.queryByTestId('quick-claim-expedition')).toBeNull()
   })
 })

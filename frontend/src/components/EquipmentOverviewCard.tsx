@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchInventory } from '../api/inventory'
 import { EmptyState } from '../ui/EmptyState'
@@ -28,9 +28,9 @@ export function EquipmentOverviewCard() {
             equipment={inventoryQuery.data.equipment}
             items={inventoryQuery.data.items}
           />
-          <NavLink to={gameLink('inventory')} className="btn btn-secondary" data-testid="view-full-equipment">
+          <Link to={gameLink('inventory')} className="btn btn-secondary" data-testid="view-full-equipment">
             View Full Equipment
-          </NavLink>
+          </Link>
         </>
       ) : (
         <EmptyState>No equipment loaded.</EmptyState>

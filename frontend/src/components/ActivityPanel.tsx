@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchActivity } from '../api/activity'
@@ -42,6 +42,8 @@ export function ActivityPanel({
   })
   const [expanded, setExpanded] = useState(false)
 
+  const feedLength = activityQuery.data?.length ?? 0
+  const canExpand = feedLength > 4
   const hasAlerts = combatActive || encounterActive
 
   return (
@@ -56,9 +58,9 @@ export function ActivityPanel({
         <section className="rail-section" data-testid="activity-claimable">
           <h3>Claimable Rewards</h3>
           <p>Expedition complete</p>
-          <NavLink to={gameLink('expeditions')} className="btn btn-primary" data-testid="rail-claim-expedition">
+          <Link to={gameLink('expeditions')} className="btn btn-primary" data-testid="rail-claim-expedition">
             Claim
-          </NavLink>
+          </Link>
         </section>
       ) : null}
 
@@ -92,14 +94,16 @@ export function ActivityPanel({
         )}
       </section>
 
-      <button
-        type="button"
-        className="btn btn-secondary"
-        data-testid="activity-view-all"
-        onClick={() => setExpanded((current) => !current)}
-      >
-        {expanded ? 'Collapse' : 'View All Notifications'}
-      </button>
+      {canExpand ? (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          data-testid="activity-view-all"
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? 'Collapse' : 'View All Notifications'}
+        </button>
+      ) : null}
     </Panel>
   )
 }

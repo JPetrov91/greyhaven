@@ -15,7 +15,41 @@
   background: rgba(18, 16, 14, 0.92);
 }
 
-.game-topbar-left,
+.game-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 2rem;
+  background: var(--line-soft);
+}
+
+.chrome-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+.btn-icon-chrome {
+  position: relative;
+  width: 2.15rem;
+  height: 2.15rem;
+  min-width: 2.15rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.btn-icon-chrome .inventory-badge {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  margin: 0;
+}
+
 .game-topbar-right,
 .game-topbar-identity,
 .currency-row,
@@ -70,10 +104,7 @@
 }
 
 .coming-later-hint {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
+  display: none;
 }
 
 .utility-row .coming-later,
@@ -177,29 +208,265 @@
 .location-hero {
   position: relative;
   overflow: hidden;
-  padding: 1.1rem 1.2rem;
+  padding: 0;
+  min-height: 22rem;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(90, 58, 22, 0.18), transparent 46%),
+    #14110e;
+  box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 0.28), var(--shadow);
+}
+
+.game-column.location-hero {
+  padding: 0;
 }
 
 .location-hero-art {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 18% 40%, rgba(90, 52, 20, 0.45), transparent 46%),
-    linear-gradient(120deg, rgba(18, 14, 12, 0.2), rgba(18, 14, 12, 0.72)),
-    repeating-linear-gradient(-18deg, transparent, transparent 12px, rgba(201, 162, 39, 0.05) 12px, rgba(201, 162, 39, 0.05) 14px);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(56%, 40rem);
+  background-color: #14110f;
+  background-size: cover;
+  background-position: center 42%;
+  background-repeat: no-repeat;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 16%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 16%);
 }
 
 .location-hero-body {
   position: relative;
   z-index: 1;
+  min-height: 22rem;
+  display: flex;
+  flex-direction: column;
+  padding: 1.15rem 1.25rem 0.95rem;
+  background:
+    linear-gradient(
+      90deg,
+      #14110e 0%,
+      rgba(20, 17, 14, 0.96) 28%,
+      rgba(20, 17, 14, 0.55) 46%,
+      rgba(20, 17, 14, 0.12) 62%,
+      transparent 78%
+    ),
+    linear-gradient(180deg, rgba(10, 8, 6, 0.12) 0%, transparent 36%, rgba(10, 8, 6, 0.7) 100%);
 }
 
-.location-hero-actions {
+.location-hero-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.location-hero-identity {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.location-crest {
+  width: 2.7rem;
+  height: 3.15rem;
+  flex: none;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+}
+
+.location-hero-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(232, 224, 212, 0.78);
+}
+
+.location-hero-region {
+  margin: 0.12rem 0 0;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 2.15rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: #f3eee4;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.65);
+}
+
+.location-hero-place {
+  margin: 0.15rem 0 0;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 1.05rem;
+  color: rgba(232, 224, 212, 0.86);
+}
+
+.location-hero-env {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: end;
+  flex: none;
+}
+
+.location-hero-clock {
+  display: grid;
+  justify-items: end;
+  text-align: right;
+}
+
+.location-hero-clock strong {
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+}
+
+.location-hero-clock span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.location-hero-weather {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.location-hero-temp {
+  margin-left: 0.4rem;
+  color: var(--ink);
+}
+
+.location-hero-map {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: auto;
+  background: rgba(12, 10, 8, 0.55);
+}
+
+.location-hero .location-description {
+  max-width: 34rem;
+  margin: 0.85rem 0 0.7rem;
+  color: rgba(232, 224, 212, 0.88);
+}
+
+.location-hero-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
-  margin-top: 0.75rem;
+  margin: 0 0 auto;
+}
+
+.location-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.18rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: rgba(12, 10, 8, 0.45);
+}
+
+.location-hero-pill-safe {
+  color: #8fd18c;
+  border-color: rgba(125, 186, 122, 0.45);
+}
+
+.location-hero-pill-danger {
+  color: #e08a7c;
+  border-color: rgba(196, 92, 74, 0.45);
+}
+
+.location-hero-pill-muted {
+  color: #cfc6b6;
+  border-color: rgba(201, 162, 39, 0.18);
+}
+
+.location-hero-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.95rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(232, 224, 212, 0.18);
+}
+
+.location-hero-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 3.15rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgba(201, 162, 39, 0.38);
+  border-radius: 6px;
+  background: rgba(12, 10, 8, 0.58);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-hero-tile:disabled,
+.location-hero-tile.coming-later {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.location-hero-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: none;
+  color: var(--accent-strong);
+}
+
+.location-hero-tile-icon .location-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.location-hero-tile-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.location-hero-tile-copy strong {
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.location-hero-tile-copy span {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+
+.location-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+}
+
+.status-badge .location-icon,
+.location-hero-pill .location-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+@media (max-width: 1100px) {
+  .location-hero-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .location-hero-top {
+    flex-wrap: wrap;
+  }
 }
 
 .home-mid-row,
@@ -323,10 +590,36 @@ html[data-ui-mode='compact'] .game-leftnav {
   padding: 0.45rem;
 }
 
+html[data-ui-mode='compact'] .location-hero {
+  min-height: 0;
+}
+
 html[data-ui-mode='compact'] .location-hero-art,
 html[data-ui-mode='compact'] .guild-placeholder .guild-deco,
 html[data-ui-mode='compact'] .topbar-portrait {
   display: none;
+}
+
+html[data-ui-mode='compact'] .location-hero-body {
+  min-height: 0;
+  padding: 0.5rem 0.65rem;
+  background: none;
+}
+
+html[data-ui-mode='compact'] .location-hero-actions {
+  border-top: 0;
+  margin-top: 0.4rem;
+  padding-top: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html[data-ui-mode='compact'] .location-hero-region {
+  font-size: 1.35rem;
+}
+
+html[data-ui-mode='compact'] .location-crest {
+  width: 1.8rem;
+  height: 2.1rem;
 }
 
 html[data-ui-mode='compact'] .game-shell-body {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import {
@@ -7,12 +7,15 @@ import {
   fetchNearbyCharacters,
   moveToLocation,
 } from '../api/world'
-import type { LocationAction } from '../api/types'
+import type { DestinationResponse, LocationAction, LocationResponse } from '../api/types'
 import { Button } from '../ui/Button'
+import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
 import { StatusBadge } from '../ui/StatusBadge'
+import { LocationCrest, LocationIcon, locationArtUrl, locationWeather } from '../ui/locationMedia'
+import type { LocationActionIconName } from '../ui/locationMedia'
 
 const ACTION_LABELS: Record<LocationAction, string> = {
   INSPECT: 'Inspect location',
@@ -31,6 +34,8 @@ const ACTION_LABELS: Record<LocationAction, string> = {
 /** Actions already represented by dedicated UI sections on this screen. */
 const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY'])
 
+const MARKET_ACTIONS = new Set<LocationAction>(['BROWSE_MARKET', 'CREATE_LISTING', 'BUY_ITEM', 'CANCEL_LISTING'])
+
 type Props = {
   onSearchEncounter?: () => void
   searchBusy?: boolean
@@ -40,6 +45,25 @@ type Props = {
   onOpenChat?: () => void
   onOpenWorld?: () => void
   variant?: 'full' | 'hero'
+}
+
+function formatGreyhavenTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function useGreyhavenClock(): string {
+  const [now, setNow] = useState(() => formatGreyhavenTime(new Date()))
+
+  useEffect(() => {
+    const tick = () => setNow(formatGreyhavenTime(new Date()))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  return now
 }
 
 export function LocationPanel({
@@ -129,200 +153,367 @@ export function LocationPanel({
 
   return (
     <div className={wrapperClass} data-testid="location-panel" id={hero ? undefined : 'world'}>
-      {hero ? <div className="location-hero-art" aria-hidden="true" /> : (
-        <div className="location-art" aria-hidden="true">
-          {location.name}
-        </div>
-      )}
-      <div className={hero ? 'location-hero-body' : undefined}>
-      <p className="location-region muted">{location.region}</p>
-      <h2 data-testid="current-location">{location.name}</h2>
-      <p className="location-meta">
-        <StatusBadge
-          data-testid="location-safety"
-          tone={location.safety === 'SAFE' ? 'safe' : 'danger'}
-        >
-          {location.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
-        </StatusBadge>
-        {location.safety === 'SAFE' ? <StatusBadge tone="safe">No PvP</StatusBadge> : null}
-        <span className="muted" data-testid="location-code">
-          {location.code}
-        </span>
-      </p>
-      <p className="location-description" data-testid="location-description">
-        {location.description}
-      </p>
       {hero ? (
-        <div className="location-hero-actions">
-          <Button type="button" data-testid="hero-travel" onClick={() => onOpenWorld?.()}>
-            World Map
-          </Button>
-          {location.actions.includes('SEARCH_ENCOUNTER') ? (
+        <LocationHero
+          location={location}
+          destinations={destinations}
+          movingToId={movingToId}
+          moveError={moveError}
+          searchError={searchError}
+          onOpenWorld={onOpenWorld}
+          onOpenMarket={onOpenMarket}
+          onOpenChat={onOpenChat}
+          onOpenExpedition={onOpenExpedition}
+          onMove={(id) => void handleMove(id)}
+        />
+      ) : (
+        <>
+          <div
+            className="location-art"
+            aria-hidden="true"
+            style={{ backgroundImage: `url(${locationArtUrl(location.code)})` }}
+          />
+          <p className="location-region muted">{location.region}</p>
+          <h2 data-testid="current-location">{location.name}</h2>
+          <p className="location-meta">
+            <StatusBadge
+              data-testid="location-safety"
+              tone={location.safety === 'SAFE' ? 'safe' : 'danger'}
+            >
+              <LocationIcon name={location.safety === 'SAFE' ? 'safe' : 'danger'} />
+              {location.safety === 'SAFE' ? 'Safe Zone' : 'Dangerous'}
+            </StatusBadge>
+            {location.safety === 'SAFE' ? (
+              <StatusBadge tone="safe">No PvP</StatusBadge>
+            ) : (
+              <StatusBadge tone="danger">PvE</StatusBadge>
+            )}
+            <span className="muted" data-testid="location-code">
+              {location.code}
+            </span>
+          </p>
+          <p className="location-description" data-testid="location-description">
+            {location.description}
+          </p>
+
+          <section className="location-section" aria-labelledby="destinations-heading">
+            <h3 id="destinations-heading">Travel</h3>
+            {destinationsQuery.isLoading ? (
+              <LoadingState>Loading destinations…</LoadingState>
+            ) : destinations.length === 0 ? (
+              <EmptyState>No connected destinations.</EmptyState>
+            ) : (
+              <ul className="destination-list" data-testid="destination-list">
+                {destinations.map((destination) => (
+                  <li key={destination.id}>
+                    <div>
+                      <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
+                      <span className="muted">
+                        {' '}
+                        · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      data-testid={`destination-${destination.code}`}
+                      disabled={movingToId !== null}
+                      onClick={() => void handleMove(destination.id)}
+                    >
+                      {movingToId === destination.id ? 'Traveling…' : 'Travel'}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {moveError ? (
+              <p className="form-error" role="alert" data-testid="move-error">
+                {moveError}
+              </p>
+            ) : null}
+          </section>
+
+          {listedActions.length > 0 ? (
+            <section className="location-section" aria-labelledby="actions-heading">
+              <h3 id="actions-heading">Available actions</h3>
+              <ul className="action-list" data-testid="location-actions">
+                {listedActions.map((action) => (
+                  <li key={action} data-testid={`action-${action}`}>
+                    <span>{ACTION_LABELS[action]}</span>
+                    {action === 'SEARCH_ENCOUNTER' ? (
+                      <Button
+                        type="button"
+                        data-testid="search-encounter-button"
+                        disabled={searchBusy || !onSearchEncounter}
+                        onClick={() => onSearchEncounter?.()}
+                      >
+                        {searchBusy ? 'Searching…' : 'Search'}
+                      </Button>
+                    ) : action === 'START_EXPEDITION' || action === 'INSPECT_EXPEDITIONS' ? (
+                      <Button
+                        type="button"
+                        data-testid={
+                          action === 'START_EXPEDITION' ? 'start-expedition-action' : 'inspect-expedition-action'
+                        }
+                        disabled={!onOpenExpedition}
+                        onClick={() => onOpenExpedition?.()}
+                      >
+                        Open
+                      </Button>
+                    ) : action === 'BROWSE_MARKET' ||
+                      action === 'CREATE_LISTING' ||
+                      action === 'BUY_ITEM' ||
+                      action === 'CANCEL_LISTING' ? (
+                      <Button
+                        type="button"
+                        data-testid={`open-market-${action}`}
+                        disabled={!onOpenMarket}
+                        onClick={() => onOpenMarket?.()}
+                      >
+                        Open
+                      </Button>
+                    ) : action === 'VIEW_CHAT' ? (
+                      <Button
+                        type="button"
+                        data-testid="open-chat-action"
+                        disabled={!onOpenChat}
+                        onClick={() => onOpenChat?.()}
+                      >
+                        Show
+                      </Button>
+                    ) : (
+                      <span className="action-status available">Available</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {searchError ? (
+                <p className="form-error" role="alert" data-testid="search-encounter-error">
+                  {searchError}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
+          <section className="location-section" aria-labelledby="nearby-heading">
+            <h3 id="nearby-heading">Nearby characters</h3>
+            {nearbyQuery.isLoading ? (
+              <LoadingState>Looking around…</LoadingState>
+            ) : nearby.length === 0 ? (
+              <EmptyState testId="nearby-empty">No other characters are here.</EmptyState>
+            ) : (
+              <>
+                <ul className="nearby-list" data-testid="nearby-characters">
+                  {nearby.map((character) => (
+                    <li key={character.id} data-testid={`nearby-${character.name}`}>
+                      <strong>{character.name}</strong>
+                      <span className="muted">Level {character.level}</span>
+                    </li>
+                  ))}
+                </ul>
+                {nearbyTruncated ? (
+                  <p className="muted" data-testid="nearby-truncated">
+                    Showing the first {nearby.length} characters here.
+                  </p>
+                ) : null}
+              </>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
+
+type HeroProps = {
+  location: LocationResponse
+  destinations: DestinationResponse[]
+  movingToId: string | null
+  moveError: string | null
+  searchError: string | null
+  onOpenWorld?: () => void
+  onOpenMarket?: () => void
+  onOpenChat?: () => void
+  onOpenExpedition?: () => void
+  onMove: (destinationLocationId: string) => void
+}
+
+function LocationHero({
+  location,
+  destinations,
+  movingToId,
+  moveError,
+  searchError,
+  onOpenWorld,
+  onOpenMarket,
+  onOpenChat,
+  onOpenExpedition,
+  onMove,
+}: HeroProps) {
+  const clock = useGreyhavenClock()
+  const weather = locationWeather(location.code)
+  const safe = location.safety === 'SAFE'
+  const tavernDestination = destinations.find((destination) => destination.code === 'TAVERN')
+  const atTavern = location.code === 'TAVERN'
+  const marketLive = location.actions.some((action) => MARKET_ACTIONS.has(action)) || Boolean(onOpenMarket)
+
+  return (
+    <>
+      <div
+        className="location-hero-art"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(${locationArtUrl(location.code)})` }}
+      />
+      <div className="location-hero-body">
+        <div className="location-hero-top">
+          <div className="location-hero-identity">
+            <LocationCrest />
+            <div>
+              <p className="location-hero-kicker">Current location</p>
+              <h2 className="location-hero-region">{location.region}</h2>
+              <p className="location-hero-place" data-testid="current-location">
+                {location.name}
+              </p>
+            </div>
+          </div>
+          <div className="location-hero-env">
+            <div className="location-hero-clock" data-testid="location-clock">
+              <strong>{clock}</strong>
+              <span>Greyhaven time</span>
+            </div>
+            <p className="location-hero-weather" data-testid="location-weather">
+              <LocationIcon name={weather.icon} />
+              <span>
+                {weather.label}
+                <span className="location-hero-temp">{weather.temperature}</span>
+              </span>
+            </p>
             <Button
               type="button"
-              data-testid="search-encounter-button"
-              disabled={searchBusy || !onSearchEncounter}
-              onClick={() => onSearchEncounter?.()}
+              variant="secondary"
+              className="location-hero-map"
+              data-testid="hero-world-map"
+              onClick={() => onOpenWorld?.()}
             >
-              {searchBusy ? 'Searching…' : 'Search'}
+              <LocationIcon name="globe" />
+              World Map
             </Button>
-          ) : null}
-          {location.actions.includes('START_EXPEDITION') || location.actions.includes('INSPECT_EXPEDITIONS') ? (
-            <Button type="button" data-testid="start-expedition-action" onClick={() => onOpenExpedition?.()}>
-              Expeditions
-            </Button>
-          ) : null}
-          {location.actions.includes('BROWSE_MARKET') ? (
-            <Button type="button" data-testid="open-market-BROWSE_MARKET" onClick={() => onOpenMarket?.()}>
-              Local Market
-            </Button>
-          ) : null}
-          {location.actions.includes('VIEW_CHAT') ? (
-            <Button type="button" data-testid="open-chat-action" onClick={() => onOpenChat?.()}>
-              Chat
-            </Button>
-          ) : null}
+          </div>
         </div>
-      ) : null}
-      {searchError && hero ? (
-        <p className="form-error" role="alert" data-testid="search-encounter-error">
-          {searchError}
-        </p>
-      ) : null}
 
-      {hero ? null : (
-      <>
-      <section className="location-section" aria-labelledby="destinations-heading">
-        <h3 id="destinations-heading">Travel</h3>
-        {destinationsQuery.isLoading ? (
-          <LoadingState>Loading destinations…</LoadingState>
-        ) : destinations.length === 0 ? (
-          <EmptyState>No connected destinations.</EmptyState>
-        ) : (
-          <ul className="destination-list" data-testid="destination-list">
-            {destinations.map((destination) => (
-              <li key={destination.id}>
-                <div>
-                  <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
-                  <span className="muted">
-                    {' '}
-                    · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  data-testid={`destination-${destination.code}`}
-                  disabled={movingToId !== null}
-                  onClick={() => void handleMove(destination.id)}
-                >
-                  {movingToId === destination.id ? 'Traveling…' : 'Travel'}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="location-description" data-testid="location-description">
+          {location.description}
+        </p>
+        <p className="location-hero-pills">
+          <span
+            className={safe ? 'location-hero-pill location-hero-pill-safe' : 'location-hero-pill location-hero-pill-danger'}
+            data-testid="location-safety"
+          >
+            <LocationIcon name={safe ? 'spark' : 'danger'} />
+            {safe ? 'Safe Zone' : 'Dangerous'}
+          </span>
+          <span className="location-hero-pill location-hero-pill-muted" data-testid="location-pvp">
+            <LocationIcon name={safe ? 'nopvp' : 'pve'} />
+            {safe ? 'No PvP' : 'PvE'}
+          </span>
+        </p>
+
+        <nav className="location-hero-actions" aria-label="Location actions">
+          <HeroTile
+            testId="hero-travel"
+            icon="compass"
+            title="Travel"
+            subtitle="Change location"
+            onClick={() => onOpenWorld?.()}
+          />
+          {atTavern ? (
+            <HeroTile
+              testId="hero-tavern"
+              icon="tavern"
+              title="Tavern"
+              subtitle="Find players"
+              onClick={() => (onOpenChat ?? onOpenExpedition)?.()}
+            />
+          ) : tavernDestination ? (
+            <HeroTile
+              testId="hero-tavern"
+              icon="tavern"
+              title="Tavern"
+              subtitle={movingToId === tavernDestination.id ? 'Traveling…' : 'Find players'}
+              disabled={movingToId !== null}
+              onClick={() => onMove(tavernDestination.id)}
+            />
+          ) : (
+            <HeroTile testId="hero-tavern" icon="tavern" title="Tavern" subtitle="Find players" comingLater />
+          )}
+          <HeroTile testId="hero-notice" icon="notice" title="Notice Board" subtitle="Quests & tasks" comingLater />
+          {marketLive ? (
+            <HeroTile
+              testId="open-market-BROWSE_MARKET"
+              icon="market"
+              title="Local Market"
+              subtitle="Buy & sell"
+              onClick={() => onOpenMarket?.()}
+            />
+          ) : (
+            <HeroTile
+              testId="open-market-BROWSE_MARKET"
+              icon="market"
+              title="Local Market"
+              subtitle="Buy & sell"
+              comingLater
+            />
+          )}
+          <HeroTile testId="hero-guild" icon="guild" title="Guild Hall" subtitle="Guild activities" comingLater />
+        </nav>
         {moveError ? (
           <p className="form-error" role="alert" data-testid="move-error">
             {moveError}
           </p>
         ) : null}
-      </section>
-
-      <section className="location-section" aria-labelledby="actions-heading">
-        <h3 id="actions-heading">Available actions</h3>
-        <ul className="action-list" data-testid="location-actions">
-          {location.actions
-            .filter((action) => IMPLIED_ACTIONS.has(action))
-            .map((action) => (
-              <li key={action} data-testid={`action-${action}`}>
-                <span>{ACTION_LABELS[action]}</span>
-                <span className="action-status available">Available</span>
-              </li>
-            ))}
-          {listedActions.map((action) => (
-            <li key={action} data-testid={`action-${action}`}>
-              <span>{ACTION_LABELS[action]}</span>
-              {action === 'SEARCH_ENCOUNTER' ? (
-                <Button
-                  type="button"
-                  data-testid="search-encounter-button"
-                  disabled={searchBusy || !onSearchEncounter}
-                  onClick={() => onSearchEncounter?.()}
-                >
-                  {searchBusy ? 'Searching…' : 'Search'}
-                </Button>
-              ) : action === 'START_EXPEDITION' || action === 'INSPECT_EXPEDITIONS' ? (
-                <Button
-                  type="button"
-                  data-testid={
-                    action === 'START_EXPEDITION' ? 'start-expedition-action' : 'inspect-expedition-action'
-                  }
-                  disabled={!onOpenExpedition}
-                  onClick={() => onOpenExpedition?.()}
-                >
-                  Open
-                </Button>
-              ) : action === 'BROWSE_MARKET' ||
-                action === 'CREATE_LISTING' ||
-                action === 'BUY_ITEM' ||
-                action === 'CANCEL_LISTING' ? (
-                <Button
-                  type="button"
-                  data-testid={`open-market-${action}`}
-                  disabled={!onOpenMarket}
-                  onClick={() => onOpenMarket?.()}
-                >
-                  Open
-                </Button>
-              ) : action === 'VIEW_CHAT' ? (
-                <Button
-                  type="button"
-                  data-testid="open-chat-action"
-                  disabled={!onOpenChat}
-                  onClick={() => onOpenChat?.()}
-                >
-                  Show
-                </Button>
-              ) : (
-                <span className="action-status available">Available</span>
-              )}
-            </li>
-          ))}
-        </ul>
         {searchError ? (
           <p className="form-error" role="alert" data-testid="search-encounter-error">
             {searchError}
           </p>
         ) : null}
-      </section>
-
-      <section className="location-section" aria-labelledby="nearby-heading">
-        <h3 id="nearby-heading">Nearby characters</h3>
-        {nearbyQuery.isLoading ? (
-          <LoadingState>Looking around…</LoadingState>
-        ) : nearby.length === 0 ? (
-          <EmptyState testId="nearby-empty">No other characters are here.</EmptyState>
-        ) : (
-          <>
-            <ul className="nearby-list" data-testid="nearby-characters">
-              {nearby.map((character) => (
-                <li key={character.id} data-testid={`nearby-${character.name}`}>
-                  <strong>{character.name}</strong>
-                  <span className="muted">Level {character.level}</span>
-                </li>
-              ))}
-            </ul>
-            {nearbyTruncated ? (
-              <p className="muted" data-testid="nearby-truncated">
-                Showing the first {nearby.length} characters here.
-              </p>
-            ) : null}
-          </>
-        )}
-      </section>
-      </>
-      )}
       </div>
-    </div>
+    </>
+  )
+}
+
+type TileProps = {
+  testId: string
+  icon: LocationActionIconName
+  title: string
+  subtitle: string
+  onClick?: () => void
+  disabled?: boolean
+  comingLater?: boolean
+}
+
+function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLater }: TileProps) {
+  const content: ReactNode = (
+    <>
+      <span className="location-hero-tile-icon">
+        <LocationIcon name={icon} />
+      </span>
+      <span className="location-hero-tile-copy">
+        <strong>{title}</strong>
+        <span>{subtitle}</span>
+      </span>
+    </>
+  )
+
+  if (comingLater) {
+    return (
+      <ComingLaterButton className="location-hero-tile" data-testid={testId}>
+        {content}
+      </ComingLaterButton>
+    )
+  }
+
+  return (
+    <button type="button" className="location-hero-tile" data-testid={testId} disabled={disabled} onClick={onClick}>
+      {content}
+    </button>
   )
 }

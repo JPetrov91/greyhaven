@@ -696,3 +696,35 @@ html[data-ui-mode='compact'] .auth-card-heading {
     grid-template-columns: 1fr;
   }
 }
+
+.create-character-screen {
+  grid-template-rows: 1fr;
+  align-items: center;
+}
+
+.create-character-wrap {
+  justify-content: center;
+  width: 100%;
+}
+
+.create-character-brand {
+  justify-content: center;
+  margin-bottom: 0.35rem;
+}
+
+.create-character-page .muted {
+  position: relative;
+  z-index: 1;
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+.create-character-page input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--auth-line);
+  border-radius: 2px;
+  background: rgba(8, 6, 5, 0.55);
+  color: var(--auth-ink);
+}

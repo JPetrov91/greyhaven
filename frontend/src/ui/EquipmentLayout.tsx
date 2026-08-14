@@ -47,10 +47,20 @@ export function EquipmentLayout({
           <>
             <span className="equipment-slot-label">{SLOT_LABELS[slot]}</span>
             <span className="equipment-slot-value">
-              <span data-testid={includeSlotTestIds ? slotTestId(slot) : undefined}>
+              <span
+                className={!compact ? 'equipment-slot-name' : undefined}
+                data-testid={includeSlotTestIds ? slotTestId(slot) : undefined}
+                title={equippedItem?.displayName}
+              >
                 {equippedItem?.displayName ?? 'Empty'}
               </span>
-              {equippedItem ? <RarityBadge rarity={equippedItem.rarity} /> : null}
+              {equippedItem ? (
+                compact ? (
+                  <RarityBadge rarity={equippedItem.rarity} />
+                ) : (
+                  <span className={`rarity-dot rarity-dot-${equippedItem.rarity.toLowerCase()}`} title={equippedItem.rarity} />
+                )
+              ) : null}
             </span>
           </>
         )

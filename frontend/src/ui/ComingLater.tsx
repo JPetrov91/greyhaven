@@ -25,9 +25,14 @@ export function ComingLaterButton({
 
 export function ComingLaterChip({ children, testId }: { children: ReactNode; testId?: string }) {
   return (
-    <span className="currency-chip currency-chip-locked" title={COMING_LATER_LABEL} data-testid={testId} aria-disabled="true">
+    <span
+      className="currency-chip currency-chip-locked"
+      title={COMING_LATER_LABEL}
+      data-testid={testId}
+      aria-disabled="true"
+    >
       {children}
-      <span className="coming-later-hint">{COMING_LATER_LABEL}</span>
+      <span className="visually-hidden">{COMING_LATER_LABEL}</span>
     </span>
   )
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { allocateAttributes, fetchCharacter, respecCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
 import { fetchCurrentLocation } from '../api/world'
@@ -225,9 +225,9 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
         )}
       </dl>
       {overview ? (
-        <NavLink to={gameLink('character')} className="btn btn-secondary" data-testid="view-character">
+        <Link to={gameLink('character')} className="btn btn-secondary" data-testid="view-character">
           View Character
-        </NavLink>
+        </Link>
       ) : (
         <>
           <details className="advanced-stats">

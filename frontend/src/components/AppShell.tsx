@@ -38,7 +38,10 @@ export function AppShell() {
     applyUiMode(next)
   }
 
-  const isAuthLanding = location.pathname === '/login' || location.pathname === '/register'
+  const isAuthLanding =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/create-character'
 
   return (
     <div className={isAuthLanding ? 'app-shell app-shell-auth' : 'app-shell'}>

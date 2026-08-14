@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchCurrentExpedition } from '../api/expedition'
 import { fetchCurrentLocation } from '../api/world'
@@ -33,10 +33,6 @@ export function GameLeftNav() {
     retry: false,
   })
 
-  function navClass(item: GameNavItem) {
-    return isGameNavActive(item, location) ? 'active' : undefined
-  }
-
   function toggleUiMode() {
     const next: UiMode = uiMode === 'compact' ? 'normal' : 'compact'
     setUiMode(next)
@@ -50,13 +46,21 @@ export function GameLeftNav() {
   return (
     <nav className="game-leftnav" aria-label="Primary">
       <ul className="game-nav-list">
-        {LIVE_NAV.map((entry) => (
-          <li key={entry.item}>
-            <NavLink to={gameLink(entry.item)} data-testid={entry.testId} className={() => navClass(entry.item)}>
-              {entry.label}
-            </NavLink>
-          </li>
-        ))}
+        {LIVE_NAV.map((entry) => {
+          const active = isGameNavActive(entry.item, location)
+          return (
+            <li key={entry.item}>
+              <Link
+                to={gameLink(entry.item)}
+                data-testid={entry.testId}
+                className={active ? 'active' : undefined}
+                aria-current={active ? 'page' : undefined}
+              >
+                {entry.label}
+              </Link>
+            </li>
+          )
+        })}
         <li>
           <ComingLaterButton data-testid="nav-crafting">Crafting</ComingLaterButton>
         </li>
@@ -75,34 +79,30 @@ export function GameLeftNav() {
         <p className="game-nav-heading">Quick actions</p>
         <ul className="quick-actions">
           <li>
-            <NavLink to={gameLink('world')} data-testid="quick-travel">
+            <Link to={gameLink('world')} data-testid="quick-travel">
               Travel
-            </NavLink>
+            </Link>
           </li>
           <li>
             {atTavern ? (
-              <NavLink to={gameLink('expeditions')} data-testid="quick-tavern">
+              <Link to={gameLink('expeditions')} data-testid="quick-tavern">
                 Visit Tavern
-              </NavLink>
+              </Link>
             ) : (
               <ComingLaterButton data-testid="quick-tavern">Visit Tavern</ComingLaterButton>
             )}
           </li>
-          <li>
-            {canClaim ? (
-              <NavLink to={gameLink('expeditions')} data-testid="quick-claim-expedition">
+          {canClaim ? (
+            <li>
+              <Link to={gameLink('expeditions')} data-testid="quick-claim-expedition">
                 Claim Expedition
-              </NavLink>
-            ) : (
-              <span className="muted" data-testid="quick-claim-expedition-idle">
-                No expedition to claim
-              </span>
-            )}
-          </li>
+              </Link>
+            </li>
+          ) : null}
           <li>
-            <NavLink to={gameLink('market')} data-testid="quick-market">
+            <Link to={gameLink('market')} data-testid="quick-market">
               Market Deals
-            </NavLink>
+            </Link>
           </li>
           <li>
             <ComingLaterButton data-testid="quick-daily">Daily Rewards</ComingLaterButton>
