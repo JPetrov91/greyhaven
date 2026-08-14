@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchActivity } from '../api/activity'
+import { EmptyState } from '../ui/EmptyState'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
+import { Panel } from '../ui/Panel'
 
 function formatWhen(iso: string): string {
   const date = new Date(iso)
@@ -25,18 +29,19 @@ export function ActivityPanel() {
   })
 
   return (
-    <aside className="game-column game-column-right" data-testid="activity-panel" aria-label="Activity">
-      <h2>Activity</h2>
+    <Panel
+      as="aside"
+      className="game-column game-column-right"
+      data-testid="activity-panel"
+      aria-label="Activity"
+      title="Activity"
+    >
       {activityQuery.isLoading ? (
-        <p className="muted">Loading activity…</p>
+        <LoadingState>Loading activity…</LoadingState>
       ) : activityQuery.error instanceof ApiError ? (
-        <p className="form-error" role="alert">
-          {activityQuery.error.message}
-        </p>
+        <ErrorState onRetry={() => void activityQuery.refetch()}>{activityQuery.error.message}</ErrorState>
       ) : (activityQuery.data?.length ?? 0) === 0 ? (
-        <p className="muted" data-testid="activity-empty">
-          No recent events yet.
-        </p>
+        <EmptyState testId="activity-empty">No recent events yet.</EmptyState>
       ) : (
         <ul className="activity-list" data-testid="activity-list">
           {activityQuery.data?.map((entry) => (
@@ -49,6 +54,6 @@ export function ActivityPanel() {
           ))}
         </ul>
       )}
-    </aside>
+    </Panel>
   )
 }

@@ -1,12 +1,26 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { Button } from '../ui/Button'
+import { focusSection } from '../ui/hashFocus'
 import { applyUiMode, persistUiMode, readStoredUiMode, type UiMode } from '../ui/uiMode'
+import { isGameNavActive, type GameNavItem } from '../ui/gameNav'
 
 export function AppShell() {
   const { isAuthenticated, me, logout, isLoading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode())
+
+  useEffect(() => {
+    const id = location.hash.replace(/^#/, '')
+    if (id !== 'character' && id !== 'inventory') {
+      return
+    }
+    focusSection(id)
+    const retry = window.setTimeout(() => focusSection(id), 120)
+    return () => window.clearTimeout(retry)
+  }, [location.hash, location.pathname, me?.hasCharacter])
 
   async function handleLogout() {
     try {
@@ -14,6 +28,10 @@ export function AppShell() {
     } finally {
       navigate('/login', { replace: true })
     }
+  }
+
+  function navClass(item: GameNavItem) {
+    return isGameNavActive(item, location) ? 'active' : undefined
   }
 
   function toggleUiMode() {
@@ -34,16 +52,16 @@ export function AppShell() {
             <>
               {me?.hasCharacter ? (
                 <>
-                  <NavLink to="/game#character" data-testid="nav-character">
+                  <NavLink to="/game#character" data-testid="nav-character" className={() => navClass('character')}>
                     Character
                   </NavLink>
-                  <NavLink to="/game" data-testid="nav-world" end>
+                  <NavLink to="/game" data-testid="nav-world" className={() => navClass('world')} end>
                     World
                   </NavLink>
-                  <NavLink to="/game#inventory" data-testid="nav-inventory">
+                  <NavLink to="/game#inventory" data-testid="nav-inventory" className={() => navClass('inventory')}>
                     Inventory
                   </NavLink>
-                  <NavLink to="/game?panel=market" data-testid="nav-market">
+                  <NavLink to="/game?panel=market" data-testid="nav-market" className={() => navClass('market')}>
                     Market
                   </NavLink>
                 </>
@@ -51,40 +69,35 @@ export function AppShell() {
               {!me?.hasCharacter ? (
                 <NavLink to="/create-character">Create Character</NavLink>
               ) : null}
-              <button
+              <Button
                 type="button"
-                className="nav-button"
+                variant="ghost"
                 data-testid="ui-mode-toggle"
                 aria-pressed={uiMode === 'compact'}
                 onClick={toggleUiMode}
               >
                 {uiMode === 'compact' ? 'Normal mode' : 'Office mode'}
-              </button>
+              </Button>
               <span className="nav-email" data-testid="nav-email">
                 {me?.email}
               </span>
-              <button
-                type="button"
-                className="nav-button"
-                data-testid="logout-button"
-                onClick={handleLogout}
-              >
+              <Button type="button" variant="ghost" data-testid="logout-button" onClick={handleLogout}>
                 Logout
-              </button>
+              </Button>
             </>
           ) : (
             <>
               <NavLink to="/login">Login</NavLink>
               <NavLink to="/register">Register</NavLink>
-              <button
+              <Button
                 type="button"
-                className="nav-button"
+                variant="ghost"
                 data-testid="ui-mode-toggle"
                 aria-pressed={uiMode === 'compact'}
                 onClick={toggleUiMode}
               >
                 {uiMode === 'compact' ? 'Normal mode' : 'Office mode'}
-              </button>
+              </Button>
             </>
           )}
         </nav>

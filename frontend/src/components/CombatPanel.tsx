@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { acknowledgeCombat, submitCombatAction } from '../api/combat'
 import type { CombatAction, CombatResponse } from '../api/types'
+import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
 
 const ACTIONS: { action: CombatAction; label: string }[] = [
   { action: 'QUICK_ATTACK', label: 'Quick Attack' },
@@ -96,16 +98,15 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
       {!terminal ? (
         <div className="combat-actions" data-testid="combat-actions">
           {ACTIONS.map(({ action, label }) => (
-            <button
+            <Button
               key={action}
               type="button"
-              className="travel-button"
               data-testid={`combat-action-${action}`}
               disabled={pendingAction !== null || (action === 'USE_POTION' && !combat.potionAvailable)}
               onClick={() => void handleAction(action)}
             >
               {pendingAction === action ? '…' : label}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -154,16 +155,11 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="muted">No items dropped.</p>
+            <EmptyState>No items dropped.</EmptyState>
           )}
-          <button
-            type="button"
-            className="travel-button"
-            data-testid="combat-dismiss"
-            onClick={() => void dismissOutcome()}
-          >
+          <Button type="button" data-testid="combat-dismiss" onClick={() => void dismissOutcome()}>
             Continue
-          </button>
+          </Button>
         </section>
       ) : null}
 
@@ -176,14 +172,9 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
                 ? 'Escaped'
                 : 'Combat ended'}
           </h3>
-          <button
-            type="button"
-            className="travel-button"
-            data-testid="combat-dismiss"
-            onClick={() => void dismissOutcome()}
-          >
+          <Button type="button" data-testid="combat-dismiss" onClick={() => void dismissOutcome()}>
             Continue
-          </button>
+          </Button>
         </section>
       ) : null}
     </section>

@@ -8,6 +8,11 @@ import {
   moveToLocation,
 } from '../api/world'
 import type { LocationAction } from '../api/types'
+import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
+import { StatusBadge } from '../ui/StatusBadge'
 
 const ACTION_LABELS: Record<LocationAction, string> = {
   INSPECT: 'Inspect location',
@@ -91,7 +96,7 @@ export function LocationPanel({
     return (
       <div className="game-column game-column-center" data-testid="location-panel">
         <h2>Greyhaven</h2>
-        <p className="muted">Loading location…</p>
+        <LoadingState>Loading location…</LoadingState>
       </div>
     )
   }
@@ -100,9 +105,7 @@ export function LocationPanel({
     return (
       <div className="game-column game-column-center" data-testid="location-panel">
         <h2>Greyhaven</h2>
-        <p className="form-error" role="alert">
-          {locationQuery.error.message}
-        </p>
+        <ErrorState onRetry={() => void locationQuery.refetch()}>{locationQuery.error.message}</ErrorState>
       </div>
     )
   }
@@ -119,12 +122,18 @@ export function LocationPanel({
 
   return (
     <div className="game-column game-column-center" data-testid="location-panel">
+      <div className="location-art" aria-hidden="true">
+        {location.name}
+      </div>
       <p className="location-region muted">{location.region}</p>
       <h2 data-testid="current-location">{location.name}</h2>
       <p className="location-meta">
-        <span data-testid="location-safety" className={location.safety === 'SAFE' ? 'safety-safe' : 'safety-danger'}>
+        <StatusBadge
+          data-testid="location-safety"
+          tone={location.safety === 'SAFE' ? 'safe' : 'danger'}
+        >
           {location.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
-        </span>
+        </StatusBadge>
         <span className="muted" data-testid="location-code">
           {location.code}
         </span>
@@ -136,9 +145,9 @@ export function LocationPanel({
       <section className="location-section" aria-labelledby="destinations-heading">
         <h3 id="destinations-heading">Travel</h3>
         {destinationsQuery.isLoading ? (
-          <p className="muted">Loading destinations…</p>
+          <LoadingState>Loading destinations…</LoadingState>
         ) : destinations.length === 0 ? (
-          <p className="muted">No connected destinations.</p>
+          <EmptyState>No connected destinations.</EmptyState>
         ) : (
           <ul className="destination-list" data-testid="destination-list">
             {destinations.map((destination) => (
@@ -150,15 +159,14 @@ export function LocationPanel({
                     · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
                   </span>
                 </div>
-                <button
+                <Button
                   type="button"
-                  className="travel-button"
                   data-testid={`destination-${destination.code}`}
                   disabled={movingToId !== null}
                   onClick={() => void handleMove(destination.id)}
                 >
                   {movingToId === destination.id ? 'Traveling…' : 'Travel'}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -185,19 +193,17 @@ export function LocationPanel({
             <li key={action} data-testid={`action-${action}`}>
               <span>{ACTION_LABELS[action]}</span>
               {action === 'SEARCH_ENCOUNTER' ? (
-                <button
+                <Button
                   type="button"
-                  className="travel-button"
                   data-testid="search-encounter-button"
                   disabled={searchBusy || !onSearchEncounter}
                   onClick={() => onSearchEncounter?.()}
                 >
                   {searchBusy ? 'Searching…' : 'Search'}
-                </button>
+                </Button>
               ) : action === 'START_EXPEDITION' || action === 'INSPECT_EXPEDITIONS' ? (
-                <button
+                <Button
                   type="button"
-                  className="travel-button"
                   data-testid={
                     action === 'START_EXPEDITION' ? 'start-expedition-action' : 'inspect-expedition-action'
                   }
@@ -205,30 +211,28 @@ export function LocationPanel({
                   onClick={() => onOpenExpedition?.()}
                 >
                   Open
-                </button>
+                </Button>
               ) : action === 'BROWSE_MARKET' ||
                 action === 'CREATE_LISTING' ||
                 action === 'BUY_ITEM' ||
                 action === 'CANCEL_LISTING' ? (
-                <button
+                <Button
                   type="button"
-                  className="travel-button"
                   data-testid={`open-market-${action}`}
                   disabled={!onOpenMarket}
                   onClick={() => onOpenMarket?.()}
                 >
                   Open
-                </button>
+                </Button>
               ) : action === 'VIEW_CHAT' ? (
-                <button
+                <Button
                   type="button"
-                  className="travel-button"
                   data-testid="open-chat-action"
                   disabled={!onOpenChat}
                   onClick={() => onOpenChat?.()}
                 >
                   Show
-                </button>
+                </Button>
               ) : (
                 <span className="action-status available">Available</span>
               )}
@@ -245,11 +249,9 @@ export function LocationPanel({
       <section className="location-section" aria-labelledby="nearby-heading">
         <h3 id="nearby-heading">Nearby characters</h3>
         {nearbyQuery.isLoading ? (
-          <p className="muted">Looking around…</p>
+          <LoadingState>Looking around…</LoadingState>
         ) : nearby.length === 0 ? (
-          <p className="muted" data-testid="nearby-empty">
-            No other characters are here.
-          </p>
+          <EmptyState testId="nearby-empty">No other characters are here.</EmptyState>
         ) : (
           <>
             <ul className="nearby-list" data-testid="nearby-characters">

@@ -3,6 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { chatStreamUrl, fetchChatMessages, postChatMessage } from '../api/chat'
 import type { ChatMessageResponse } from '../api/types'
+import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
 
 const HISTORY_CAP = 100
 const MAX_BODY_LENGTH = 500
@@ -141,17 +145,11 @@ export function ChatPanel() {
       </div>
 
       {historyQuery.isLoading ? (
-        <p className="muted" data-testid="chat-loading">
-          Loading recent messages…
-        </p>
+        <LoadingState testId="chat-loading">Loading recent messages…</LoadingState>
       ) : historyQuery.error instanceof ApiError ? (
-        <p className="form-error" role="alert" data-testid="chat-load-error">
-          {historyQuery.error.message}
-        </p>
+        <ErrorState testId="chat-load-error">{historyQuery.error.message}</ErrorState>
       ) : messages.length === 0 ? (
-        <p className="muted" data-testid="chat-empty">
-          No messages yet. Say hello to Greyhaven.
-        </p>
+        <EmptyState testId="chat-empty">No messages yet. Say hello to Greyhaven.</EmptyState>
       ) : (
         <ul className="chat-list" data-testid="chat-list" ref={listRef}>
           {messages.map((message) => (
@@ -182,9 +180,9 @@ export function ChatPanel() {
             autoComplete="off"
           />
         </label>
-        <button type="submit" className="travel-button" data-testid="chat-send" disabled={sending || !draft.trim()}>
+        <Button type="submit" data-testid="chat-send" disabled={sending || !draft.trim()}>
           {sending ? 'Sending…' : 'Send'}
-        </button>
+        </Button>
       </form>
       {sendError ? (
         <p className="form-error" role="alert" data-testid="chat-send-error">

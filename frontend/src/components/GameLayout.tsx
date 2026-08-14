@@ -14,6 +14,8 @@ import { ExpeditionPanel } from './ExpeditionPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
 import { MarketPanel } from './MarketPanel'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
 
 const MARKET_PANEL = 'market'
 
@@ -110,24 +112,19 @@ export function GameLayout() {
         {resumeLoading ? (
           <section className="game-column game-column-center" data-testid="gameplay-resume-loading">
             <h2>Greyhaven</h2>
-            <p className="muted">Restoring combat and encounter state…</p>
+            <LoadingState>Restoring combat and encounter state…</LoadingState>
           </section>
         ) : resumeFailed ? (
           <section className="game-column game-column-center" role="alert" data-testid="gameplay-resume-error">
             <h2>Unable to restore gameplay</h2>
-            <p className="form-error">
-              Combat or encounter state could not be loaded. Reconnect and retry before continuing.
-            </p>
-            <button
-              type="button"
-              className="travel-button"
-              onClick={() => {
+            <ErrorState
+              onRetry={() => {
                 void combatQuery.refetch()
                 void encounterQuery.refetch()
               }}
             >
-              Retry
-            </button>
+              Combat or encounter state could not be loaded. Reconnect and retry before continuing.
+            </ErrorState>
           </section>
         ) : showCombat ? (
           <CombatPanel

@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { Button } from '../ui/Button'
+import { ErrorState } from '../ui/ErrorState'
+import { Field } from '../ui/Field'
 
 export function RegisterPage() {
   const { register } = useAuth()
@@ -37,8 +40,7 @@ export function RegisterPage() {
       <h1>Register</h1>
       <p className="muted">Create an account to begin your journey in Greyhaven.</p>
       <form className="auth-form" onSubmit={handleSubmit} data-testid="register-form">
-        <label>
-          Email
+        <Field label="Email">
           <input
             type="email"
             name="email"
@@ -48,9 +50,8 @@ export function RegisterPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-        </label>
-        <label>
-          Password
+        </Field>
+        <Field label="Password">
           <input
             type="password"
             name="password"
@@ -61,15 +62,11 @@ export function RegisterPage() {
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-        </label>
-        {error ? (
-          <p className="form-error" role="alert" data-testid="register-error">
-            {error}
-          </p>
-        ) : null}
-        <button type="submit" disabled={submitting} data-testid="register-submit">
+        </Field>
+        {error ? <ErrorState testId="register-error">{error}</ErrorState> : null}
+        <Button type="submit" disabled={submitting} data-testid="register-submit">
           {submitting ? 'Creating…' : 'Create account'}
-        </button>
+        </Button>
       </form>
       <p>
         Already registered? <Link to="/login">Login</Link>

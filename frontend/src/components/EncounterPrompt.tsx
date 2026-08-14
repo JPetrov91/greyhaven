@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { fightEncounter, ignoreEncounter } from '../api/encounter'
 import type { CombatResponse, EncounterSearchResponse } from '../api/types'
+import { Button } from '../ui/Button'
 
 type Props = {
   encounter: EncounterSearchResponse
@@ -18,9 +19,9 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
       <section className="encounter-prompt" data-testid="encounter-nothing">
         <h3>Search result</h3>
         <p>Nothing found this time.</p>
-        <button type="button" className="travel-button" data-testid="encounter-dismiss" onClick={onCleared}>
+        <Button type="button" data-testid="encounter-dismiss" onClick={onCleared}>
           Continue
-        </button>
+        </Button>
       </section>
     )
   }
@@ -63,24 +64,18 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
       <p className="muted">Level {encounter.monster.level}</p>
       <p>A hostile presence blocks the path. Fight or ignore?</p>
       <div className="encounter-actions">
-        <button
-          type="button"
-          className="travel-button"
-          data-testid="encounter-fight"
-          disabled={busy}
-          onClick={() => void handleFight()}
-        >
+        <Button type="button" data-testid="encounter-fight" disabled={busy} onClick={() => void handleFight()}>
           Fight
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="nav-button"
+          variant="ghost"
           data-testid="encounter-ignore"
           disabled={busy}
           onClick={() => void handleIgnore()}
         >
           Ignore
-        </button>
+        </Button>
       </div>
       {error ? (
         <p className="form-error" role="alert" data-testid="encounter-error">

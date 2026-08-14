@@ -1,0 +1,57 @@
+:root {
+  --ink: #16201b;
+  --ink-soft: #3a4740;
+  --paper: #e4ebe4;
+  --panel: rgba(248, 250, 246, 0.94);
+  --panel-solid: #f7faf6;
+  --line: #8b9a8f;
+  --accent: #2c6a4e;
+  --accent-strong: #1a4633;
+  --accent-soft: rgba(44, 106, 78, 0.14);
+  --danger: #8a2f2f;
+  --danger-soft: rgba(138, 47, 47, 0.12);
+  --upgrade: #1a4633;
+  --downgrade: #8a3a3a;
+  --mixed: #6b4a12;
+  --mixed-soft: #efe3c8;
+  --shadow: 0 18px 40px rgba(20, 32, 26, 0.12);
+  --radius: 10px;
+  --radius-sm: 8px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --motion: 150ms ease;
+  --rarity-common: #4a5560;
+  --rarity-common-bg: #e4e7ea;
+  --rarity-uncommon: #0d7a3f;
+  --rarity-uncommon-bg: #c5efd6;
+  --rarity-rare: #1a4aad;
+  --rarity-rare-bg: #d5e2ff;
+  --rarity-epic: #7a1fa2;
+  --rarity-epic-bg: #f0d4fb;
+  --focus-ring: 2px solid var(--accent);
+  --focus-offset: 2px;
+}
+
+html[data-ui-mode='compact'] {
+  --panel: #f4f6f3;
+  --shadow: none;
+  --radius: 4px;
+  --radius-sm: 4px;
+  --space-2: 0.375rem;
+  --space-3: 0.5rem;
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+  --text-md: 0.8125rem;
+  --text-lg: 1rem;
+  --text-xl: 1.15rem;
+}

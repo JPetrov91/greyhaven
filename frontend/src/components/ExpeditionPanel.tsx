@@ -3,6 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { claimExpedition, fetchCurrentExpedition, startExpedition } from '../api/expedition'
 import type { ExpeditionResponse, ExpeditionStrategy } from '../api/types'
+import { Button } from '../ui/Button'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
+import { Panel } from '../ui/Panel'
 
 const STRATEGIES: { strategy: ExpeditionStrategy; label: string; blurb: string }[] = [
   { strategy: 'CAUTIOUS', label: 'Cautious', blurb: 'Lower risk, lower reward' },
@@ -119,21 +123,17 @@ export function ExpeditionPanel({ onClose }: Props) {
 
   if (expeditionQuery.isLoading) {
     return (
-      <section className="expedition-panel" data-testid="expedition-panel">
-        <h2>Expedition</h2>
-        <p className="muted">Checking expedition status…</p>
-      </section>
+      <Panel className="expedition-panel" data-testid="expedition-panel" title="Expedition">
+        <LoadingState>Checking expedition status…</LoadingState>
+      </Panel>
     )
   }
 
   if (expeditionQuery.error instanceof ApiError) {
     return (
-      <section className="expedition-panel" data-testid="expedition-panel">
-        <h2>Expedition</h2>
-        <p className="form-error" role="alert">
-          {expeditionQuery.error.message}
-        </p>
-      </section>
+      <Panel className="expedition-panel" data-testid="expedition-panel" title="Expedition">
+        <ErrorState onRetry={() => void expeditionQuery.refetch()}>{expeditionQuery.error.message}</ErrorState>
+      </Panel>
     )
   }
 
@@ -142,15 +142,19 @@ export function ExpeditionPanel({ onClose }: Props) {
     expedition?.status === 'ACTIVE' && Date.parse(expedition.completesAt) <= nowMs
 
   return (
-    <section className="expedition-panel" data-testid="expedition-panel" aria-label="Expedition">
-      <div className="expedition-header">
-        <h2>Forest Patrol</h2>
-        {onClose ? (
-          <button type="button" className="nav-button" onClick={onClose} data-testid="expedition-close">
+    <Panel
+      className="expedition-panel"
+      data-testid="expedition-panel"
+      aria-label="Expedition"
+      title="Forest Patrol"
+      actions={
+        onClose ? (
+          <Button type="button" variant="ghost" onClick={onClose} data-testid="expedition-close">
             Close
-          </button>
-        ) : null}
-      </div>
+          </Button>
+        ) : null
+      }
+    >
 
       {expedition && expedition.status !== 'CLAIMED' ? (
         <>
@@ -192,15 +196,14 @@ export function ExpeditionPanel({ onClose }: Props) {
       ) : null}
 
       {expedition?.status === 'COMPLETED' ? (
-        <button
+        <Button
           type="button"
-          className="travel-button"
           data-testid="claim-expedition-button"
           disabled={busy}
           onClick={() => void handleClaim(expedition)}
         >
           {busy ? 'Claiming…' : 'Claim rewards'}
-        </button>
+        </Button>
       ) : null}
 
       {!expedition || expedition.status === 'CLAIMED' ? (
@@ -226,15 +229,14 @@ export function ExpeditionPanel({ onClose }: Props) {
               </li>
             ))}
           </ul>
-          <button
+          <Button
             type="button"
-            className="travel-button"
             data-testid="start-expedition-button"
             disabled={busy}
             onClick={() => void handleStart()}
           >
             {busy ? 'Starting…' : 'Start Forest Patrol'}
-          </button>
+          </Button>
         </>
       ) : null}
 
@@ -243,6 +245,6 @@ export function ExpeditionPanel({ onClose }: Props) {
           {error}
         </p>
       ) : null}
-    </section>
+    </Panel>
   )
 }

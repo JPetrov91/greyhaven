@@ -1,9 +1,21 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { allocateAttributes, fetchCharacter, respecCharacter } from '../api/character'
+import { fetchInventory } from '../api/inventory'
 import { fetchCurrentLocation } from '../api/world'
 import { ApiError } from '../api/client'
 import type { CharacterResponse } from '../api/types'
+import { Button } from '../ui/Button'
+import { Dialog } from '../ui/Dialog'
+import { EmptyState } from '../ui/EmptyState'
+import { EquipmentLayout } from '../ui/EquipmentLayout'
+import { ErrorState } from '../ui/ErrorState'
+import { LoadingState } from '../ui/LoadingState'
+import { Panel } from '../ui/Panel'
+import { ProgressBar } from '../ui/ProgressBar'
+import { StatRow } from '../ui/StatRow'
+import { StatusBadge } from '../ui/StatusBadge'
 
 type AttrKey = 'strength' | 'agility' | 'endurance' | 'perception'
 
@@ -17,9 +29,11 @@ function formatXp(value: number): string {
 
 export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [allocError, setAllocError] = useState<string | null>(null)
   const [allocating, setAllocating] = useState<AttrKey | null>(null)
   const [respeccing, setRespeccing] = useState(false)
+  const [confirmRespec, setConfirmRespec] = useState(false)
 
   const characterQuery = useQuery({
     queryKey: ['character'],
@@ -30,6 +44,13 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   const locationQuery = useQuery({
     queryKey: ['location'],
     queryFn: fetchCurrentLocation,
+    retry: false,
+    enabled: !!characterQuery.data,
+  })
+
+  const inventoryQuery = useQuery({
+    queryKey: ['inventory'],
+    queryFn: fetchInventory,
     retry: false,
     enabled: !!characterQuery.data,
   })
@@ -56,6 +77,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   async function handleRespec() {
     setAllocError(null)
     setRespeccing(true)
+    setConfirmRespec(false)
     try {
       await respecCharacter()
       await queryClient.invalidateQueries({ queryKey: ['character'] })
@@ -69,19 +91,17 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
 
   if (characterQuery.isLoading) {
     return (
-      <aside className="game-column game-column-left">
-        <h2>Character</h2>
-        <p className="muted">Loading character…</p>
-      </aside>
+      <Panel as="aside" className="game-column game-column-left" id="character" title="Character">
+        <LoadingState>Loading character…</LoadingState>
+      </Panel>
     )
   }
 
   if (characterQuery.error instanceof ApiError) {
     return (
-      <aside className="game-column game-column-left">
-        <h2>Character</h2>
-        <p className="form-error">{characterQuery.error.message}</p>
-      </aside>
+      <Panel as="aside" className="game-column game-column-left" id="character" title="Character">
+        <ErrorState onRetry={() => void characterQuery.refetch()}>{characterQuery.error.message}</ErrorState>
+      </Panel>
     )
   }
 
@@ -94,47 +114,75 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
   const canAllocate = character.unspentAttributePoints > 0
   const progression = character.progression
   const busy = mutationsDisabled || allocating !== null || respeccing
+  const initial = character.name.trim().charAt(0).toUpperCase() || '?'
 
   return (
-    <aside id="character" className="game-column game-column-left" data-testid="character-summary">
-      <h2 data-testid="character-summary-name">{character.name}</h2>
-      <dl className="character-summary">
-        <div>
-          <dt>Level</dt>
-          <dd data-testid="character-summary-level">
-            {progression.maxLevel ? `Level ${character.level} — MAX` : `Lv. ${character.level}`}
-          </dd>
+    <Panel
+      as="aside"
+      id="character"
+      className="game-column game-column-left"
+      data-testid="character-summary"
+    >
+      <div className="character-identity">
+        <div className="portrait" aria-hidden="true">
+          {initial}
         </div>
+        <div>
+          <h2 data-testid="character-summary-name" tabIndex={-1}>
+            {character.name}
+          </h2>
+          {character.unspentAttributePoints > 0 ? (
+            <StatusBadge tone="upgrade">{character.unspentAttributePoints} unspent</StatusBadge>
+          ) : null}
+        </div>
+      </div>
+      <dl className="character-summary">
+        <StatRow
+          label="Level"
+          testId="character-summary-level"
+          value={progression.maxLevel ? `Level ${character.level} — MAX` : character.level}
+        />
         <div className="character-xp-block">
           <dt>XP</dt>
           <dd>
             <XpProgress progression={progression} />
           </dd>
         </div>
-        <div>
-          <dt>Attribute points</dt>
-          <dd data-testid="character-summary-attribute-points">{character.unspentAttributePoints}</dd>
+        <StatRow
+          label="Attribute points"
+          testId="character-summary-attribute-points"
+          value={character.unspentAttributePoints}
+        />
+        <div className="vital-block">
+          <div className="vital-block-header">
+            <span>Health</span>
+            <span>
+              {character.currentHealth} / {character.maxHealth}
+            </span>
+          </div>
+          <ProgressBar
+            tone="health"
+            max={character.maxHealth}
+            value={character.currentHealth}
+            label={`Health ${character.currentHealth} of ${character.maxHealth}`}
+          />
         </div>
-        <div>
-          <dt>Health</dt>
-          <dd>
-            {character.currentHealth} / {character.maxHealth}
-          </dd>
+        <div className="vital-block">
+          <div className="vital-block-header">
+            <span>Stamina</span>
+            <span>
+              {character.currentStamina} / {character.maxStamina}
+            </span>
+          </div>
+          <ProgressBar
+            tone="stamina"
+            max={character.maxStamina}
+            value={character.currentStamina}
+            label={`Stamina ${character.currentStamina} of ${character.maxStamina}`}
+          />
         </div>
-        <div>
-          <dt>Stamina</dt>
-          <dd>
-            {character.currentStamina} / {character.maxStamina}
-          </dd>
-        </div>
-        <div>
-          <dt>Gold</dt>
-          <dd data-testid="character-summary-gold">{character.gold}</dd>
-        </div>
-        <div>
-          <dt>Location</dt>
-          <dd data-testid="character-summary-location">{locationName}</dd>
-        </div>
+        <StatRow label="Gold" testId="character-summary-gold" value={character.gold} />
+        <StatRow label="Location" testId="character-summary-location" value={locationName} />
         {(
           [
             ['Strength', 'strength', character.strength],
@@ -143,48 +191,78 @@ export function CharacterSummaryPanel({ mutationsDisabled = false }: Props) {
             ['Perception', 'perception', character.perception],
           ] as const
         ).map(([label, key, value]) => (
-          <div key={key}>
-            <dt>{label}</dt>
-            <dd>
-              <span data-testid={`character-summary-${key}`}>{value}</span>
-              {canAllocate ? (
-                <button
-                  type="button"
-                  className="attr-plus"
-                  data-testid={`allocate-${key}`}
-                  disabled={busy}
-                  onClick={() => void spendPoint(key)}
-                >
-                  {allocating === key ? '…' : '+'}
-                </button>
-              ) : null}
-            </dd>
-          </div>
+          <StatRow key={key} label={label} testId={`character-summary-${key}`} value={value}>
+            {canAllocate ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="btn-icon"
+                data-testid={`allocate-${key}`}
+                aria-label={`Allocate ${label}`}
+                disabled={busy}
+                onClick={() => void spendPoint(key)}
+              >
+                {allocating === key ? '…' : '+'}
+              </Button>
+            ) : null}
+          </StatRow>
         ))}
-        <div>
-          <dt>Damage</dt>
-          <dd data-testid="character-summary-damage">{character.derivedStats.physicalDamage}</dd>
-        </div>
-        <div>
-          <dt>Armor</dt>
-          <dd data-testid="character-summary-armor">{character.derivedStats.armor}</dd>
-        </div>
+        <StatRow label="Damage" testId="character-summary-damage" value={character.derivedStats.physicalDamage} />
+        <StatRow label="Armor" testId="character-summary-armor" value={character.derivedStats.armor} />
       </dl>
-      <button
+      <details className="advanced-stats">
+        <summary>Advanced statistics</summary>
+        <dl className="derived-stats">
+          <StatRow label="Accuracy" value={character.derivedStats.accuracy} />
+          <StatRow label="Dodge" value={character.derivedStats.dodge} />
+          <StatRow label="Crit" value={`${character.derivedStats.criticalChance}%`} />
+        </dl>
+      </details>
+      {inventoryQuery.data ? (
+        <div className="inventory-section">
+          <h3>Equipment</h3>
+          <EquipmentLayout
+            compact
+            testId="character-equipment"
+            equipment={inventoryQuery.data.equipment}
+            items={inventoryQuery.data.items}
+            onSlotClick={(slot) =>
+              navigate({ pathname: '/game', hash: 'inventory', search: `?slot=${slot}` })
+            }
+          />
+        </div>
+      ) : inventoryQuery.isLoading ? (
+        <LoadingState>Loading equipment…</LoadingState>
+      ) : null}
+      <Button
         type="button"
-        className="travel-button"
+        variant="danger"
         data-testid="character-respec"
         disabled={busy}
-        onClick={() => void handleRespec()}
+        onClick={() => setConfirmRespec(true)}
       >
         {respeccing ? '…' : 'Respec'}
-      </button>
+      </Button>
+      <Dialog
+        open={confirmRespec}
+        title="Respec character?"
+        confirmLabel="Respec"
+        confirmTestId="character-respec-confirm"
+        danger
+        onCancel={() => setConfirmRespec(false)}
+        onConfirm={() => void handleRespec()}
+      >
+        This returns spent attribute points. Equipment that no longer meets requirements will be unequipped.
+      </Dialog>
+      {mutationsDisabled ? (
+        <EmptyState>Character changes are unavailable during combat.</EmptyState>
+      ) : null}
       {allocError ? (
         <p className="form-error" role="alert" data-testid="allocate-error">
           {allocError}
         </p>
       ) : null}
-    </aside>
+    </Panel>
   )
 }
 
@@ -192,13 +270,7 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
   if (progression.maxLevel) {
     return (
       <div className="xp-progress" data-testid="character-summary-experience">
-        <progress
-          className="xp-bar"
-          data-testid="xp-progress-bar"
-          max={100}
-          value={100}
-          aria-label="MAX LEVEL"
-        />
+        <ProgressBar className="xp-bar" testId="xp-progress-bar" max={100} value={100} label="MAX LEVEL" />
         <span data-testid="xp-progress-label">MAX LEVEL</span>
       </div>
     )
@@ -213,12 +285,12 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
       <span data-testid="xp-current-required">
         {formatXp(into)} / {formatXp(required)} XP
       </span>
-      <progress
+      <ProgressBar
         className="xp-bar"
-        data-testid="xp-progress-bar"
+        testId="xp-progress-bar"
         max={100}
         value={progression.progressPercent}
-        aria-label={`${progression.progressPercent}% to next level`}
+        label={`${progression.progressPercent}% to next level`}
       />
       <span data-testid="xp-progress-percent">{progression.progressPercent}%</span>
       <span className="muted" data-testid="xp-remaining">

@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { Button } from '../ui/Button'
+import { ErrorState } from '../ui/ErrorState'
+import { Field } from '../ui/Field'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -37,8 +40,7 @@ export function LoginPage() {
       <h1>Login</h1>
       <p className="muted">Sign in to continue your Greyhaven session.</p>
       <form className="auth-form" onSubmit={handleSubmit} data-testid="login-form">
-        <label>
-          Email
+        <Field label="Email">
           <input
             type="email"
             name="email"
@@ -48,9 +50,8 @@ export function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-        </label>
-        <label>
-          Password
+        </Field>
+        <Field label="Password">
           <input
             type="password"
             name="password"
@@ -60,15 +61,11 @@ export function LoginPage() {
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-        </label>
-        {error ? (
-          <p className="form-error" role="alert" data-testid="login-error">
-            {error}
-          </p>
-        ) : null}
-        <button type="submit" disabled={submitting} data-testid="login-submit">
+        </Field>
+        {error ? <ErrorState testId="login-error">{error}</ErrorState> : null}
+        <Button type="submit" disabled={submitting} data-testid="login-submit">
           {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
+        </Button>
       </form>
       <p>
         Need an account? <Link to="/register">Register</Link>

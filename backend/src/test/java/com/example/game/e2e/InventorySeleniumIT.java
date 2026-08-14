@@ -75,7 +75,7 @@ class InventorySeleniumIT {
 
 		assertThat(ui.text("inventory-item-" + ItemCodes.RUSTY_SWORD))
 				.contains("Rusty Sword")
-				.contains("COMMON")
+				.contains("Common")
 				.contains("Damage 6")
 				.contains("Equipped");
 		assertThat(ui.text("inventory-item-" + ItemCodes.WORN_LEATHER_ARMOR)).contains("Armor 3");

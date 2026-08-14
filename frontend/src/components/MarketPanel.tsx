@@ -10,7 +10,15 @@ import {
   fetchOwnMarketListings,
 } from '../api/market'
 import { fetchCurrentLocation } from '../api/world'
-import type { InventoryItemResponse, ItemType, LocationAction, MarketListingResponse } from '../api/types'
+import type { InventoryItemResponse, ItemType, LocationAction } from '../api/types'
+import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
+import { ErrorState } from '../ui/ErrorState'
+import { Field } from '../ui/Field'
+import { LoadingState } from '../ui/LoadingState'
+import { Panel } from '../ui/Panel'
+import { formatRarity } from '../ui/formatRarity'
+import { MarketListingRow } from './MarketListingRow'
 
 const ITEM_TYPES: { value: ItemType | ''; label: string }[] = [
   { value: '', label: 'All types' },
@@ -132,15 +140,14 @@ export function MarketPanel({ onClose }: Props) {
     : null
 
   return (
-    <section className="expedition-panel" data-testid="market-panel" aria-label="Marketplace">
-      <div className="expedition-header">
-        <h2>Marketplace</h2>
-        {onClose ? (
-          <button type="button" className="nav-button" data-testid="close-market" onClick={onClose}>
+    <Panel className="market-panel" data-testid="market-panel" aria-label="Marketplace" title="Marketplace" actions={
+        onClose ? (
+          <Button type="button" variant="ghost" data-testid="close-market" onClick={onClose}>
             Close
-          </button>
-        ) : null}
-      </div>
+          </Button>
+        ) : null
+      }
+    >
       <p className="muted">Browse player listings, sell from your pack, and manage your own offers.</p>
       {locationQuery.data && !atMarket ? (
         <p className="muted" data-testid="market-travel-hint">
@@ -155,8 +162,7 @@ export function MarketPanel({ onClose }: Props) {
 
       <section className="location-section" aria-labelledby="market-filter-heading">
         <h3 id="market-filter-heading">Filters</h3>
-        <label className="muted">
-          Item type{' '}
+        <Field label="Item type">
           <select
             data-testid="market-type-filter"
             value={itemType}
@@ -168,26 +174,22 @@ export function MarketPanel({ onClose }: Props) {
               </option>
             ))}
           </select>
-        </label>
+        </Field>
       </section>
 
       <section className="location-section" aria-labelledby="market-listings-heading">
         <h3 id="market-listings-heading">Active listings</h3>
         {listingsQuery.isLoading ? (
-          <p className="muted">Loading listings…</p>
+          <LoadingState>Loading listings…</LoadingState>
         ) : loadError ? (
-          <p className="form-error" role="alert" data-testid="market-load-error">
-            {loadError}
-          </p>
+          <ErrorState testId="market-load-error">{loadError}</ErrorState>
         ) : listings.length === 0 ? (
-          <p className="muted" data-testid="market-listings-empty">
-            No listings match this filter.
-          </p>
+          <EmptyState testId="market-listings-empty">No listings match this filter.</EmptyState>
         ) : (
           <>
             <ul className="inventory-list" data-testid="market-listings">
               {listings.map((listing) => (
-                <ListingRow
+                <MarketListingRow
                   key={listing.id}
                   listing={listing}
                   actionLabel="Buy"
@@ -222,8 +224,7 @@ export function MarketPanel({ onClose }: Props) {
               createMutation.mutate()
             }}
           >
-            <label>
-              Item
+            <Field label="Item">
               <select
                 data-testid="market-item-select"
                 value={selectedItemId}
@@ -242,9 +243,8 @@ export function MarketPanel({ onClose }: Props) {
                   </option>
                 ))}
               </select>
-            </label>
-            <label>
-              Quantity
+            </Field>
+            <Field label="Quantity">
               <input
                 data-testid="market-quantity-input"
                 type="number"
@@ -253,9 +253,8 @@ export function MarketPanel({ onClose }: Props) {
                 value={quantity}
                 onChange={(event) => setQuantity(Number(event.target.value))}
               />
-            </label>
-            <label>
-              Price (gold)
+            </Field>
+            <Field label="Price (gold)">
               <input
                 data-testid="market-price-input"
                 type="number"
@@ -263,15 +262,14 @@ export function MarketPanel({ onClose }: Props) {
                 value={price}
                 onChange={(event) => setPrice(Number(event.target.value))}
               />
-            </label>
-            <button
+            </Field>
+            <Button
               type="submit"
-              className="travel-button"
               data-testid="create-listing-button"
               disabled={tradeDisabled || !selectedItemId}
             >
               {createMutation.isPending ? 'Listing…' : 'List item'}
-            </button>
+            </Button>
           </form>
         )}
       </section>
@@ -279,19 +277,15 @@ export function MarketPanel({ onClose }: Props) {
       <section className="location-section" aria-labelledby="own-listings-heading">
         <h3 id="own-listings-heading">Your listings</h3>
         {ownListingsQuery.isLoading ? (
-          <p className="muted">Loading your listings…</p>
+          <LoadingState>Loading your listings…</LoadingState>
         ) : ownLoadError ? (
-          <p className="form-error" role="alert" data-testid="own-listings-error">
-            {ownLoadError}
-          </p>
+          <ErrorState testId="own-listings-error">{ownLoadError}</ErrorState>
         ) : ownListings.length === 0 ? (
-          <p className="muted" data-testid="own-listings-empty">
-            You have no active listings.
-          </p>
+          <EmptyState testId="own-listings-empty">You have no active listings.</EmptyState>
         ) : (
           <ul className="inventory-list" data-testid="own-listings">
             {ownListings.map((listing) => (
-              <ListingRow
+              <MarketListingRow
                 key={listing.id}
                 listing={listing}
                 actionLabel="Cancel"
@@ -303,48 +297,11 @@ export function MarketPanel({ onClose }: Props) {
           </ul>
         )}
       </section>
-    </section>
+    </Panel>
   )
 }
 
 function itemLabel(item: InventoryItemResponse): string {
   const available = item.quantity - item.listedQuantity
-  return `${item.name} · ${item.rarity} · qty ${available}`
-}
-
-function ListingRow({
-  listing,
-  actionLabel,
-  actionTestId,
-  disabled,
-  onAction,
-}: {
-  listing: MarketListingResponse
-  actionLabel: string
-  actionTestId: string
-  disabled: boolean
-  onAction: () => void
-}) {
-  return (
-    <li data-testid={`market-listing-${listing.itemCode}`}>
-      <div className="inventory-item-main">
-        <strong>{listing.itemName}</strong>
-        <span className={`rarity rarity-${listing.rarity.toLowerCase()}`}>{listing.rarity}</span>
-      </div>
-      <p className="inventory-item-meta">
-        {listing.itemType} · Qty {listing.quantity} · {listing.price} gold · Seller {listing.sellerName}
-      </p>
-      <div className="inventory-item-actions">
-        <button
-          type="button"
-          className="travel-button"
-          data-testid={actionTestId}
-          disabled={disabled}
-          onClick={onAction}
-        >
-          {actionLabel}
-        </button>
-      </div>
-    </li>
-  )
+  return `${item.displayName} · ${formatRarity(item.rarity)} · qty ${available}`
 }

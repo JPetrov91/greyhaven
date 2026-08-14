@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { createCharacter } from '../api/character'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
+import { Button } from '../ui/Button'
+import { ErrorState } from '../ui/ErrorState'
+import { Field } from '../ui/Field'
 
 const CHARACTER_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/
 
@@ -50,8 +53,7 @@ export function CreateCharacterPage() {
         Choose a unique name. Your character begins at level 1 with 100 gold.
       </p>
       <form className="auth-form" onSubmit={handleSubmit} data-testid="create-character-form">
-        <label>
-          Character name
+        <Field label="Character name">
           <input
             type="text"
             name="name"
@@ -61,15 +63,11 @@ export function CreateCharacterPage() {
             title="Start with a letter. Letters, digits, underscores, and hyphens only."
             required
           />
-        </label>
-        {error ? (
-          <p className="form-error" role="alert" data-testid="create-character-error">
-            {error}
-          </p>
-        ) : null}
-        <button type="submit" disabled={submitting} data-testid="create-character-submit">
+        </Field>
+        {error ? <ErrorState testId="create-character-error">{error}</ErrorState> : null}
+        <Button type="submit" disabled={submitting} data-testid="create-character-submit">
           {submitting ? 'Creating…' : 'Enter Greyhaven'}
-        </button>
+        </Button>
       </form>
     </section>
   )

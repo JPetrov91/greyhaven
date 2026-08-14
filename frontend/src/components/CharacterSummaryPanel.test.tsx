@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchCharacter } from '../api/character'
+import { fetchCharacter, respecCharacter } from '../api/character'
+import { fetchInventory } from '../api/inventory'
 import { fetchCurrentLocation } from '../api/world'
-import type { CharacterResponse } from '../api/types'
+import type { CharacterResponse, InventoryResponse } from '../api/types'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 
 vi.mock('../api/character', () => ({
@@ -16,6 +18,10 @@ vi.mock('../api/character', () => ({
 
 vi.mock('../api/world', () => ({
   fetchCurrentLocation: vi.fn(),
+}))
+
+vi.mock('../api/inventory', () => ({
+  fetchInventory: vi.fn(),
 }))
 
 afterEach(() => {
@@ -63,6 +69,34 @@ function characterFixture(overrides: Partial<CharacterResponse> = {}): Character
   }
 }
 
+function emptyInventory(): InventoryResponse {
+  return {
+    capacity: 40,
+    usedSlots: 0,
+    items: [],
+    equipment: {
+      slots: {
+        HEAD: null,
+        CHEST: null,
+        HANDS: null,
+        LEGS: null,
+        FEET: null,
+        MAIN_HAND: null,
+        OFF_HAND: null,
+        AMULET: null,
+        RING: null,
+      },
+    },
+    derivedStats: {
+      physicalDamage: 8,
+      accuracy: 80,
+      dodge: 5,
+      criticalChance: 5,
+      armor: 0,
+    },
+  }
+}
+
 function locationFixture() {
   return {
     id: 'loc-1',
@@ -75,14 +109,22 @@ function locationFixture() {
   }
 }
 
+function LocationProbe() {
+  const location = useLocation()
+  return <span data-testid="location-probe">{`${location.search}${location.hash}`}</span>
+}
+
 function renderPanel() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
   return render(
-    <QueryClientProvider client={queryClient}>
-      <CharacterSummaryPanel />
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={['/game']}>
+      <QueryClientProvider client={queryClient}>
+        <LocationProbe />
+        <CharacterSummaryPanel />
+      </QueryClientProvider>
+    </MemoryRouter>,
   )
 }
 
@@ -90,6 +132,7 @@ describe('CharacterSummaryPanel', () => {
   it('renders current XP progress from the server', async () => {
     vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
     vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
 
     renderPanel()
 
@@ -116,6 +159,7 @@ describe('CharacterSummaryPanel', () => {
       }),
     )
     vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
 
     renderPanel()
 
@@ -141,6 +185,7 @@ describe('CharacterSummaryPanel', () => {
       }),
     )
     vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
 
     renderPanel()
 
@@ -148,5 +193,50 @@ describe('CharacterSummaryPanel', () => {
     expect(screen.getByTestId('xp-progress-label').textContent).toBe('MAX LEVEL')
     expect(screen.queryByTestId('xp-remaining')).toBeNull()
     expect(screen.queryByTestId('xp-current-required')).toBeNull()
+  })
+
+  it('shows vitals, identity, and advanced stats behind disclosure', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture({ unspentAttributePoints: 2 }))
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
+
+    renderPanel()
+
+    expect(await screen.findByTestId('character-summary-name')).toBeTruthy()
+    expect(screen.getByText('2 unspent')).toBeTruthy()
+    expect(screen.getByLabelText('Allocate Strength')).toBeTruthy()
+    expect(screen.getByLabelText('Health 165 of 165')).toBeTruthy()
+    expect(screen.getByLabelText('Stamina 85 of 85')).toBeTruthy()
+    expect(screen.getByTestId('character-summary-damage').textContent).toBe('14')
+    expect(screen.getByTestId('character-summary-armor').textContent).toBe('3')
+    const advanced = screen.getByText('Advanced statistics').closest('details') as HTMLDetailsElement
+    expect(advanced.open).toBe(false)
+    fireEvent.click(screen.getByText('Advanced statistics'))
+    expect(advanced.open).toBe(true)
+    expect(advanced.textContent).toContain('Accuracy')
+  })
+
+  it('confirms respec in a dialog', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
+
+    renderPanel()
+
+    fireEvent.click(await screen.findByTestId('character-respec'))
+    expect(screen.getByText('Respec character?')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('character-respec-confirm'))
+    expect(respecCharacter).toHaveBeenCalled()
+  })
+
+  it('opens inventory filtered to a clicked equipment slot', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+    vi.mocked(fetchInventory).mockResolvedValue(emptyInventory())
+
+    renderPanel()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Filter inventory by Head' }))
+    expect(screen.getByTestId('location-probe').textContent).toBe('?slot=HEAD#inventory')
   })
 })

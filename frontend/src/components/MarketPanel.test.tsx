@@ -90,7 +90,7 @@ describe('MarketPanel', () => {
     )
 
     expect(await screen.findByText('Leather Armor')).toBeTruthy()
-    expect(screen.getByText('UNCOMMON')).toBeTruthy()
+    expect(screen.getByText('Uncommon')).toBeTruthy()
     expect(screen.getByText(/Seller Bram/)).toBeTruthy()
     expect(screen.getByText(/80 gold/)).toBeTruthy()
     expect(screen.getByTestId('buy-listing-LEATHER_ARMOR')).toBeTruthy()

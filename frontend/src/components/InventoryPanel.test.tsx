@@ -2,10 +2,12 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchInventory } from '../api/inventory'
 import type { InventoryItemResponse, InventoryResponse } from '../api/types'
 import { InventoryPanel } from './InventoryPanel'
+import { ToastProvider } from '../ui/ToastRegion'
 
 vi.mock('../api/inventory', () => ({
   fetchInventory: vi.fn(),
@@ -96,9 +98,13 @@ function renderPanel() {
     defaultOptions: { queries: { retry: false } },
   })
   return render(
-    <QueryClientProvider client={queryClient}>
-      <InventoryPanel />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <InventoryPanel />
+        </ToastProvider>
+      </QueryClientProvider>
+    </MemoryRouter>,
   )
 }
 
@@ -137,9 +143,10 @@ describe('InventoryPanel', () => {
     renderPanel()
 
     expect(await screen.findByTestId('inventory-item-RUSTY_SWORD')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Item type' })).toBeTruthy()
     expect(screen.getByTestId('inventory-item-COPPER_AMULET')).toBeTruthy()
 
-    fireEvent.change(screen.getByTestId('inventory-type-filter'), { target: { value: 'WEAPON' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Weapon' }))
     expect(screen.getByTestId('inventory-item-RUSTY_SWORD')).toBeTruthy()
     expect(screen.getByTestId('inventory-item-IRON_AXE')).toBeTruthy()
     expect(screen.queryByTestId('inventory-item-COPPER_AMULET')).toBeNull()
@@ -169,8 +176,9 @@ describe('InventoryPanel', () => {
 
     fireEvent.click(await screen.findByText('Iron Axe'))
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('Damage')
+    expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('6 → 13')
     expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('+7')
-    expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('upgrade')
+    expect(screen.getByTestId('comparison-IRON_AXE').textContent).toContain('Upgrade')
   })
 
   it('marks requirement-locked gear as unusable', async () => {
@@ -200,5 +208,55 @@ describe('InventoryPanel', () => {
     expect(row.className).toContain('inventory-item-unusable')
     expect(row.textContent).toContain('Unusable')
     expect(screen.getByTestId('equip-IRON_HELM')).toHaveProperty('disabled', true)
+  })
+
+  it('exposes rarity as a labeled chip', async () => {
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'axe',
+          code: 'IRON_AXE',
+          displayName: 'Iron Axe',
+          rarity: 'RARE',
+        }),
+      ]),
+    )
+
+    renderPanel()
+
+    const row = await screen.findByTestId('inventory-item-IRON_AXE')
+    expect(row.querySelector('.rarity-rare')?.textContent).toBe('Rare')
+    expect(row.querySelector('.rarity-ink-rare')).toBeTruthy()
+  })
+
+  it('filters by equipment slot from the slot control', async () => {
+    vi.mocked(fetchInventory).mockResolvedValue(
+      inventoryFixture([
+        item({
+          id: 'sword',
+          code: 'RUSTY_SWORD',
+          displayName: 'Rusty Sword',
+          type: 'WEAPON',
+          equipmentSlot: 'MAIN_HAND',
+        }),
+        item({
+          id: 'helm',
+          code: 'IRON_HELM',
+          displayName: 'Iron Helm',
+          type: 'ARMOR',
+          equipmentSlot: 'HEAD',
+          weaponFamily: null,
+          weaponDamage: null,
+          armorValue: 4,
+        }),
+      ]),
+    )
+
+    renderPanel()
+
+    expect(await screen.findByTestId('inventory-item-RUSTY_SWORD')).toBeTruthy()
+    fireEvent.change(screen.getByTestId('inventory-slot-filter'), { target: { value: 'HEAD' } })
+    expect(screen.queryByTestId('inventory-item-RUSTY_SWORD')).toBeNull()
+    expect(screen.getByTestId('inventory-item-IRON_HELM')).toBeTruthy()
   })
 })
