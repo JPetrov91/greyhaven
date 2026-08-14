@@ -34,8 +34,6 @@ const ACTION_LABELS: Record<LocationAction, string> = {
 /** Actions already represented by dedicated UI sections on this screen. */
 const IMPLIED_ACTIONS = new Set<LocationAction>(['INSPECT', 'MOVE', 'VIEW_NEARBY'])
 
-const MARKET_ACTIONS = new Set<LocationAction>(['BROWSE_MARKET', 'CREATE_LISTING', 'BUY_ITEM', 'CANCEL_LISTING'])
-
 type Props = {
   onSearchEncounter?: () => void
   searchBusy?: boolean
@@ -159,7 +157,9 @@ export function LocationPanel({
           destinations={destinations}
           movingToId={movingToId}
           moveError={moveError}
+          searchBusy={searchBusy}
           searchError={searchError}
+          onSearchEncounter={onSearchEncounter}
           onOpenWorld={onOpenWorld}
           onOpenMarket={onOpenMarket}
           onOpenChat={onOpenChat}
@@ -329,7 +329,9 @@ type HeroProps = {
   destinations: DestinationResponse[]
   movingToId: string | null
   moveError: string | null
+  searchBusy: boolean
   searchError: string | null
+  onSearchEncounter?: () => void
   onOpenWorld?: () => void
   onOpenMarket?: () => void
   onOpenChat?: () => void
@@ -337,12 +339,159 @@ type HeroProps = {
   onMove: (destinationLocationId: string) => void
 }
 
+type HeroTileModel = {
+  testId: string
+  icon: LocationActionIconName
+  title: string
+  subtitle: string
+  onClick?: () => void
+  disabled?: boolean
+  comingLater?: boolean
+}
+
+function heroActionTiles({
+  location,
+  destinations,
+  movingToId,
+  searchBusy,
+  onSearchEncounter,
+  onOpenWorld,
+  onOpenMarket,
+  onOpenChat,
+  onOpenExpedition,
+  onMove,
+}: Pick<
+  HeroProps,
+  | 'location'
+  | 'destinations'
+  | 'movingToId'
+  | 'searchBusy'
+  | 'onSearchEncounter'
+  | 'onOpenWorld'
+  | 'onOpenMarket'
+  | 'onOpenChat'
+  | 'onOpenExpedition'
+  | 'onMove'
+>): HeroTileModel[] {
+  const actions = new Set(location.actions)
+  const tavernDestination = destinations.find((destination) => destination.code === 'TAVERN')
+  const atTavern = location.code === 'TAVERN'
+  const tiles: HeroTileModel[] = [
+    {
+      testId: 'hero-travel',
+      icon: 'compass',
+      title: 'Travel',
+      subtitle: 'Change location',
+      onClick: () => onOpenWorld?.(),
+    },
+  ]
+
+  if (actions.has('SEARCH_ENCOUNTER')) {
+    tiles.push({
+      testId: 'search-encounter-button',
+      icon: 'search',
+      title: searchBusy ? 'Searching…' : 'Search',
+      subtitle: 'Hunt nearby',
+      disabled: searchBusy || !onSearchEncounter,
+      onClick: () => onSearchEncounter?.(),
+    })
+  }
+
+  if (actions.has('START_EXPEDITION') || actions.has('INSPECT_EXPEDITIONS')) {
+    tiles.push({
+      testId: 'start-expedition-action',
+      icon: 'expedition',
+      title: 'Expeditions',
+      subtitle: 'Send a party',
+      onClick: () => onOpenExpedition?.(),
+    })
+  }
+
+  if (actions.has('BROWSE_MARKET') || actions.has('CREATE_LISTING') || actions.has('BUY_ITEM')) {
+    tiles.push({
+      testId: 'open-market-BROWSE_MARKET',
+      icon: 'market',
+      title: 'Local Market',
+      subtitle: 'Buy & sell',
+      onClick: () => onOpenMarket?.(),
+    })
+  }
+
+  if (actions.has('VIEW_CHAT')) {
+    tiles.push({
+      testId: 'open-chat-action',
+      icon: 'chat',
+      title: 'Chat',
+      subtitle: 'Talk here',
+      onClick: () => onOpenChat?.(),
+    })
+  }
+
+  if (atTavern) {
+    tiles.push({
+      testId: 'hero-tavern',
+      icon: 'tavern',
+      title: 'Tavern',
+      subtitle: 'Find players',
+      onClick: () => (onOpenChat ?? onOpenExpedition)?.(),
+    })
+  } else if (tavernDestination) {
+    tiles.push({
+      testId: 'hero-tavern',
+      icon: 'tavern',
+      title: 'Tavern',
+      subtitle: movingToId === tavernDestination.id ? 'Traveling…' : 'Find players',
+      disabled: movingToId !== null,
+      onClick: () => onMove(tavernDestination.id),
+    })
+  }
+
+  if (location.safety === 'SAFE') {
+    if (!tiles.some((tile) => tile.testId === 'hero-tavern')) {
+      tiles.push({
+        testId: 'hero-tavern',
+        icon: 'tavern',
+        title: 'Tavern',
+        subtitle: 'Find players',
+        comingLater: true,
+      })
+    }
+    if (!tiles.some((tile) => tile.testId === 'open-market-BROWSE_MARKET')) {
+      tiles.push({
+        testId: 'open-market-BROWSE_MARKET',
+        icon: 'market',
+        title: 'Local Market',
+        subtitle: 'Buy & sell',
+        onClick: () => onOpenMarket?.(),
+      })
+    }
+    tiles.push({
+      testId: 'hero-notice',
+      icon: 'notice',
+      title: 'Notice Board',
+      subtitle: 'Quests & tasks',
+      comingLater: true,
+    })
+    tiles.push({
+      testId: 'hero-guild',
+      icon: 'guild',
+      title: 'Guild Hall',
+      subtitle: 'Guild activities',
+      comingLater: true,
+    })
+  }
+
+  return tiles.slice(0, 5)
+}
+
 function LocationHero({
   location,
   destinations,
   movingToId,
   moveError,
+  searchBusy,
   searchError,
+  onSearchEncounter,
   onOpenWorld,
   onOpenMarket,
   onOpenChat,
@@ -352,9 +501,18 @@ function LocationHero({
   const clock = useGreyhavenClock()
   const weather = locationWeather(location.code)
   const safe = location.safety === 'SAFE'
-  const tavernDestination = destinations.find((destination) => destination.code === 'TAVERN')
-  const atTavern = location.code === 'TAVERN'
-  const marketLive = location.actions.some((action) => MARKET_ACTIONS.has(action)) || Boolean(onOpenMarket)
+  const tiles = heroActionTiles({
+    location,
+    destinations,
+    movingToId,
+    searchBusy,
+    onSearchEncounter,
+    onOpenWorld,
+    onOpenMarket,
+    onOpenChat,
+    onOpenExpedition,
+    onMove,
+  })
 
   return (
     <>
@@ -418,52 +576,9 @@ function LocationHero({
         </p>
 
         <nav className="location-hero-actions" aria-label="Location actions">
-          <HeroTile
-            testId="hero-travel"
-            icon="compass"
-            title="Travel"
-            subtitle="Change location"
-            onClick={() => onOpenWorld?.()}
-          />
-          {atTavern ? (
-            <HeroTile
-              testId="hero-tavern"
-              icon="tavern"
-              title="Tavern"
-              subtitle="Find players"
-              onClick={() => (onOpenChat ?? onOpenExpedition)?.()}
-            />
-          ) : tavernDestination ? (
-            <HeroTile
-              testId="hero-tavern"
-              icon="tavern"
-              title="Tavern"
-              subtitle={movingToId === tavernDestination.id ? 'Traveling…' : 'Find players'}
-              disabled={movingToId !== null}
-              onClick={() => onMove(tavernDestination.id)}
-            />
-          ) : (
-            <HeroTile testId="hero-tavern" icon="tavern" title="Tavern" subtitle="Find players" comingLater />
-          )}
-          <HeroTile testId="hero-notice" icon="notice" title="Notice Board" subtitle="Quests & tasks" comingLater />
-          {marketLive ? (
-            <HeroTile
-              testId="open-market-BROWSE_MARKET"
-              icon="market"
-              title="Local Market"
-              subtitle="Buy & sell"
-              onClick={() => onOpenMarket?.()}
-            />
-          ) : (
-            <HeroTile
-              testId="open-market-BROWSE_MARKET"
-              icon="market"
-              title="Local Market"
-              subtitle="Buy & sell"
-              comingLater
-            />
-          )}
-          <HeroTile testId="hero-guild" icon="guild" title="Guild Hall" subtitle="Guild activities" comingLater />
+          {tiles.map((tile) => (
+            <HeroTile key={tile.testId} {...tile} />
+          ))}
         </nav>
         {moveError ? (
           <p className="form-error" role="alert" data-testid="move-error">

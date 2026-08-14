@@ -203,6 +203,9 @@ describe('CharacterSummaryPanel', () => {
     renderPanel()
 
     expect(await screen.findByTestId('character-summary-name')).toBeTruthy()
+    expect(screen.getByTestId('character-summary').querySelector('.portrait img')?.getAttribute('src')).toBe(
+      '/character/default-avatar.webp',
+    )
     expect(screen.getByText('2 unspent')).toBeTruthy()
     expect(screen.getByLabelText('Allocate Strength')).toBeTruthy()
     expect(screen.getByLabelText('Health 165 of 165')).toBeTruthy()
@@ -214,6 +217,31 @@ describe('CharacterSummaryPanel', () => {
     fireEvent.click(screen.getByText('Advanced statistics'))
     expect(advanced.open).toBe(true)
     expect(advanced.textContent).toContain('Accuracy')
+  })
+
+  it('lays out home overview as portrait, vitals, and stat chips', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue(characterFixture())
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(locationFixture())
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <CharacterSummaryPanel variant="overview" />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('Character Overview')).toBeTruthy()
+    expect(screen.getByTestId('character-summary-name').textContent).toBe('Hero')
+    expect(screen.getByTestId('character-summary-level').textContent).toBe('Level 11')
+    expect(screen.getByTestId('character-summary').querySelector('.character-overview-portrait img')?.getAttribute('src')).toBe(
+      '/character/default-avatar.webp',
+    )
+    expect(screen.getByTestId('character-summary-strength').textContent).toBe('5')
+    expect(screen.getByTestId('overview-total-xp').textContent).toBe('8,470')
+    expect(screen.getByTestId('view-character')).toBeTruthy()
+    expect(screen.queryByTestId('character-summary-gold')).toBeNull()
   })
 
   it('confirms respec in a dialog', async () => {

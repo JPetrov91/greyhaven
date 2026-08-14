@@ -19,11 +19,17 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function renderHero(onOpenMarket?: () => void) {
+function renderHero(extra?: { onOpenMarket?: () => void; onSearchEncounter?: () => void; onOpenExpedition?: () => void }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <LocationPanel variant="hero" onOpenWorld={() => undefined} onOpenMarket={onOpenMarket} />
+      <LocationPanel
+        variant="hero"
+        onOpenWorld={() => undefined}
+        onOpenMarket={extra?.onOpenMarket}
+        onSearchEncounter={extra?.onSearchEncounter}
+        onOpenExpedition={extra?.onOpenExpedition}
+      />
     </QueryClientProvider>,
   )
 }
@@ -42,7 +48,10 @@ describe('LocationPanel', () => {
     vi.mocked(fetchDestinations).mockResolvedValue({ destinations: [] })
     vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
 
-    const { container } = renderHero()
+    const { container } = renderHero({
+      onSearchEncounter: () => undefined,
+      onOpenExpedition: () => undefined,
+    })
 
     expect(await screen.findByTestId('current-location')).toHaveProperty('textContent', 'Forest')
     expect(screen.getByText('Current location')).toBeTruthy()
@@ -51,14 +60,15 @@ describe('LocationPanel', () => {
     expect(art.style.backgroundImage).toContain('/locations/forest.webp')
     expect(screen.getByTestId('hero-world-map').querySelector('svg')).toBeTruthy()
     expect(screen.getByTestId('hero-travel').textContent).toContain('Travel')
-    expect(screen.getByTestId('hero-travel').textContent).toContain('Change location')
-    expect(screen.queryByTestId('search-encounter-button')).toBeNull()
+    expect(screen.getByTestId('search-encounter-button').textContent).toContain('Search')
+    expect(screen.getByTestId('search-encounter-button').textContent).toContain('Hunt nearby')
+    expect(screen.getByTestId('start-expedition-action').textContent).toContain('Expeditions')
+    expect(screen.queryByTestId('hero-tavern')).toBeNull()
+    expect(screen.queryByTestId('hero-notice')).toBeNull()
+    expect(screen.queryByTestId('open-market-BROWSE_MARKET')).toBeNull()
     expect(screen.getByTestId('location-safety').textContent).toContain('Dangerous')
     expect(screen.getByTestId('location-pvp').textContent).toContain('PvE')
-    expect(screen.queryByTestId('location-code')).toBeNull()
-    expect(screen.getByTestId('hero-tavern')).toHaveProperty('disabled', true)
     expect(screen.getByTestId('location-weather').textContent).toContain('Damp')
-    expect(screen.getByTestId('location-clock').textContent).toContain('Greyhaven time')
   })
 
   it('shows five hero tiles with live market on city square', async () => {
@@ -74,7 +84,7 @@ describe('LocationPanel', () => {
     vi.mocked(fetchDestinations).mockResolvedValue({ destinations: [] })
     vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
 
-    renderHero(() => undefined)
+    renderHero({ onOpenMarket: () => undefined })
 
     expect(await screen.findByTestId('current-location')).toHaveProperty('textContent', 'City Square')
     expect(screen.getByTestId('location-safety').textContent).toContain('Safe Zone')

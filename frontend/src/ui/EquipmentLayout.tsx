@@ -1,5 +1,6 @@
 import type { EquipmentResponse, EquipmentSlot, InventoryItemResponse } from '../api/types'
 import { classNames } from './classNames'
+import { EquipmentSlotIcon } from './equipmentIcons'
 import { EQUIPMENT_SLOTS, SLOT_LABELS, slotTestId } from './equipmentSlots'
 import { RarityBadge } from './RarityBadge'
 
@@ -43,10 +44,16 @@ export function EquipmentLayout({
       {slots.map((slot) => {
         const equippedId = equipment.slots[slot]
         const equippedItem = items.find((item) => item.id === equippedId)
+        const empty = !equippedItem
         const inner = (
           <>
             <span className="equipment-slot-label">{SLOT_LABELS[slot]}</span>
             <span className="equipment-slot-value">
+              {empty ? (
+                <span className="equipment-slot-placeholder" aria-hidden="true">
+                  <EquipmentSlotIcon slot={slot} />
+                </span>
+              ) : null}
               <span
                 className={!compact ? 'equipment-slot-name' : undefined}
                 data-testid={includeSlotTestIds ? slotTestId(slot) : undefined}
@@ -70,7 +77,11 @@ export function EquipmentLayout({
             <button
               key={slot}
               type="button"
-              className={classNames('equipment-slot', `equipment-slot-${slot.toLowerCase()}`)}
+              className={classNames(
+                'equipment-slot',
+                `equipment-slot-${slot.toLowerCase()}`,
+                empty && 'equipment-slot-empty',
+              )}
               aria-label={`Filter inventory by ${SLOT_LABELS[slot]}`}
               onClick={() => onSlotClick(slot)}
             >
@@ -80,7 +91,14 @@ export function EquipmentLayout({
         }
 
         return (
-          <div key={slot} className={classNames('equipment-slot', `equipment-slot-${slot.toLowerCase()}`)}>
+          <div
+            key={slot}
+            className={classNames(
+              'equipment-slot',
+              `equipment-slot-${slot.toLowerCase()}`,
+              empty && 'equipment-slot-empty',
+            )}
+          >
             {inner}
           </div>
         )

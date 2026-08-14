@@ -13,6 +13,7 @@ import { EquipmentLayout } from '../ui/EquipmentLayout'
 import { ErrorState } from '../ui/ErrorState'
 import { gameLink } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
+import { CharacterPortrait } from '../ui/CharacterPortrait'
 import { Panel } from '../ui/Panel'
 import { ProgressBar } from '../ui/ProgressBar'
 import { StatRow } from '../ui/StatRow'
@@ -117,20 +118,20 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
   const canAllocate = character.unspentAttributePoints > 0
   const progression = character.progression
   const busy = mutationsDisabled || allocating !== null || respeccing
-  const initial = character.name.trim().charAt(0).toUpperCase() || '?'
+
+  if (overview) {
+    return <CharacterOverview character={character} progression={progression} />
+  }
 
   return (
     <Panel
       as="aside"
-      id={overview ? undefined : 'character'}
-      className={overview ? 'character-overview-card' : 'game-column game-column-left'}
+      id="character"
+      className="game-column game-column-left"
       data-testid="character-summary"
-      title={overview ? 'Character' : undefined}
     >
       <div className="character-identity">
-        <div className="portrait" aria-hidden="true">
-          {initial}
-        </div>
+        <CharacterPortrait />
         <div>
           <h2 data-testid="character-summary-name" tabIndex={-1}>
             {character.name}
@@ -146,12 +147,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
           testId="character-summary-level"
           value={progression.maxLevel ? `Level ${character.level} — MAX` : character.level}
         />
-        <div className="character-xp-block">
-          <dt>XP</dt>
-          <dd>
-            <XpProgress progression={progression} />
-          </dd>
-        </div>
+        <XpProgress progression={progression} />
         {overview ? null : (
           <StatRow
             label="Attribute points"
@@ -288,12 +284,169 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
   )
 }
 
+function CharacterOverview({
+  character,
+  progression,
+}: {
+  character: CharacterResponse
+  progression: CharacterResponse['progression']
+}) {
+  const xpInto = progression.experienceIntoCurrentLevel
+  const xpRequired = progression.experienceRequiredForNextLevel ?? 0
+
+  return (
+    <Panel
+      as="aside"
+      className="character-overview-card"
+      data-testid="character-summary"
+      title="Character Overview"
+    >
+      <div className="character-overview-hero">
+        <CharacterPortrait className="character-overview-portrait" />
+        <div className="character-overview-vitals">
+          <div className="character-overview-identity">
+            <h3 data-testid="character-summary-name" tabIndex={-1}>
+              {character.name}
+            </h3>
+            <p className="muted" data-testid="character-summary-level">
+              {progression.maxLevel ? `Level ${character.level} — MAX` : `Level ${character.level}`}
+            </p>
+            {character.unspentAttributePoints > 0 ? (
+              <StatusBadge tone="upgrade">{character.unspentAttributePoints} unspent</StatusBadge>
+            ) : null}
+          </div>
+          <VitalMeter
+            icon="health"
+            label="Health"
+            value={`${character.currentHealth.toLocaleString('en-US')} / ${character.maxHealth.toLocaleString('en-US')}`}
+            tone="health"
+            max={character.maxHealth}
+            current={character.currentHealth}
+            ariaLabel={`Health ${character.currentHealth} of ${character.maxHealth}`}
+          />
+          <VitalMeter
+            icon="stamina"
+            label="Stamina"
+            value={`${character.currentStamina.toLocaleString('en-US')} / ${character.maxStamina.toLocaleString('en-US')}`}
+            tone="stamina"
+            max={character.maxStamina}
+            current={character.currentStamina}
+            ariaLabel={`Stamina ${character.currentStamina} of ${character.maxStamina}`}
+          />
+          <div className="vital-meter" data-testid="character-summary-experience">
+            <div className="vital-meter-header">
+              <VitalIcon name="xp" />
+              <span>XP</span>
+              <span data-testid={progression.maxLevel ? 'xp-progress-label' : 'xp-current-required'}>
+                {progression.maxLevel ? 'MAX LEVEL' : `${formatXp(xpInto)} / ${formatXp(xpRequired)} XP`}
+              </span>
+            </div>
+            <ProgressBar
+              className="xp-bar"
+              testId="xp-progress-bar"
+              tone="xp"
+              max={100}
+              value={progression.maxLevel ? 100 : progression.progressPercent}
+              label={progression.maxLevel ? 'MAX LEVEL' : `${progression.progressPercent}% to next level`}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="character-overview-stats">
+        <OverviewStat label="XP" testId="overview-total-xp" value={formatXp(progression.totalExperience)} />
+        <OverviewStat label="STR" testId="character-summary-strength" value={character.strength} />
+        <OverviewStat label="AGI" testId="character-summary-agility" value={character.agility} />
+        <OverviewStat label="END" testId="character-summary-endurance" value={character.endurance} />
+        <OverviewStat label="PER" testId="character-summary-perception" value={character.perception} />
+      </div>
+
+      <Link to={gameLink('character')} className="btn btn-secondary character-overview-cta" data-testid="view-character">
+        View Character
+      </Link>
+    </Panel>
+  )
+}
+
+function VitalMeter({
+  icon,
+  label,
+  value,
+  tone,
+  max,
+  current,
+  ariaLabel,
+}: {
+  icon: 'health' | 'stamina'
+  label: string
+  value: string
+  tone: 'health' | 'stamina'
+  max: number
+  current: number
+  ariaLabel: string
+}) {
+  return (
+    <div className="vital-meter">
+      <div className="vital-meter-header">
+        <VitalIcon name={icon} />
+        <span>{label}</span>
+        <span>{value}</span>
+      </div>
+      <ProgressBar tone={tone} max={max} value={current} label={ariaLabel} />
+    </div>
+  )
+}
+
+function OverviewStat({
+  label,
+  value,
+  testId,
+}: {
+  label: string
+  value: number | string
+  testId: string
+}) {
+  return (
+    <div className="overview-stat">
+      <span className="overview-stat-label">{label}</span>
+      <strong className="overview-stat-value" data-testid={testId}>
+        {value}
+      </strong>
+    </div>
+  )
+}
+
+function VitalIcon({ name }: { name: 'health' | 'stamina' | 'xp' }) {
+  return (
+    <svg className="vital-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      {name === 'health' ? (
+        <path
+          d="M8 14 3.2 9.1A3.1 3.1 0 0 1 8 4.7a3.1 3.1 0 0 1 4.8 4.4Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinejoin="round"
+        />
+      ) : null}
+      {name === 'stamina' ? (
+        <path d="M9.2 1.8 4.5 8.6h3.2L6.6 14.2 12.2 7H8.8Z" fill="currentColor" />
+      ) : null}
+      {name === 'xp' ? (
+        <path d="M8 1.6 9.2 6H14l-3.8 2.8L11.6 14 8 11.2 4.4 14l1.4-5.2L2 6h4.8Z" fill="currentColor" />
+      ) : null}
+    </svg>
+  )
+}
+
 function XpProgress({ progression }: { progression: CharacterResponse['progression'] }) {
   if (progression.maxLevel) {
     return (
-      <div className="xp-progress" data-testid="character-summary-experience">
+      <div className="vital-block character-xp-block" data-testid="character-summary-experience">
+        <div className="vital-block-header">
+          <span>XP</span>
+          <span data-testid="xp-progress-label">MAX LEVEL</span>
+        </div>
         <ProgressBar className="xp-bar" testId="xp-progress-bar" max={100} value={100} label="MAX LEVEL" />
-        <span data-testid="xp-progress-label">MAX LEVEL</span>
       </div>
     )
   }
@@ -303,10 +456,13 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
   const remaining = progression.experienceRemaining ?? 0
 
   return (
-    <div className="xp-progress" data-testid="character-summary-experience">
-      <span data-testid="xp-current-required">
-        {formatXp(into)} / {formatXp(required)} XP
-      </span>
+    <div className="vital-block character-xp-block" data-testid="character-summary-experience">
+      <div className="vital-block-header">
+        <span>XP</span>
+        <span data-testid="xp-current-required">
+          {formatXp(into)} / {formatXp(required)} XP
+        </span>
+      </div>
       <ProgressBar
         className="xp-bar"
         testId="xp-progress-bar"
@@ -314,10 +470,12 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
         value={progression.progressPercent}
         label={`${progression.progressPercent}% to next level`}
       />
-      <span data-testid="xp-progress-percent">{progression.progressPercent}%</span>
-      <span className="muted" data-testid="xp-remaining">
-        {formatXp(remaining)} XP until Level {progression.level + 1}
-      </span>
+      <div className="vital-block-meta">
+        <span data-testid="xp-progress-percent">{progression.progressPercent}%</span>
+        <span className="muted" data-testid="xp-remaining">
+          {formatXp(remaining)} XP until Level {progression.level + 1}
+        </span>
+      </div>
     </div>
   )
 }

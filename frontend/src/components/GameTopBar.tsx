@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { fetchCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
 import { Button } from '../ui/Button'
+import { CharacterPortrait } from '../ui/CharacterPortrait'
 import { ChromeIcon } from '../ui/chromeIcons'
 import { ComingLaterButton, ComingLaterChip } from '../ui/ComingLater'
 import { gameLink, isGameNavActive } from '../ui/gameNav'
@@ -25,7 +26,6 @@ export function GameTopBar() {
   })
 
   const character = characterQuery.data
-  const initial = character?.name.trim().charAt(0).toUpperCase() || '?'
   const itemCount = inventoryQuery.data?.usedSlots ?? 0
   const packActive = isGameNavActive('inventory', location)
 
@@ -46,9 +46,7 @@ export function GameTopBar() {
         <span className="topbar-divider" aria-hidden="true" />
         {character ? (
           <div className="game-topbar-identity" data-testid="topbar-identity">
-            <div className="portrait topbar-portrait" aria-hidden="true">
-              {initial}
-            </div>
+            <CharacterPortrait className="topbar-portrait" />
             <div>
               <p className="topbar-name">{character.name}</p>
               <p className="topbar-level muted">Level {character.level}</p>
