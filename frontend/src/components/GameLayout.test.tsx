@@ -128,6 +128,8 @@ describe('GameLayout', () => {
     renderGame('/game')
 
     expect(await screen.findByText('combat')).toBeTruthy()
+    expect(screen.queryByText('nav')).toBeNull()
+    expect(screen.queryByText('activity')).toBeNull()
     expect(screen.queryByTestId('chat-panel')).toBeNull()
   })
 })

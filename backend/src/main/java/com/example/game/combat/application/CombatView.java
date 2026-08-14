@@ -27,6 +27,9 @@ public record CombatView(
 		List<CombatTechniqueOptionView> techniques,
 		CoreActionCostsView coreActionCosts,
 		List<CombatEventView> events,
-		CombatRewardsView rewards
+		CombatRewardsView rewards,
+		CombatIntentView enemyIntent,
+		List<CombatActionPreviewView> actionPreviews,
+		List<CombatLootPreviewView> possibleLoot
 ) {
 }

@@ -362,6 +362,10 @@ h2,
   margin-bottom: 1rem;
 }
 
+.combat-hud.combat-panel {
+  margin-bottom: 0;
+}
+
 .combat-vitals {
   display: grid;
   gap: 0.4rem;

@@ -19,6 +19,45 @@ public final class CombatEngine {
 	private CombatEngine() {
 	}
 
+	/**
+	 * Server-side hit-chance preview using the same accuracy/dodge clamp as a strike.
+	 * Does not roll and does not mutate state.
+	 */
+	public static int previewPlayerHitChance(
+			Combat2State state,
+			CombatAction action,
+			TechniqueEffectSpec techniqueSpec) {
+		boolean technique = action == CombatAction.USE_TECHNIQUE;
+		TechniqueEffectSpec spec = technique ? techniqueSpec : coreSpec(action);
+		int accuracy = playerAccuracy(state, spec, technique);
+		boolean followUp = hasTag(spec, "COUNTER") || hasTag(spec, "ADVANCED");
+		if (StatusEffectEngine.has(state.playerStatuses(), StatusType.OFF_BALANCE) && !followUp) {
+			accuracy -= CombatV2Balance.offBalanceAccuracyPenalty();
+		}
+		int dodge = state.enemy().dodge();
+		if (StatusEffectEngine.has(state.enemyStatuses(), StatusType.OFF_BALANCE)) {
+			dodge -= CombatV2Balance.offBalanceDodgePenalty();
+		}
+		return CombatV2Balance.clampHitChance(accuracy - dodge);
+	}
+
+	/**
+	 * Deterministic enemy action the AI would choose on the current snapshot.
+	 */
+	public static EnemyActionKind previewEnemyIntent(Combat2State state) {
+		return EnemyAi.choose(new EnemyAiView(
+				state.enemy().archetype(),
+				state.enemyHealth(),
+				state.enemyMaxHealth(),
+				state.enemyStamina(),
+				state.enemyMaxStamina(),
+				state.enemyStatuses(),
+				state.playerHealth(),
+				state.playerMaxHealth(),
+				state.playerStatuses(),
+				state.enemy().signatureStatus()));
+	}
+
 	public static CombatRoundResult resolve(
 			Combat2State state,
 			CombatAction action,

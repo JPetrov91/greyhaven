@@ -27,6 +27,9 @@ public record CombatResponse(
 		List<CombatTechniqueOptionResponse> techniques,
 		CoreActionCostsResponse coreActionCosts,
 		List<CombatEventResponse> events,
-		CombatRewardsResponse rewards
+		CombatRewardsResponse rewards,
+		CombatIntentResponse enemyIntent,
+		List<CombatActionPreviewResponse> actionPreviews,
+		List<CombatLootPreviewResponse> possibleLoot
 ) {
 }

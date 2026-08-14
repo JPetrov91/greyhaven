@@ -59,4 +59,29 @@ describe('GameTopBar', () => {
     expect((screen.getByTestId('topbar-mail') as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByTestId('logout-button').textContent).toContain('Logout')
   })
+
+  it('replaces identity with combat context during a fight', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue({
+      id: 'char-1',
+      accountId: 'acc',
+      name: 'Ragnar',
+      level: 11,
+      gold: 4320,
+    } as never)
+    vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <GameTopBar combatContext={{ monsterName: 'Street Thug', roundNumber: 5 }} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByTestId('topbar-combat-context')).toBeTruthy()
+    expect(screen.getByTestId('topbar-combat-context').textContent).toContain('COMBAT — Street Thug')
+    expect(screen.getByTestId('topbar-combat-context').textContent).toContain('Round 5')
+    expect(screen.queryByTestId('topbar-identity')).toBeNull()
+  })
 })

@@ -138,15 +138,7 @@ export function GameLayout() {
       </section>
     )
   } else if (showCombat) {
-    mainContent = (
-      <CombatPanel
-        combat={combat}
-        onCombatUpdate={(updated) => {
-          queryClient.setQueryData(['combat'], updated)
-          void queryClient.invalidateQueries({ queryKey: ['activity'] })
-        }}
-      />
-    )
+    mainContent = null
   } else if (showEncounter) {
     mainContent = (
       <EncounterPrompt
@@ -195,17 +187,40 @@ export function GameLayout() {
   }
 
   return (
-    <section className="game-shell" aria-label="Game workspace" data-testid="game-layout">
-      <GameTopBar />
-      <div className="game-shell-body">
-        <GameLeftNav />
-        <div className="game-shell-main">{mainContent}</div>
-        <ActivityPanel
-          claimableExpedition={claimableExpedition}
-          combatActive={showCombat}
-          encounterActive={showEncounter}
-        />
-      </div>
+    <section
+      className="game-shell"
+      aria-label="Game workspace"
+      data-testid="game-layout"
+      data-combat-active={showCombat ? 'true' : undefined}
+    >
+      <GameTopBar
+        combatContext={
+          showCombat && combat?.monster
+            ? { monsterName: combat.monster.name, roundNumber: combat.roundNumber }
+            : null
+        }
+      />
+      {showCombat && combat ? (
+        <div className="game-shell-body game-shell-body-combat">
+          <CombatPanel
+            combat={combat}
+            onCombatUpdate={(updated) => {
+              queryClient.setQueryData(['combat'], updated)
+              void queryClient.invalidateQueries({ queryKey: ['activity'] })
+            }}
+          />
+        </div>
+      ) : (
+        <div className="game-shell-body">
+          <GameLeftNav />
+          <div className="game-shell-main">{mainContent}</div>
+          <ActivityPanel
+            claimableExpedition={claimableExpedition}
+            combatActive={false}
+            encounterActive={showEncounter}
+          />
+        </div>
+      )}
     </section>
   )
 }

@@ -18,6 +18,20 @@ class CombatEngineV2Test {
 			"Street Thug", 1, 5, 8, 4, 72, 4, 5, 70, 40, EnemyAiArchetype.AGGRESSIVE, null);
 
 	@Test
+	void previewHitChanceMatchesQuickAttackAccuracyMinusDodge() {
+		Combat2State state = base().build();
+		assertThat(CombatEngine.previewPlayerHitChance(state, CombatAction.QUICK_ATTACK, null))
+				.isEqualTo(CombatV2Balance.clampHitChance(90 - 4));
+		assertThat(CombatEngine.previewPlayerHitChance(state, CombatAction.HEAVY_ATTACK, null))
+				.isEqualTo(CombatV2Balance.clampHitChance((int) Math.round(90 * 0.8) - 4));
+	}
+
+	@Test
+	void previewEnemyIntentUsesAggressiveHeavyAttack() {
+		assertThat(CombatEngine.previewEnemyIntent(base().build())).isEqualTo(EnemyActionKind.HEAVY_ATTACK);
+	}
+
+	@Test
 	void hitAndMissRespectHitChanceBounds() {
 		Combat2State state = base().build();
 		CombatRoundResult hit = CombatEngine.resolve(

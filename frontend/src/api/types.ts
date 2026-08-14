@@ -126,6 +126,26 @@ export type CombatRewardsResponse = {
   items: CombatRewardItemResponse[]
 }
 
+export type CombatIntentResponse = {
+  kind: string
+  label: string
+}
+
+export type CombatActionPreviewResponse = {
+  action: CombatAction
+  techniqueCode: string | null
+  name: string
+  description: string
+  staminaCost: number
+  hitChancePercent: number | null
+  disabledReason: string | null
+}
+
+export type CombatLootPreviewResponse = {
+  itemName: string
+  dropChancePercent: number
+}
+
 export type CombatResponse = {
   id: string
   encounterId: string
@@ -149,6 +169,9 @@ export type CombatResponse = {
   coreActionCosts: CoreActionCostsResponse
   events: CombatEventResponse[]
   rewards: CombatRewardsResponse | null
+  enemyIntent?: CombatIntentResponse | null
+  actionPreviews?: CombatActionPreviewResponse[]
+  possibleLoot?: CombatLootPreviewResponse[]
 }
 
 export type ItemType = 'WEAPON' | 'ARMOR' | 'CONSUMABLE' | 'MATERIAL' | 'ACCESSORY'

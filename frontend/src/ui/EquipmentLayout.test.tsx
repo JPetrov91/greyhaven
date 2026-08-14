@@ -68,7 +68,7 @@ describe('EquipmentLayout', () => {
     expect(screen.getByTestId('equipped-armor')).toHaveProperty('textContent', 'Empty')
     const icons = document.querySelectorAll('.equipment-slot-empty .equipment-slot-icon')
     expect(icons).toHaveLength(EQUIPMENT_SLOTS.length)
-    const titles = [...icons].map((icon) => icon.querySelector('title')?.textContent)
+    const titles = Array.from(icons).map((icon) => icon.querySelector('title')?.textContent)
     expect(new Set(titles).size).toBe(EQUIPMENT_SLOTS.length)
   })
 

@@ -187,6 +187,223 @@
   align-content: start;
 }
 
+.game-shell-body-combat {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.topbar-combat-context {
+  margin: 0;
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+.combat-hud {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr) 18rem;
+  grid-template-rows: minmax(12rem, 1fr) minmax(10rem, 14rem) auto;
+  grid-template-areas:
+    "player viewport log"
+    "chat actions flee";
+  gap: 0.65rem;
+  min-height: 0;
+  height: calc(100vh - 4.25rem);
+  padding: 0.65rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.combat-hud-player { grid-area: player; }
+.combat-hud-viewport { grid-area: viewport; }
+.combat-hud-log { grid-area: log; }
+.combat-hud-chat { grid-area: chat; min-height: 0; }
+.combat-hud-actions { grid-area: actions; min-width: 0; }
+.combat-hud-flee { grid-area: flee; }
+
+.combat-hud-player,
+.combat-hud-log,
+.combat-hud-actions,
+.combat-hud-flee,
+.combat-enemy-overlay,
+.combat-outcome-overlay {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+}
+
+.combat-hud-chat .chat-panel {
+  height: 100%;
+  margin: 0;
+}
+
+.combat-player-identity {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.combat-player-portrait {
+  width: 4.2rem;
+  height: 4.2rem;
+}
+
+.combat-player-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.combat-hud-block h3,
+.combat-log-header h3,
+.combat-loot-preview h3,
+.combat-actions-kicker {
+  margin: 0.75rem 0 0.35rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.combat-environment {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.combat-hud-viewport {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background-color: #120f0c;
+  background-size: cover;
+  background-position: center;
+}
+
+.combat-round-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: rgba(18, 16, 14, 0.88);
+  z-index: 2;
+}
+
+.combat-round-badge strong {
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+}
+
+.combat-enemy-overlay {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: min(18rem, 70%);
+  z-index: 2;
+  background: rgba(22, 18, 16, 0.92);
+}
+
+.combat-enemy-overlay h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.combat-outcome-overlay {
+  position: absolute;
+  inset: auto 1rem 1rem 1rem;
+  z-index: 3;
+  background: rgba(22, 18, 16, 0.94);
+}
+
+.combat-log-header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.combat-hud-log .combat-log ul,
+.combat-loot-preview ul {
+  max-height: none;
+}
+
+.combat-actions-kicker {
+  margin-top: 0;
+}
+
+.combat-hud-actions .combat-actions,
+.combat-hud-actions .combat-techniques {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.45rem;
+  margin: 0 0 0.5rem;
+}
+
+.combat-action-card {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--panel-solid);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.combat-action-card p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.combat-action-card-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.combat-action-hit {
+  font-size: var(--text-sm);
+  color: var(--accent-strong);
+}
+
+.combat-action-blocked {
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.combat-flee-card {
+  width: 100%;
+  border-color: var(--danger);
+}
+
+@media (max-width: 1100px) {
+  .combat-hud {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto minmax(12rem, 1fr) auto auto;
+    grid-template-areas:
+      "player log"
+      "viewport viewport"
+      "actions actions"
+      "chat flee";
+    height: auto;
+  }
+}
+
 .game-rail {
   border-left: 1px solid var(--line-soft);
   background: #14110f;
@@ -758,13 +975,48 @@ html[data-ui-mode='compact'] .location-crest {
   height: 2.1rem;
 }
 
+html[data-ui-mode='compact'] .combat-hud {
+  height: auto;
+  grid-template-rows: auto auto auto;
+  padding: 0.4rem;
+  gap: 0.4rem;
+}
+
+html[data-ui-mode='compact'] .combat-hud-viewport {
+  min-height: 8rem;
+}
+
+html[data-ui-mode='compact'] .combat-hud-actions .combat-actions,
+html[data-ui-mode='compact'] .combat-hud-actions .combat-techniques {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+html[data-ui-mode='compact'] .combat-action-card {
+  min-width: 9.5rem;
+}
+
+html[data-ui-mode='compact'] .combat-player-portrait {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+
 html[data-ui-mode='compact'] .game-shell-body {
   grid-template-columns: 11rem minmax(0, 1fr) 14rem;
+}
+
+html[data-ui-mode='compact'] .game-shell-body-combat {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 1200px) {
   html[data-ui-mode='compact'] .game-shell-body {
     grid-template-columns: 11rem minmax(0, 1fr);
+  }
+
+  html[data-ui-mode='compact'] .game-shell-body-combat {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -89,7 +89,26 @@ public class CombatController {
 						view.coreActionCosts().heavyAttack(),
 						view.coreActionCosts().preciseAttack()),
 				view.events().stream().map(CombatController::toEvent).toList(),
-				toRewards(view.rewards()));
+				toRewards(view.rewards()),
+				view.enemyIntent() == null
+						? null
+						: new CombatIntentResponse(view.enemyIntent().kind(), view.enemyIntent().label()),
+				view.actionPreviews().stream().map(CombatController::toActionPreview).toList(),
+				view.possibleLoot().stream()
+						.map(item -> new CombatLootPreviewResponse(item.itemName(), item.dropChancePercent()))
+						.toList());
+	}
+
+	private static CombatActionPreviewResponse toActionPreview(
+			com.example.game.combat.application.CombatActionPreviewView preview) {
+		return new CombatActionPreviewResponse(
+				preview.action(),
+				preview.techniqueCode(),
+				preview.name(),
+				preview.description(),
+				preview.staminaCost(),
+				preview.hitChancePercent(),
+				preview.disabledReason());
 	}
 
 	private static MonsterResponse toMonster(MonsterView monster) {

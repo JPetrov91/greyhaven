@@ -3,12 +3,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchCharacter } from '../api/character'
+import { fetchCurrentLocation } from '../api/world'
 import type { CombatResponse } from '../api/types'
 import { CombatPanel } from './CombatPanel'
 
 vi.mock('../api/combat', () => ({
   submitCombatAction: vi.fn(),
   acknowledgeCombat: vi.fn(),
+}))
+
+vi.mock('../api/character', () => ({
+  fetchCharacter: vi.fn(),
+}))
+
+vi.mock('../api/world', () => ({
+  fetchCurrentLocation: vi.fn(),
+}))
+
+vi.mock('./ChatPanel', () => ({
+  ChatPanel: () => <section data-testid="chat-panel">chat</section>,
 }))
 
 afterEach(() => {
@@ -59,6 +73,20 @@ function combatFixture(overrides: Partial<CombatResponse> = {}): CombatResponse 
 }
 
 function renderPanel(combat: CombatResponse) {
+  vi.mocked(fetchCharacter).mockResolvedValue({
+    name: 'Hero',
+    level: 11,
+    derivedStats: { physicalDamage: 14, accuracy: 83, dodge: 6, criticalChance: 7, armor: 3 },
+  } as never)
+  vi.mocked(fetchCurrentLocation).mockResolvedValue({
+    id: 'loc-1',
+    code: 'FOREST',
+    name: 'Whispering Forest',
+    description: 'Damp woods.',
+    safety: 'DANGEROUS',
+    region: 'Greywood',
+    actions: [],
+  } as never)
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -169,5 +197,23 @@ describe('CombatPanel', () => {
 
     expect(screen.queryByTestId('combat-techniques')).toBeNull()
     expect(screen.getByTestId('combat-action-QUICK_ATTACK')).toBeTruthy()
+  })
+
+  it('places flee in the side rail and filters the battle log', () => {
+    renderPanel(
+      combatFixture({
+        status: 'ACTIVE',
+        rewards: null,
+        events: [
+          { roundNumber: 1, sequenceNumber: 1, type: 'PLAYER_ATTACK', message: 'You strike.' },
+          { roundNumber: 1, sequenceNumber: 2, type: 'ENEMY_ATTACK', message: 'The thug hits you.' },
+          { roundNumber: 1, sequenceNumber: 3, type: 'INFO', message: 'Rain starts.' },
+        ],
+      }),
+    )
+
+    expect(screen.getByTestId('combat-action-RETREAT').textContent).toContain('Flee')
+    expect(screen.getByTestId('combat-log').textContent).toContain('You strike.')
+    expect(screen.getByTestId('combat-log').textContent).toContain('The thug hits you.')
   })
 })

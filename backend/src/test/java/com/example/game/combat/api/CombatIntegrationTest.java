@@ -902,6 +902,10 @@ class CombatIntegrationTest {
 		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.rulesVersion").value(2))
+				.andExpect(jsonPath("$.enemyIntent.kind").value("HEAVY_ATTACK"))
+				.andExpect(jsonPath("$.actionPreviews[0].action").value("QUICK_ATTACK"))
+				.andExpect(jsonPath("$.actionPreviews[0].hitChancePercent").isNumber())
+				.andExpect(jsonPath("$.possibleLoot").isArray())
 				.andReturn();
 		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
 

@@ -635,6 +635,33 @@ public class CombatApplicationService {
 		int enemyMaxStamina = session.getRulesVersion() == CombatRulesVersion.COMBAT_2
 				? session.getEnemyMaxStamina()
 				: 0;
+		CombatIntentView enemyIntent = null;
+		List<CombatActionPreviewView> actionPreviews;
+		if (session.getRulesVersion() == CombatRulesVersion.COMBAT_2) {
+			DerivedCombatStats derived = CharacterStatCalculator.calculate(
+					vitals.strength(),
+					vitals.agility(),
+					vitals.perception(),
+					bonuses.weaponDamage(),
+					bonuses.armorValue(),
+					bonuses.accuracy(),
+					bonuses.dodge(),
+					bonuses.criticalChance(),
+					bonuses.strength(),
+					bonuses.agility(),
+					bonuses.endurance(),
+					bonuses.perception());
+			int totalAgility = vitals.agility() + bonuses.agility();
+			Combat2State state = buildCombat2State(session, vitals, derived, totalAgility, bonuses);
+			if (session.getStatus() == CombatSessionStatus.ACTIVE) {
+				var kind = CombatEngine.previewEnemyIntent(state);
+				enemyIntent = new CombatIntentView(kind.name(), enemyIntentLabel(kind, state.enemy().signatureStatus()));
+			}
+			actionPreviews = buildActionPreviews(session, state, stunned, potionAvailable, techniques);
+		}
+		else {
+			actionPreviews = phase1ActionPreviews(costs, stunned, potionAvailable, session.getPlayerStamina());
+		}
 		return new CombatView(
 				session.getId(),
 				session.getEncounterId(),
@@ -657,7 +684,10 @@ public class CombatApplicationService {
 				techniques,
 				costs,
 				events,
-				rewards);
+				rewards,
+				enemyIntent,
+				actionPreviews,
+				lootPreview(monster.getId()));
 	}
 
 	private void captureCombat2Snapshot(
@@ -750,6 +780,163 @@ public class CombatApplicationService {
 				.map(CombatTechniqueDefinition::effect)
 				.findFirst()
 				.orElse(null);
+	}
+
+	private List<CombatLootPreviewView> lootPreview(UUID monsterDefinitionId) {
+		List<MonsterLootEntryEntity> entries = monsterLootEntryRepository.findByMonsterDefinitionId(monsterDefinitionId);
+		if (entries.isEmpty()) {
+			return List.of();
+		}
+		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
+				entries.stream().map(MonsterLootEntryEntity::getItemDefinitionId).toList());
+		List<CombatLootPreviewView> preview = new ArrayList<>();
+		for (MonsterLootEntryEntity entry : entries) {
+			ItemDefinitionView item = definitions.get(entry.getItemDefinitionId());
+			if (item == null) {
+				continue;
+			}
+			preview.add(new CombatLootPreviewView(item.name(), entry.getDropChancePercent()));
+		}
+		return List.copyOf(preview);
+	}
+
+	private List<CombatActionPreviewView> buildActionPreviews(
+			CombatSessionEntity session,
+			Combat2State state,
+			boolean stunned,
+			boolean potionAvailable,
+			List<CombatTechniqueOptionView> techniques) {
+		List<CombatActionPreviewView> previews = new ArrayList<>();
+		previews.add(corePreview(state, CombatAction.QUICK_ATTACK, session, stunned, potionAvailable));
+		previews.add(corePreview(state, CombatAction.HEAVY_ATTACK, session, stunned, potionAvailable));
+		previews.add(corePreview(state, CombatAction.PRECISE_ATTACK, session, stunned, potionAvailable));
+		previews.add(corePreview(state, CombatAction.DEFEND, session, stunned, potionAvailable));
+		previews.add(corePreview(state, CombatAction.USE_POTION, session, stunned, potionAvailable));
+		previews.add(corePreview(state, CombatAction.RETREAT, session, stunned, potionAvailable));
+		for (CombatTechniqueOptionView technique : techniques) {
+			TechniqueEffectSpec spec = state.techniqueSpecs().get(technique.code());
+			Integer hit = spec == null
+					? null
+					: CombatEngine.previewPlayerHitChance(state, CombatAction.USE_TECHNIQUE, spec);
+			previews.add(new CombatActionPreviewView(
+					CombatAction.USE_TECHNIQUE,
+					technique.code(),
+					technique.name(),
+					technique.description(),
+					technique.staminaCost(),
+					hit,
+					technique.disabledReason()));
+		}
+		return List.copyOf(previews);
+	}
+
+	private CombatActionPreviewView corePreview(
+			Combat2State state,
+			CombatAction action,
+			CombatSessionEntity session,
+			boolean stunned,
+			boolean potionAvailable) {
+		int cost = CombatV2Balance.reducedStaminaCost(
+				ActionCombatBalance.staminaCost(action), session.getStaminaCostReduction());
+		Integer hit = ActionCombatBalance.isAttack(action)
+				? CombatEngine.previewPlayerHitChance(state, action, null)
+				: null;
+		return new CombatActionPreviewView(
+				action,
+				null,
+				coreActionName(action),
+				coreActionDescription(action),
+				cost,
+				hit,
+				coreDisabledReason(action, stunned, potionAvailable, session.getPlayerStamina(), cost));
+	}
+
+	private List<CombatActionPreviewView> phase1ActionPreviews(
+			CoreActionCostsView costs,
+			boolean stunned,
+			boolean potionAvailable,
+			int playerStamina) {
+		List<CombatActionPreviewView> previews = new ArrayList<>();
+		previews.add(phase1Preview(CombatAction.QUICK_ATTACK, costs.quickAttack(), stunned, potionAvailable, playerStamina));
+		previews.add(phase1Preview(CombatAction.HEAVY_ATTACK, costs.heavyAttack(), stunned, potionAvailable, playerStamina));
+		previews.add(phase1Preview(CombatAction.PRECISE_ATTACK, costs.preciseAttack(), stunned, potionAvailable, playerStamina));
+		previews.add(phase1Preview(CombatAction.DEFEND, 0, stunned, potionAvailable, playerStamina));
+		previews.add(phase1Preview(CombatAction.USE_POTION, 0, stunned, potionAvailable, playerStamina));
+		previews.add(phase1Preview(CombatAction.RETREAT, 0, stunned, potionAvailable, playerStamina));
+		return List.copyOf(previews);
+	}
+
+	private static CombatActionPreviewView phase1Preview(
+			CombatAction action,
+			int cost,
+			boolean stunned,
+			boolean potionAvailable,
+			int playerStamina) {
+		return new CombatActionPreviewView(
+				action,
+				null,
+				coreActionName(action),
+				coreActionDescription(action),
+				cost,
+				null,
+				coreDisabledReason(action, stunned, potionAvailable, playerStamina, cost));
+	}
+
+	private static String coreDisabledReason(
+			CombatAction action,
+			boolean stunned,
+			boolean potionAvailable,
+			int playerStamina,
+			int cost) {
+		if (stunned) {
+			return "STUNNED";
+		}
+		if (action == CombatAction.USE_POTION && !potionAvailable) {
+			return "NO_POTION";
+		}
+		if (cost > 0 && playerStamina < cost) {
+			return "INSUFFICIENT_STAMINA";
+		}
+		return null;
+	}
+
+	private static String coreActionName(CombatAction action) {
+		return switch (action) {
+			case QUICK_ATTACK -> "Quick Attack";
+			case HEAVY_ATTACK -> "Heavy Attack";
+			case PRECISE_ATTACK -> "Precise Attack";
+			case DEFEND -> "Defend";
+			case USE_POTION -> "Use Potion";
+			case RETREAT -> "Flee Encounter";
+			case USE_TECHNIQUE -> "Technique";
+		};
+	}
+
+	private static String coreActionDescription(CombatAction action) {
+		return switch (action) {
+			case QUICK_ATTACK -> "A reliable strike with balanced stamina cost.";
+			case HEAVY_ATTACK -> "A slower blow that hits harder and is easier to dodge.";
+			case PRECISE_ATTACK -> "Aim for a weak point. Lower damage, higher accuracy.";
+			case DEFEND -> "Guard yourself and recover stamina.";
+			case USE_POTION -> "Drink a healing potion.";
+			case RETREAT -> "Attempt to leave combat.";
+			case USE_TECHNIQUE -> "Use an equipped technique.";
+		};
+	}
+
+	private static String enemyIntentLabel(
+			com.example.game.combat.domain.EnemyActionKind kind,
+			com.example.game.combat.domain.StatusType signatureStatus) {
+		return switch (kind) {
+			case BASIC_ATTACK -> "Basic Attack";
+			case HEAVY_ATTACK -> "Heavy Attack";
+			case DEFEND -> "Defend";
+			case STATUS_ATTACK -> signatureStatus == null
+					? "Status Attack"
+					: signatureStatus.name().charAt(0)
+							+ signatureStatus.name().substring(1).toLowerCase().replace('_', ' ')
+							+ " Attack";
+		};
 	}
 
 	private List<CombatTechniqueOptionView> techniqueOptions(CombatSessionEntity session, boolean stunned) {

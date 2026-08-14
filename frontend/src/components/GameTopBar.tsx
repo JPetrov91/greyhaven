@@ -9,7 +9,16 @@ import { ChromeIcon } from '../ui/chromeIcons'
 import { ComingLaterButton, ComingLaterChip } from '../ui/ComingLater'
 import { gameLink, isGameNavActive } from '../ui/gameNav'
 
-export function GameTopBar() {
+type CombatContext = {
+  monsterName: string
+  roundNumber: number
+}
+
+type Props = {
+  combatContext?: CombatContext | null
+}
+
+export function GameTopBar({ combatContext = null }: Props) {
   const { me, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -43,17 +52,25 @@ export function GameTopBar() {
         <Link to={gameLink('home')} className="brand">
           Greyhaven
         </Link>
-        <span className="topbar-divider" aria-hidden="true" />
-        {character ? (
-          <div className="game-topbar-identity" data-testid="topbar-identity">
-            <CharacterPortrait className="topbar-portrait" />
-            <div>
-              <p className="topbar-name">{character.name}</p>
-              <p className="topbar-level muted">Level {character.level}</p>
-            </div>
-          </div>
+        {combatContext ? (
+          <p className="topbar-combat-context" data-testid="topbar-combat-context">
+            COMBAT — {combatContext.monsterName} · Round {combatContext.roundNumber}
+          </p>
         ) : (
-          <span className="muted">{me?.email}</span>
+          <>
+            <span className="topbar-divider" aria-hidden="true" />
+            {character ? (
+              <div className="game-topbar-identity" data-testid="topbar-identity">
+                <CharacterPortrait className="topbar-portrait" />
+                <div>
+                  <p className="topbar-name">{character.name}</p>
+                  <p className="topbar-level muted">Level {character.level}</p>
+                </div>
+              </div>
+            ) : (
+              <span className="muted">{me?.email}</span>
+            )}
+          </>
         )}
       </div>
       <div className="currency-row" aria-label="Currencies">
