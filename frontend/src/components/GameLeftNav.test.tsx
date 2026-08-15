@@ -57,6 +57,8 @@ describe('GameLeftNav', () => {
     )
 
     expect(await screen.findByTestId('nav-home')).toBeTruthy()
+    expect(screen.getByText('Navigation')).toBeTruthy()
+    expect(screen.getByTestId('nav-home').querySelector('img')?.getAttribute('src')).toBe('/icons/nav/home.webp')
     expect(screen.getByTestId('nav-home').getAttribute('aria-current')).toBe('page')
     expect(screen.getByTestId('nav-world').getAttribute('aria-current')).toBeNull()
     expect(screen.getByTestId('nav-character').getAttribute('href')).toContain('character')

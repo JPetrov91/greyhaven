@@ -1,26 +1,48 @@
-const KNOWN = ['CITY_SQUARE', 'TAVERN', 'MARKET', 'OLD_TOWN', 'FOREST', 'NORTH_ROAD'] as const
+const KNOWN = [
+  'CITY_SQUARE',
+  'TAVERN',
+  'MARKET',
+  'OLD_TOWN',
+  'FOREST',
+  'NORTH_ROAD',
+  'ARENA',
+  'CRAFTSMEN_WARD',
+  'HARBOUR',
+  'SEWERS',
+  'OLD_MINE',
+  'BANDIT_CAMP',
+  'ANCIENT_RUINS',
+] as const
 
 export type LocationArtCode = (typeof KNOWN)[number]
-
-const ART_ALIAS: Record<string, string> = {
-  ARENA: 'city_square',
-  CRAFTSMEN_WARD: 'market',
-  HARBOUR: 'north_road',
-  SEWERS: 'old_town',
-  OLD_MINE: 'forest',
-  BANDIT_CAMP: 'north_road',
-  ANCIENT_RUINS: 'forest',
-}
 
 export function locationArtUrl(code: string): string {
   if (KNOWN.includes(code as LocationArtCode)) {
     return `/locations/${code.toLowerCase()}.webp`
   }
-  const alias = ART_ALIAS[code]
-  if (alias) {
-    return `/locations/${alias}.webp`
-  }
   return '/locations/city_square.webp'
+}
+
+const ACTION_ART: Partial<Record<LocationActionIconName, string>> = {
+  compass: '/icons/actions/travel.webp',
+  arena: '/icons/actions/arena.webp',
+  tavern: '/icons/actions/tavern.webp',
+  market: '/icons/actions/market.webp',
+  notice: '/icons/actions/notice.webp',
+  guild: '/icons/actions/guild.webp',
+  search: '/icons/actions/search.webp',
+  expedition: '/icons/actions/expedition.webp',
+  craft: '/icons/actions/craft.webp',
+  chat: '/icons/actions/chat.webp',
+  globe: '/icons/env/world-map.webp',
+  'weather-cloud': '/icons/env/weather-cloud.webp',
+  'weather-fog': '/icons/env/weather-fog.webp',
+  'weather-wind': '/icons/env/weather-wind.webp',
+  'weather-hearth': '/icons/env/weather-hearth.webp',
+}
+
+export function locationActionArtUrl(name: LocationActionIconName): string | undefined {
+  return ACTION_ART[name]
 }
 
 export type LocationWeather = {
@@ -36,6 +58,13 @@ const WEATHER_BY_CODE: Record<LocationArtCode, LocationWeather> = {
   OLD_TOWN: { label: 'Fog', temperature: '9°C', icon: 'weather-fog' },
   FOREST: { label: 'Damp', temperature: '8°C', icon: 'weather-fog' },
   NORTH_ROAD: { label: 'Windy', temperature: '6°C', icon: 'weather-wind' },
+  ARENA: { label: 'Dusty', temperature: '14°C', icon: 'weather-wind' },
+  CRAFTSMEN_WARD: { label: 'Hearth-warm', temperature: '24°C', icon: 'weather-hearth' },
+  HARBOUR: { label: 'Windy', temperature: '7°C', icon: 'weather-wind' },
+  SEWERS: { label: 'Damp', temperature: '11°C', icon: 'weather-fog' },
+  OLD_MINE: { label: 'Damp', temperature: '6°C', icon: 'weather-fog' },
+  BANDIT_CAMP: { label: 'Windy', temperature: '8°C', icon: 'weather-wind' },
+  ANCIENT_RUINS: { label: 'Fog', temperature: '5°C', icon: 'weather-fog' },
 }
 
 export function locationWeather(code: string): LocationWeather {
@@ -52,6 +81,8 @@ export type LocationActionIconName =
   | 'search'
   | 'expedition'
   | 'market'
+  | 'craft'
+  | 'arena'
   | 'chat'
   | 'safe'
   | 'danger'
@@ -78,6 +109,8 @@ const ICON_TITLES: Record<LocationActionIconName, string> = {
   search: 'Search',
   expedition: 'Expedition',
   market: 'Market',
+  craft: 'Crafting',
+  arena: 'Arena',
   chat: 'Chat',
   safe: 'Safe',
   danger: 'Dangerous',
@@ -111,8 +144,8 @@ export function LocationIcon({ name, className = 'location-icon' }: IconProps) {
       ) : null}
       {name === 'compass' ? (
         <>
-          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="m12 6.2 2.4 8.2-2.4-1.4-2.4 1.4Z" fill="currentColor" />
+          <circle cx="12" cy="12" r="7.4" fill="none" stroke="currentColor" strokeWidth="1.55" />
+          <path d="M12 6.4 14.1 14l-2.1-1.15L9.9 14Z" fill="currentColor" />
         </>
       ) : null}
       {name === 'search' ? (
@@ -127,10 +160,27 @@ export function LocationIcon({ name, className = 'location-icon' }: IconProps) {
       ) : null}
       {name === 'market' ? (
         <>
-          <path d="M12 4.5v13.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M8 19.2h8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M12 7.2 6.5 9.4 8.2 14H12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M12 7.2 17.5 9.4 15.8 14H12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M12 4.6v13.6" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+          <path d="M7.2 19.4h9.6" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+          <path d="M5.2 8.2h13.6" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+          <path d="M5.2 8.2c0 2.5 1.4 4.1 3.3 4.1S11.8 10.7 11.8 8.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M12.2 8.2c0 2.5 1.4 4.1 3.3 4.1s3.3-1.6 3.3-4.1" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        </>
+      ) : null}
+      {name === 'craft' ? (
+        <>
+          <path d="M14.6 4.8 19 9.2 10.4 17.8 6 18.8l1-4.4Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M13.2 6.2 17.6 10.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M5.2 19.2h7.4" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+        </>
+      ) : null}
+      {name === 'arena' ? (
+        <>
+          <path d="M8.2 17.6 15.8 6.4" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+          <path d="M15.8 17.6 8.2 6.4" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+          <path d="M14.4 5.2 17.4 8.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M6.6 8.2 9.6 5.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M7.4 18.6h2.6M14 18.6h2.6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </>
       ) : null}
       {name === 'chat' ? (
@@ -167,15 +217,15 @@ export function LocationIcon({ name, className = 'location-icon' }: IconProps) {
       ) : null}
       {name === 'tavern' ? (
         <>
-          <path d="M7 8h8.5v7.2A3.8 3.8 0 0 1 11.7 19H11A4 4 0 0 1 7 15Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M15.5 9.2h2.2A2.4 2.4 0 0 1 20 11.6 2.4 2.4 0 0 1 17.7 14H15.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M9 5.8c.6 1.2.6 2.2 0 3.2M12 5.4c.6 1.2.6 2.4 0 3.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M6.6 9h9.2v7.4A3.4 3.4 0 0 1 12.4 19.8H9.8A3.2 3.2 0 0 1 6.6 16.6Z" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinejoin="round" />
+          <path d="M15.8 10.4h2.4A2.2 2.2 0 0 1 20.4 12.6 2.2 2.2 0 0 1 18.2 14.8H15.8" fill="none" stroke="currentColor" strokeWidth="1.55" />
+          <path d="M9.2 5.2c.45 1 .45 1.8 0 2.7M12.4 4.9c.5 1.1.5 2 0 3.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </>
       ) : null}
       {name === 'notice' ? (
         <>
-          <path d="M7 5.5h10v13H7Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-          <path d="M9.2 9h5.6M9.2 12h5.6M9.2 15h3.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M7.2 4.8h9.6v14.4H7.2Z" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinejoin="round" />
+          <path d="M9.2 8.4h5.6M9.2 11.6h5.6M9.2 14.8h3.6" fill="none" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
         </>
       ) : null}
       {name === 'guild' ? (

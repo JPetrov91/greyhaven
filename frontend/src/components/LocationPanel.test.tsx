@@ -58,8 +58,13 @@ describe('LocationPanel', () => {
     expect(screen.getByRole('heading', { name: 'Greyhaven' })).toBeTruthy()
     const art = container.querySelector('.location-hero-art') as HTMLElement
     expect(art.style.backgroundImage).toContain('/locations/forest.webp')
-    expect(screen.getByTestId('hero-world-map').querySelector('svg')).toBeTruthy()
+    expect(screen.getByTestId('hero-world-map').querySelector('img')?.getAttribute('src')).toBe(
+      '/icons/env/world-map.webp',
+    )
     expect(screen.getByTestId('hero-travel').textContent).toContain('Travel')
+    expect(screen.getByTestId('hero-travel').querySelector('img')?.getAttribute('src')).toBe(
+      '/icons/actions/travel.webp',
+    )
     expect(screen.getByTestId('search-encounter-button').textContent).toContain('Search')
     expect(screen.getByTestId('search-encounter-button').textContent).toContain('Hunt nearby')
     expect(screen.getByTestId('start-expedition-action').textContent).toContain('Expeditions')
@@ -110,7 +115,7 @@ describe('LocationPanel', () => {
     vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
 
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    render(
+    const { container } = render(
       <QueryClientProvider client={queryClient}>
         <LocationPanel />
       </QueryClientProvider>,
@@ -120,5 +125,7 @@ describe('LocationPanel', () => {
     expect(screen.queryByTestId('location-actions')).toBeNull()
     expect(screen.queryByText('Available actions')).toBeNull()
     expect(screen.getByTestId('location-code').textContent).toBe('CITY_SQUARE')
+    const art = container.querySelector('.location-hero-art') as HTMLElement
+    expect(art.style.backgroundImage).toContain('/locations/city_square.webp')
   })
 })

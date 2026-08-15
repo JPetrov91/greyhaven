@@ -40,6 +40,8 @@ describe('LoginPage', () => {
     expect(screen.getByTestId('login-forgot-password')).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Greyhaven' })).toBeTruthy()
     expect(screen.getByText('Welcome back, adventurer')).toBeTruthy()
+    expect(screen.getByTestId('login-remember-me')).toBeTruthy()
+    expect(screen.getByText(/By logging in, you agree/)).toBeTruthy()
     expect(await screen.findByTestId('auth-server-status-value')).toBeTruthy()
     expect(screen.getAllByTestId('auth-feature-art')).toHaveLength(5)
   })

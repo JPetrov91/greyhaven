@@ -56,10 +56,6 @@ export function CreateCharacterPage() {
       <div className="auth-card-wrap create-character-wrap">
         <div className="auth-lock">
           <section className="auth-card create-character-page" data-testid="create-character-page">
-            <span className="auth-card-corner auth-card-corner-tl" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-tr" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-bl" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-br" aria-hidden="true" />
             <Link to="/login" className="auth-brand create-character-brand" aria-label="Greyhaven">
               <img className="auth-crest" src="/auth/crest.png" alt="" />
             </Link>

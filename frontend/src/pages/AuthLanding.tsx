@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchServerHealth } from '../api/health'
-import { Button } from '../ui/Button'
 import { applyUiMode, persistUiMode, readStoredUiMode, type UiMode } from '../ui/uiMode'
 
 const FEATURES = [
@@ -76,7 +75,6 @@ export function AuthLanding({ testId, heading, children }: Props) {
       </div>
       <div className="auth-landing-overlay" aria-hidden="true" />
       <div className="auth-top">
-        <p className="auth-top-kicker">Greyhaven · Persistent world</p>
         <aside className="auth-status" data-testid="auth-server-status">
           <div className="auth-status-row">
             <p className="auth-status-label">Server status</p>
@@ -88,39 +86,36 @@ export function AuthLanding({ testId, heading, children }: Props) {
               {statusLabel}
             </p>
           </div>
-          <p className="auth-status-version">Version 0.0.1 · MVP</p>
-          <Button
+          <p className="auth-status-version">Version 0.0.1</p>
+          <button
             type="button"
-            variant="ghost"
+            className="auth-status-mode"
             data-testid="ui-mode-toggle"
             aria-pressed={uiMode === 'compact'}
             onClick={toggleUiMode}
           >
             {uiMode === 'compact' ? 'Normal mode' : 'Office mode'}
-          </Button>
+          </button>
         </aside>
+      </div>
+
+      <div className="auth-brand-wrap">
+        <Link to="/login" className="auth-brand" aria-label="Greyhaven">
+          <img className="auth-crest" src="/auth/crest.png" alt="" />
+          <div className="auth-brand-copy">
+            <img className="auth-wordmark" src="/auth/greyhaven-wordmark.png?v=2" alt="" />
+            <p className="auth-brand-tagline">A persistent dark fantasy world. Your legend endures.</p>
+          </div>
+        </Link>
       </div>
 
       <div className="auth-card-wrap">
         <div className="auth-lock">
-          <Link to="/login" className="auth-brand" aria-label="Greyhaven">
-            <img className="auth-crest" src="/auth/crest.png" alt="" />
-            <div className="auth-brand-copy">
-              <p className="auth-brand-title">
-                <span className="auth-brand-drop">G</span>reyhaven
-              </p>
-              <p className="auth-brand-tagline">A persistent dark fantasy world. Your legend endures.</p>
-            </div>
-          </Link>
           <div className="auth-card">
-            <span className="auth-card-corner auth-card-corner-tl" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-tr" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-bl" aria-hidden="true" />
-            <span className="auth-card-corner auth-card-corner-br" aria-hidden="true" />
             <h1 className="auth-card-heading">
-              <TorchIcon />
-              <span>{heading}</span>
-              <TorchIcon />
+              <span className="auth-flourish" aria-hidden="true" />
+              <span className="auth-card-heading-text">{heading}</span>
+              <span className="auth-flourish" aria-hidden="true" />
             </h1>
             {children}
           </div>
@@ -132,8 +127,10 @@ export function AuthLanding({ testId, heading, children }: Props) {
           <li key={feature.key} className="auth-feature">
             <img className="auth-feature-art" src={feature.art} alt="" data-testid="auth-feature-art" />
             <div className="auth-feature-copy">
-              <FeatureIcon name={feature.key} />
-              <h3>{feature.title}</h3>
+              <div className="auth-feature-title-row">
+                <FeatureIcon name={feature.key} />
+                <h3>{feature.title}</h3>
+              </div>
               <p>{feature.body}</p>
             </div>
           </li>
@@ -145,17 +142,6 @@ export function AuthLanding({ testId, heading, children }: Props) {
         <p>Play in short sessions. The world continues without you.</p>
       </footer>
     </section>
-  )
-}
-
-function TorchIcon() {
-  return (
-    <svg className="auth-torch" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3c2.2 2.4 3.4 4.2 3.4 6.2A3.4 3.4 0 0 1 12 12.6 3.4 3.4 0 0 1 8.6 9.2C8.6 7.2 9.8 5.4 12 3Z" fill="#e8c36a" opacity="0.95" />
-      <path d="M10.6 8.4c.5 1.3 1.4 2 1.4 2s.9-.7 1.4-2c-.4.2-.9.4-1.4.4s-1-.2-1.4-.4Z" fill="#fff3c4" />
-      <path d="M11.1 12.8h1.8v6.2h-1.8z" fill="#c4923a" />
-      <path d="M9.4 19h5.2v1.6H9.4z" fill="#d4b05a" />
-    </svg>
   )
 }
 

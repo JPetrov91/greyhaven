@@ -30,7 +30,30 @@ const STROKE = {
   strokeLinejoin: 'round' as const,
 }
 
+const NAV_ART: Partial<Record<ChromeIconName, string>> = {
+  home: '/icons/nav/home.webp',
+  locations: '/icons/nav/locations.webp',
+  character: '/icons/nav/character.webp',
+  pack: '/icons/nav/inventory.webp',
+  equipment: '/icons/nav/equipment.webp',
+  market: '/icons/nav/market.webp',
+  expeditions: '/icons/nav/expeditions.webp',
+  crafting: '/icons/nav/crafting.webp',
+  mastery: '/icons/nav/mastery.webp',
+  pvp: '/icons/nav/pvp.webp',
+  guild: '/icons/nav/guild.webp',
+  rankings: '/icons/nav/rankings.webp',
+}
+
+export function chromeIconArtUrl(name: ChromeIconName): string | undefined {
+  return NAV_ART[name]
+}
+
 export function ChromeIcon({ name, className = 'chrome-icon' }: { name: ChromeIconName; className?: string }) {
+  const art = NAV_ART[name]
+  if (art) {
+    return <img className={`${className} chrome-icon-art`} src={art} alt="" aria-hidden="true" />
+  }
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       {glyph(name)}

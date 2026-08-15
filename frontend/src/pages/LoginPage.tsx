@@ -1,21 +1,37 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../ui/Button'
+import { ComingLaterButton } from '../ui/ComingLater'
 import { ErrorState } from '../ui/ErrorState'
 import { Field } from '../ui/Field'
 import { AuthLanding } from './AuthLanding'
+
+const REMEMBER_EMAIL_KEY = 'greyhaven.rememberEmail'
 
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [forgotHint, setForgotHint] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(REMEMBER_EMAIL_KEY)
+      if (stored) {
+        setEmail(stored)
+        setRememberMe(true)
+      }
+    } catch {
+      // Private mode / blocked storage should not block sign-in.
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -27,6 +43,15 @@ export function LoginPage() {
     setSubmitting(true)
     try {
       const me = await login(nextEmail, nextPassword)
+      try {
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_EMAIL_KEY, nextEmail)
+        } else {
+          localStorage.removeItem(REMEMBER_EMAIL_KEY)
+        }
+      } catch {
+        // Ignore storage failures; the session still continues.
+      }
       navigate(me.hasCharacter ? '/game' : '/create-character', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
@@ -81,6 +106,16 @@ export function LoginPage() {
           </span>
         </Field>
         <div className="auth-forgot-row">
+          <label className="auth-remember">
+            <input
+              className="visually-hidden"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              data-testid="login-remember-me"
+            />
+            Remember me
+          </label>
           <button
             type="button"
             className="auth-forgot"
@@ -103,6 +138,11 @@ export function LoginPage() {
         <Link className="auth-cta-secondary" to="/register">
           Create account
         </Link>
+        <p className="auth-legal">
+          By logging in, you agree to our{' '}
+          <ComingLaterButton className="auth-legal-link">Terms of Service</ComingLaterButton> and{' '}
+          <ComingLaterButton className="auth-legal-link">Privacy Policy</ComingLaterButton>.
+        </p>
       </form>
     </AuthLanding>
   )

@@ -14,8 +14,13 @@ import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
-import { StatusBadge } from '../ui/StatusBadge'
-import { LocationCrest, LocationIcon, locationArtUrl, locationWeather } from '../ui/locationMedia'
+import {
+  LocationCrest,
+  LocationIcon,
+  locationActionArtUrl,
+  locationArtUrl,
+  locationWeather,
+} from '../ui/locationMedia'
 import type { LocationActionIconName } from '../ui/locationMedia'
 import { DungeonPanel } from './DungeonPanel'
 
@@ -202,38 +207,53 @@ export function LocationPanel({
         />
       ) : (
         <>
-          <div
-            className="location-art"
-            aria-hidden="true"
-            style={{ backgroundImage: `url(${locationArtUrl(location.code)})` }}
-          />
-          <p className="location-region muted">{location.region}</p>
-          <h2 data-testid="current-location">{location.name}</h2>
-          <p className="location-meta">
-            <StatusBadge
-              data-testid="location-safety"
-              tone={location.safety === 'SAFE' ? 'safe' : 'danger'}
-            >
-              <LocationIcon name={location.safety === 'SAFE' ? 'safe' : 'danger'} />
-              {location.safety === 'SAFE' ? 'Safe Zone' : 'Dangerous'}
-            </StatusBadge>
-            {location.safety === 'SAFE' ? (
-              <StatusBadge tone="safe">No PvP</StatusBadge>
-            ) : (
-              <StatusBadge tone="danger">PvE</StatusBadge>
-            )}
-            <span className="muted" data-testid="location-code">
-              {location.code}
-            </span>
-          </p>
-          {location.recommendedLevelMin != null && location.recommendedLevelMax != null ? (
-            <p className="muted" data-testid="location-band">
-              Recommended levels {location.recommendedLevelMin}–{location.recommendedLevelMax}
-            </p>
-          ) : null}
-          <p className="location-description" data-testid="location-description">
-            {location.description}
-          </p>
+          <div className="location-hero location-page-banner">
+            <div
+              className="location-hero-art"
+              aria-hidden="true"
+              style={{ backgroundImage: `url(${locationArtUrl(location.code)})` }}
+            />
+            <div className="location-hero-body">
+              <div className="location-hero-identity">
+                <LocationCrest />
+                <div>
+                  <p className="location-hero-kicker">Current location</p>
+                  <h2 className="location-hero-region">{location.region}</h2>
+                  <p className="location-hero-place" data-testid="current-location">
+                    {location.name}
+                  </p>
+                </div>
+              </div>
+              <p className="location-description" data-testid="location-description">
+                {location.description}
+              </p>
+              {location.recommendedLevelMin != null && location.recommendedLevelMax != null ? (
+                <p className="muted" data-testid="location-band">
+                  Recommended levels {location.recommendedLevelMin}–{location.recommendedLevelMax}
+                </p>
+              ) : null}
+              <p className="location-hero-pills">
+                <span
+                  className={
+                    location.safety === 'SAFE'
+                      ? 'location-hero-pill location-hero-pill-safe'
+                      : 'location-hero-pill location-hero-pill-danger'
+                  }
+                  data-testid="location-safety"
+                >
+                  <LocationIcon name={location.safety === 'SAFE' ? 'spark' : 'danger'} />
+                  {location.safety === 'SAFE' ? 'Safe Zone' : 'Dangerous'}
+                </span>
+                <span className="location-hero-pill location-hero-pill-muted" data-testid="location-pvp">
+                  <LocationIcon name={location.safety === 'SAFE' ? 'nopvp' : 'pve'} />
+                  {location.safety === 'SAFE' ? 'No PvP' : 'PvE'}
+                </span>
+                <span className="muted" data-testid="location-code">
+                  {location.code}
+                </span>
+              </p>
+            </div>
+          </div>
           {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
           {location.actions.includes('ENTER_ARENA') ? (
             <Button type="button" data-testid="enter-arena-action" onClick={() => onOpenArena?.()}>
@@ -489,7 +509,7 @@ function heroActionTiles({
   if (actions.has('ENTER_ARENA')) {
     tiles.push({
       testId: 'enter-arena-action',
-      icon: 'compass',
+      icon: 'arena',
       title: 'Arena',
       subtitle: 'Challenge defenders',
       onClick: () => onOpenArena?.(),
@@ -509,7 +529,7 @@ function heroActionTiles({
   if (actions.has('CRAFT') || actions.has('CLAIM_CRAFT') || actions.has('SALVAGE')) {
     tiles.push({
       testId: 'open-crafting-action',
-      icon: 'market',
+      icon: 'craft',
       title: 'Crafting',
       subtitle: 'Jobs & salvage',
       onClick: () => onOpenCrafting?.(),
@@ -647,27 +667,35 @@ function LocationHero({
             </div>
           </div>
           <div className="location-hero-env">
-            <div className="location-hero-clock" data-testid="location-clock">
-              <strong>{clock}</strong>
-              <span>Greyhaven time</span>
-            </div>
-            <p className="location-hero-weather" data-testid="location-weather">
-              <LocationIcon name={weather.icon} />
-              <span>
-                {weather.label}
+            <div className="location-hero-env-card">
+              <div className="location-hero-clock" data-testid="location-clock">
+                <strong>{clock}</strong>
+                <span>Greyhaven time</span>
+              </div>
+              <p className="location-hero-weather" data-testid="location-weather">
+                {locationActionArtUrl(weather.icon) ? (
+                  <img className="location-hero-env-art" src={locationActionArtUrl(weather.icon)} alt="" />
+                ) : (
+                  <LocationIcon name={weather.icon} />
+                )}
+                <span className="location-hero-weather-label">{weather.label}</span>
                 <span className="location-hero-temp">{weather.temperature}</span>
-              </span>
-            </p>
-            <Button
-              type="button"
-              variant="secondary"
-              className="location-hero-map"
-              data-testid="hero-world-map"
-              onClick={() => onOpenWorld?.()}
-            >
-              <LocationIcon name="globe" />
-              World Map
-            </Button>
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="location-hero-map"
+                data-testid="hero-world-map"
+                onClick={() => onOpenWorld?.()}
+              >
+                {locationActionArtUrl('globe') ? (
+                  <img className="location-hero-env-art" src={locationActionArtUrl('globe')} alt="" />
+                ) : (
+                  <LocationIcon name="globe" />
+                )}
+                World Map
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -728,7 +756,11 @@ function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLate
   const content: ReactNode = (
     <>
       <span className="location-hero-tile-icon">
-        <LocationIcon name={icon} />
+        {locationActionArtUrl(icon) ? (
+          <img className="location-hero-tile-art" src={locationActionArtUrl(icon)} alt="" />
+        ) : (
+          <LocationIcon name={icon} />
+        )}
       </span>
       <span className="location-hero-tile-copy">
         <strong>{title}</strong>

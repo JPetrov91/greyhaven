@@ -67,6 +67,7 @@ export function GameLeftNav() {
       aria-label="Primary"
       data-collapsed={collapsed ? 'true' : undefined}
     >
+      <p className="game-nav-heading">Navigation</p>
       <ul className="game-nav-list">
         {LIVE_NAV.map((entry) => {
           const active = isGameNavActive(entry.item, location)
