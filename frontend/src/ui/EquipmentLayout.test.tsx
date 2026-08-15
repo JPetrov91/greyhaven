@@ -66,10 +66,17 @@ describe('EquipmentLayout', () => {
 
     expect(screen.getByTestId('equipped-weapon')).toHaveProperty('textContent', 'Empty')
     expect(screen.getByTestId('equipped-armor')).toHaveProperty('textContent', 'Empty')
-    const icons = document.querySelectorAll('.equipment-slot-empty .equipment-slot-icon')
+    const icons = document.querySelectorAll('.equipment-slot-empty .equipment-slot-empty-art')
     expect(icons).toHaveLength(EQUIPMENT_SLOTS.length)
-    const titles = Array.from(icons).map((icon) => icon.querySelector('title')?.textContent)
-    expect(new Set(titles).size).toBe(EQUIPMENT_SLOTS.length)
+    const sources = Array.from(icons).map((icon) => icon.getAttribute('src'))
+    expect(new Set(sources).size).toBe(EQUIPMENT_SLOTS.length)
+    expect(screen.getByTestId('equipment-character-figure').getAttribute('src')).toBe('/equipment/figure-male.webp')
+  })
+
+  it('uses the female figure when the character gender is female', () => {
+    render(<EquipmentLayout includeSlotTestIds figureGender="FEMALE" equipment={emptyEquipment} items={[]} />)
+
+    expect(screen.getByTestId('equipment-character-figure').getAttribute('src')).toBe('/equipment/figure-female.webp')
   })
 
   it('keeps the item icon when a slot is filled', () => {
@@ -85,6 +92,20 @@ describe('EquipmentLayout', () => {
     const filled = document.querySelector('.equipment-slot-main_hand')
     expect(filled?.className).not.toMatch(/equipment-slot-empty/)
     expect(filled?.querySelector('.item-icon-face')).not.toBeNull()
+  })
+
+  it('places the character stage between the slot columns on the full doll', () => {
+    const { container } = render(
+      <EquipmentLayout includeFutureSlots includeSlotTestIds equipment={emptyEquipment} items={[]} />,
+    )
+
+    const layout = container.querySelector('.equipment-layout-doll-full')
+    expect(layout?.querySelector(':scope > .equipment-stage')).not.toBeNull()
+    expect(layout?.querySelector(':scope > .equipment-slot-head')).not.toBeNull()
+    expect(layout?.querySelector(':scope > .equipment-slot-main_hand')).not.toBeNull()
+    expect(layout?.querySelector(':scope > .equipment-slot-shoulders')).not.toBeNull()
+    expect(layout?.querySelector(':scope > .equipment-slot-feet')).not.toBeNull()
+    expect(screen.getByTestId('equipment-character-figure')).toBeTruthy()
   })
 
   it('renders locked future slots on the full doll without assigning compact grid areas', () => {

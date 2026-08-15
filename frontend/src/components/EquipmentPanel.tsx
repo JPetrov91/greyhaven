@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
+import { fetchCharacter } from '../api/character'
 import { equipItem, fetchInventory, unequipItem } from '../api/inventory'
 import type { EquipmentSlot, InventoryItemResponse } from '../api/types'
 import { Button } from '../ui/Button'
@@ -12,11 +13,10 @@ import { ErrorState } from '../ui/ErrorState'
 import { isLiveEquipmentSlot, SLOT_LABELS, type DesignEquipmentSlot, type FutureEquipmentSlot } from '../ui/equipmentSlots'
 import { ItemDetail } from '../ui/ItemDetail'
 import { ItemIcon } from '../ui/itemIcons'
-import { comparisonLabel, shouldShowItemComparison, verdictTone } from '../ui/itemCopy'
+import { shouldShowItemComparison } from '../ui/itemCopy'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
 import { StatRow } from '../ui/StatRow'
-import { StatusBadge } from '../ui/StatusBadge'
 import { useToast } from '../ui/ToastRegion'
 import { useUiMode } from '../ui/uiMode'
 
@@ -38,6 +38,11 @@ export function EquipmentPanel({ mutationsDisabled = false }: Props) {
   const inventoryQuery = useQuery({
     queryKey: ['inventory'],
     queryFn: fetchInventory,
+    retry: false,
+  })
+  const characterQuery = useQuery({
+    queryKey: ['character'],
+    queryFn: fetchCharacter,
     retry: false,
   })
 
@@ -83,8 +88,8 @@ export function EquipmentPanel({ mutationsDisabled = false }: Props) {
             Appearance
           </ComingLaterButton>
         </div>
-        <ComingLaterButton className="equipment-loadout-btn" data-testid="equipment-loadout">
-          Loadout
+        <ComingLaterButton className="equipment-preset-btn" data-testid="equipment-loadout">
+          Preset
         </ComingLaterButton>
       </div>
     ),
@@ -152,6 +157,7 @@ export function EquipmentPanel({ mutationsDisabled = false }: Props) {
           showStage={!compact}
           compact={compact}
           selectedSlot={selectedSlot}
+          figureGender={characterQuery.data?.gender}
           equipment={inventory.equipment}
           items={inventory.items}
           onLiveSlotClick={selectLiveSlot}
@@ -227,35 +233,16 @@ function EquipmentInspector({
         <EmptyState testId="equipment-slot-locked">This slot is coming later.</EmptyState>
       ) : inspected ? (
         <>
+          <p className="equipment-inspector-kicker">Selected Item</p>
           <ItemDetail
             item={inspected}
             equippedName={equippedName}
-            showComparison={false}
+            showComparison={showCompare}
             showIcon
+            variant="equipment"
+            showQuantity={false}
             valueLabel="Vendor value"
           />
-          {showCompare && inspected.comparison ? (
-            <div className="item-comparison" data-testid={`comparison-${inspected.code}`}>
-              <p className="item-comparison-heading">
-                <span>
-                  Equipped: {equippedName ?? (inspected.comparison.equippedItemId ? 'Equipped' : 'Empty')}
-                </span>
-                <StatusBadge tone={verdictTone(inspected.comparison.verdict)}>
-                  {comparisonLabel(inspected.comparison.verdict)}
-                </StatusBadge>
-              </p>
-              <dl className="stat-list">
-                {inspected.comparison.deltas.map((delta) => (
-                  <StatRow
-                    key={delta.stat}
-                    label={delta.stat}
-                    value={`${delta.equippedValue} → ${delta.candidateValue}`}
-                    delta={delta.delta}
-                  />
-                ))}
-              </dl>
-            </div>
-          ) : null}
           <div className="inventory-inspector-actions">
             {inspected.equipped ? (
               <Button
@@ -359,13 +346,13 @@ function EquipmentFooter({
         <h3>
           Set bonuses <span className="visually-hidden">Coming later</span>
         </h3>
-        <p className="muted">No set bonuses.</p>
+        <p className="equipment-footer-empty">No set bonuses.</p>
       </section>
       <section className="equipment-footer-col equipment-footer-locked" title="Coming later" aria-label="Active effects">
         <h3>
           Active effects <span className="visually-hidden">Coming later</span>
         </h3>
-        <p className="muted">No active effects.</p>
+        <p className="equipment-footer-empty">No active effects.</p>
       </section>
     </div>
   )

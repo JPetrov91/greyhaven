@@ -9,7 +9,7 @@ export function GuestOnly() {
   }
 
   if (isAuthenticated && me) {
-    return <Navigate to={me.hasCharacter ? '/game' : '/create-character'} replace />
+    return <Navigate to="/characters" replace />
   }
 
   return <Outlet />

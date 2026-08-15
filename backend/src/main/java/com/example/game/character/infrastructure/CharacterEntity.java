@@ -11,6 +11,9 @@ import com.example.game.character.domain.CharacterProgression;
 import com.example.game.character.domain.ProgressionBalance;
 import com.example.game.shared.balance.GameBalanceCatalog;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,8 +34,12 @@ public class CharacterEntity implements Persistable<UUID> {
 	@Id
 	private UUID id;
 
-	@Column(name = "account_id", nullable = false, unique = true)
+	@Column(name = "account_id", nullable = false)
 	private UUID accountId;
+
+	@JdbcTypeCode(SqlTypes.SMALLINT)
+	@Column(name = "slot_index", nullable = false)
+	private int slotIndex;
 
 	@Column(nullable = false, length = 64)
 	private String name;
@@ -111,6 +118,7 @@ public class CharacterEntity implements Persistable<UUID> {
 	public CharacterEntity(
 			UUID id,
 			UUID accountId,
+			int slotIndex,
 			String name,
 			CharacterGender gender,
 			String avatarCode,
@@ -132,6 +140,7 @@ public class CharacterEntity implements Persistable<UUID> {
 			Instant lastRecoveryAt) {
 		this.id = id;
 		this.accountId = accountId;
+		this.slotIndex = slotIndex;
 		this.name = name;
 		this.gender = gender;
 		this.avatarCode = avatarCode;
@@ -174,6 +183,10 @@ public class CharacterEntity implements Persistable<UUID> {
 
 	public UUID getAccountId() {
 		return accountId;
+	}
+
+	public int getSlotIndex() {
+		return slotIndex;
 	}
 
 	public String getName() {

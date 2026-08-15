@@ -20,7 +20,7 @@ type Props = {
   showComparison?: boolean
   showIcon?: boolean
   valueLabel?: string
-  variant?: 'default' | 'market'
+  variant?: 'default' | 'market' | 'equipment'
   hideValue?: boolean
   showQuantity?: boolean
 }
@@ -35,15 +35,17 @@ export function ItemDetail({
   hideValue = false,
   showQuantity = true,
 }: Props) {
-  if (variant === 'market') {
+  if (variant === 'market' || variant === 'equipment') {
     return (
-      <MarketItemDetail
+      <InspectItemDetail
         item={item}
         equippedName={equippedName}
         showComparison={showComparison}
         hideValue={hideValue}
         showQuantity={showQuantity}
         valueLabel={valueLabel}
+        stacked={variant === 'equipment'}
+        comparisonHeading={variant === 'equipment' ? 'Compare to Equipped' : 'Compare (Equipped)'}
       />
     )
   }
@@ -101,13 +103,15 @@ export function ItemDetail({
   )
 }
 
-function MarketItemDetail({
+function InspectItemDetail({
   item,
   equippedName,
   showComparison,
   hideValue,
   showQuantity,
   valueLabel,
+  stacked,
+  comparisonHeading,
 }: {
   item: InventoryItemResponse
   equippedName: string | null
@@ -115,6 +119,8 @@ function MarketItemDetail({
   hideValue: boolean
   showQuantity: boolean
   valueLabel: string
+  stacked: boolean
+  comparisonHeading: string
 }) {
   const meta = itemInspectMeta(item)
   const primary = itemPrimaryStatRows(item)
@@ -125,7 +131,7 @@ function MarketItemDetail({
   const rarityInk = `rarity-ink-${item.rarity.toLowerCase()}`
 
   return (
-    <div className="item-detail item-detail-market">
+    <div className={stacked ? 'item-detail item-detail-inspect item-detail-equipment' : 'item-detail item-detail-inspect item-detail-market'}>
       <header className="item-tooltip-header">
         <span className={`item-icon-frame rarity-frame-${item.rarity.toLowerCase()}`}>
           <ItemIcon item={item} className="item-icon item-icon-inspector" />
@@ -138,6 +144,7 @@ function MarketItemDetail({
           <p className={`item-detail-kicker ${rarityInk}`}>{meta.kicker}</p>
           {meta.slotLine ? <p className="item-detail-slot">{meta.slotLine}</p> : null}
           <p className="item-detail-level">{meta.itemLevel}</p>
+          {item.equipped ? <p className="item-detail-equipped">Equipped</p> : null}
         </div>
       </header>
       {item.description ? <p className="item-tooltip-desc">{item.description}</p> : null}
@@ -185,7 +192,7 @@ function MarketItemDetail({
         </dl>
       </section>
       {showComparison && comparison ? (
-        <ComparisonBlock item={item} equippedName={equippedName} heading="Compare (Equipped)" />
+        <ComparisonBlock item={item} equippedName={equippedName} heading={comparisonHeading} />
       ) : null}
     </div>
   )

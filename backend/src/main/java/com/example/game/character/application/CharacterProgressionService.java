@@ -22,6 +22,7 @@ import com.example.game.telemetry.domain.GoldDestroyReason;
 public class CharacterProgressionService {
 
 	private final CharacterRepository characterRepository;
+	private final ActiveCharacterResolver activeCharacterResolver;
 	private final CharacterApplicationService characterApplicationService;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final CharacterVitalsService characterVitalsService;
@@ -32,6 +33,7 @@ public class CharacterProgressionService {
 
 	public CharacterProgressionService(
 			CharacterRepository characterRepository,
+			ActiveCharacterResolver activeCharacterResolver,
 			CharacterApplicationService characterApplicationService,
 			CharacterStateSyncService characterStateSyncService,
 			CharacterVitalsService characterVitalsService,
@@ -40,6 +42,7 @@ public class CharacterProgressionService {
 			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.activeCharacterResolver = activeCharacterResolver;
 		this.characterApplicationService = characterApplicationService;
 		this.characterStateSyncService = characterStateSyncService;
 		this.characterVitalsService = characterVitalsService;
@@ -56,8 +59,7 @@ public class CharacterProgressionService {
 			int agilityDelta,
 			int enduranceDelta,
 			int perceptionDelta) {
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActiveLocked(accountId);
 		characterCombatGuard.assertNotInActiveCombat(character.getId());
 		characterStateSyncService.sync(character);
 		try {
@@ -87,8 +89,7 @@ public class CharacterProgressionService {
 
 	@Transactional
 	public CharacterView respec(UUID accountId) {
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActiveLocked(accountId);
 		characterCombatGuard.assertNotInActiveCombat(character.getId());
 		characterStateSyncService.sync(character);
 		int cost = ProgressionBalance.respecGoldCost(character.getLevel());
@@ -98,8 +99,7 @@ public class CharacterProgressionService {
 		Instant now = Instant.now(clock);
 		if (cost > 0) {
 			characterVitalsService.spendGold(character.getId(), cost, GoldDestroyReason.RESPEC);
-			character = characterRepository.findWithLockByAccountId(accountId)
-					.orElseThrow(CharacterErrors::characterNotFound);
+			character = activeCharacterResolver.requireActiveLocked(accountId);
 		}
 		character.respec(now);
 		characterRepository.saveAndFlush(character);

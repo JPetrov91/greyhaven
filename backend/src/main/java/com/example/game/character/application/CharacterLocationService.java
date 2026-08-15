@@ -21,22 +21,24 @@ import com.example.game.character.infrastructure.CharacterRepository;
 public class CharacterLocationService {
 
 	private final CharacterRepository characterRepository;
+	private final ActiveCharacterResolver activeCharacterResolver;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final Clock clock;
 
 	public CharacterLocationService(
 			CharacterRepository characterRepository,
+			ActiveCharacterResolver activeCharacterResolver,
 			CharacterStateSyncService characterStateSyncService,
 			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.activeCharacterResolver = activeCharacterResolver;
 		this.characterStateSyncService = characterStateSyncService;
 		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
 	public CharacterLocationView locationOf(UUID accountId) {
-		return toView(characterRepository.findByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound));
+		return toView(activeCharacterResolver.requireActive(accountId));
 	}
 
 	/**
@@ -46,8 +48,7 @@ public class CharacterLocationService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterLocationView lockLocationOf(UUID accountId) {
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActiveLocked(accountId);
 		characterStateSyncService.sync(character);
 		return toView(character);
 	}
@@ -58,8 +59,7 @@ public class CharacterLocationService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void relocate(UUID accountId, UUID destinationLocationId) {
-		CharacterEntity character = characterRepository.findByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActive(accountId);
 		character.moveTo(destinationLocationId, Instant.now(clock));
 		characterRepository.saveAndFlush(character);
 	}

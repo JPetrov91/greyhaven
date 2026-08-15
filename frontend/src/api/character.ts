@@ -1,18 +1,29 @@
 import { apiRequest } from './client'
-import type { CharacterResponse } from './types'
+import type { CharacterResponse, CharacterRosterResponse } from './types'
 
 export function fetchCharacter(): Promise<CharacterResponse> {
   return apiRequest<CharacterResponse>('/api/v1/character')
+}
+
+export function fetchCharacterRoster(): Promise<CharacterRosterResponse> {
+  return apiRequest<CharacterRosterResponse>('/api/v1/characters')
 }
 
 export function createCharacter(input: {
   name: string
   gender: 'MALE' | 'FEMALE'
   avatarCode: string
+  slotIndex?: number
 }): Promise<CharacterResponse> {
   return apiRequest<CharacterResponse>('/api/v1/characters', {
     method: 'POST',
     body: JSON.stringify(input),
+  })
+}
+
+export function selectCharacter(characterId: string): Promise<CharacterResponse> {
+  return apiRequest<CharacterResponse>(`/api/v1/characters/${characterId}/select`, {
+    method: 'POST',
   })
 }
 

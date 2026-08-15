@@ -15,20 +15,14 @@ import jakarta.persistence.LockModeType;
 
 public interface CharacterRepository extends JpaRepository<CharacterEntity, UUID> {
 
-	boolean existsByAccountId(UUID accountId);
+	int countByAccountId(UUID accountId);
 
-	Optional<CharacterEntity> findByAccountId(UUID accountId);
+	List<CharacterEntity> findByAccountIdOrderBySlotIndexAsc(UUID accountId);
 
-	/**
-	 * Serializes read-modify-write flows against a character. Without the row lock two concurrent
-	 * requests can both read the same state and the second write silently discards the first.
-	 */
-	@Lock(LockModeType.PESSIMISTIC_WRITE)
-	Optional<CharacterEntity> findWithLockByAccountId(UUID accountId);
+	boolean existsByAccountIdAndSlotIndex(UUID accountId, int slotIndex);
 
 	/**
-	 * Same serialization as {@link #findWithLockByAccountId} for callers that already have the
-	 * character id (inventory grants, starter loadout equip).
+	 * Serializes read-modify-write flows against a character id (inventory grants, starter loadout).
 	 */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select c from CharacterEntity c where c.id = :id")

@@ -21,7 +21,7 @@ Rules:
 
 unique email;
 unique character name;
-one character per account;
+up to three characters per account; the server tracks the selected active character;
 secure password hashing;
 session authentication;
 HttpOnly cookie;

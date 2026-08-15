@@ -18,7 +18,7 @@ vi.mock('../api/inventory', () => ({
 
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
-    me: { email: 'a@b.c', hasCharacter: true, accountId: 'acc' },
+    me: { email: 'a@b.c', characterCount: 1, activeCharacterId: 'char-1', accountId: 'acc' },
     logout: vi.fn(),
   }),
 }))

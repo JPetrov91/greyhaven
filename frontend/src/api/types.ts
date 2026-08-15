@@ -7,7 +7,46 @@ export type ApiErrorBody = {
 export type MeResponse = {
   accountId: string
   email: string
-  hasCharacter: boolean
+  characterCount: number
+  activeCharacterId: string | null
+}
+
+export type CharacterEquippedSlotResponse = {
+  slot: string
+  displayName: string
+  rarity: string
+}
+
+export type CharacterSlotResponse = {
+  slotIndex: number
+  empty: boolean
+  characterId: string | null
+  name: string | null
+  gender: 'MALE' | 'FEMALE' | null
+  avatarCode: string | null
+  level: number
+  gold: number
+  currentLocationId: string | null
+  locationName: string | null
+  strength: number
+  agility: number
+  endurance: number
+  perception: number
+  currentHealth: number
+  maxHealth: number
+  currentStamina: number
+  maxStamina: number
+  physicalDamage: number
+  accuracy: number
+  dodge: number
+  criticalChance: number
+  armor: number
+  healingPotions: number
+  equipped: CharacterEquippedSlotResponse[]
+}
+
+export type CharacterRosterResponse = {
+  slots: CharacterSlotResponse[]
 }
 
 export type DerivedStatsResponse = {

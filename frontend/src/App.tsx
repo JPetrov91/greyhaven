@@ -19,7 +19,8 @@ export default function App() {
         </Route>
 
         <Route element={<RequireAuth />}>
-          <Route path="/create-character" element={<CreateCharacterPage />} />
+          <Route path="/characters" element={<CreateCharacterPage />} />
+          <Route path="/create-character" element={<Navigate to="/characters" replace />} />
           <Route path="/game" element={<GameLayout />} />
         </Route>
 

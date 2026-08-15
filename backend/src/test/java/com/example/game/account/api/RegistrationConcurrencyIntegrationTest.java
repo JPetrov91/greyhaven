@@ -94,8 +94,8 @@ class RegistrationConcurrencyIntegrationTest {
 	}
 
 	@Test
-	void concurrentCharacterCreationForOneAccountCreatesExactlyOneCharacter() throws Exception {
-		String email = "race-one-per-account-" + System.nanoTime() + "@greyhaven.test";
+	void concurrentCharacterCreationForTheSameSlotOccupiesItOnce() throws Exception {
+		String email = "race-one-slot-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerAccount(email);
 		String firstName = uniqueName("First");
 		String secondName = uniqueName("Second");
@@ -105,16 +105,16 @@ class RegistrationConcurrencyIntegrationTest {
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{"name":"%s"}
+								{"name":"%s","slotIndex":0}
 								""".formatted(firstName))).andReturn(),
 				() -> mockMvc.perform(withCsrf(post("/api/v1/characters"), freshCsrfCookie())
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
-								{"name":"%s"}
+								{"name":"%s","slotIndex":0}
 								""".formatted(secondName))).andReturn());
 
-		assertConflictLoser(results, "CHARACTER_ALREADY_EXISTS");
+		assertConflictLoser(results, "CHARACTER_SLOT_OCCUPIED");
 		Integer characterCount = jdbcTemplate.queryForObject(
 				"select count(*) from characters c join accounts a on a.id = c.account_id where a.email = ?",
 				Integer.class,

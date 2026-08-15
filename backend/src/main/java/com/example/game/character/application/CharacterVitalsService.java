@@ -25,16 +25,19 @@ import com.example.game.telemetry.domain.GoldDestroyReason;
 public class CharacterVitalsService {
 
 	private final CharacterRepository characterRepository;
+	private final ActiveCharacterResolver activeCharacterResolver;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public CharacterVitalsService(
 			CharacterRepository characterRepository,
+			ActiveCharacterResolver activeCharacterResolver,
 			CharacterStateSyncService characterStateSyncService,
 			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.activeCharacterResolver = activeCharacterResolver;
 		this.characterStateSyncService = characterStateSyncService;
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
@@ -42,8 +45,7 @@ public class CharacterVitalsService {
 
 	@Transactional(readOnly = true)
 	public CharacterVitalsView vitalsOf(UUID accountId) {
-		return toView(characterRepository.findByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound));
+		return toView(activeCharacterResolver.requireActive(accountId));
 	}
 
 	/**
@@ -52,8 +54,7 @@ public class CharacterVitalsService {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView lockVitalsOf(UUID accountId) {
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActiveLocked(accountId);
 		characterStateSyncService.sync(character);
 		return toView(character);
 	}
@@ -75,8 +76,7 @@ public class CharacterVitalsService {
 		if (amount < 1) {
 			throw new IllegalArgumentException("heal amount must be positive");
 		}
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActiveLocked(accountId);
 		characterStateSyncService.sync(character);
 		Instant now = Instant.now(clock);
 		int healed = Math.min(character.getMaxHealth(), character.getCurrentHealth() + amount);

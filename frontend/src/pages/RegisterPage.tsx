@@ -24,7 +24,7 @@ export function RegisterPage() {
     setSubmitting(true)
     try {
       await register(nextEmail, nextPassword)
-      navigate('/create-character', { replace: true })
+      navigate('/characters', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)

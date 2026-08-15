@@ -354,8 +354,8 @@ class WorldLocationIntegrationTest {
 		MockHttpSession session = registerAndGetSession("world-nochar-" + System.nanoTime() + "@greyhaven.test");
 
 		mockMvc.perform(get("/api/v1/world/location").session(session))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("CHARACTER_NOT_FOUND"));
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("NO_ACTIVE_CHARACTER"));
 	}
 
 	private MockHttpSession registerWithCharacter(String email) throws Exception {

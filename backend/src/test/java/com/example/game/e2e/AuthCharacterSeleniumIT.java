@@ -118,6 +118,9 @@ class AuthCharacterSeleniumIT {
 		assertThat(ui.currentPath()).isEqualTo("/login");
 
 		ui.login(email, PASSWORD);
+		ui.waitForCharacterRoster();
+		assertThat(ui.currentPath()).isEqualTo("/characters");
+		ui.enterWorld();
 		ui.waitForGameWithCharacter(characterName);
 		assertThat(ui.text("character-summary-name")).isEqualTo(characterName);
 
@@ -159,11 +162,11 @@ class AuthCharacterSeleniumIT {
 
 		assertThat(ui.alertText("create-character-error"))
 				.isEqualTo("A character with this name already exists.");
-		assertThat(ui.currentPath()).isEqualTo("/create-character");
+		assertThat(ui.currentPath()).isEqualTo("/characters");
 	}
 
 	@Test
-	void secondCharacterRouteIsRejectedWhenAccountAlreadyHasCharacter() {
+	void loginAndLegacyCreateRouteOpenTheCharacterRoster() {
 		String email = uniqueEmail("second-char");
 		String characterName = uniqueName("One");
 
@@ -173,9 +176,13 @@ class AuthCharacterSeleniumIT {
 		ui.waitForGameWithCharacter(characterName);
 
 		ui.open("/create-character");
+		ui.waitForCharacterRoster();
+		assertThat(ui.currentPath()).isEqualTo("/characters");
+		assertThat(driver.findElements(By.cssSelector("[data-testid='create-character-page']"))).isNotEmpty();
+
+		ui.enterWorld();
 		ui.waitForGameWithCharacter(characterName);
 		assertThat(ui.currentPath()).isEqualTo("/game");
-		assertThat(driver.findElements(By.cssSelector("[data-testid='create-character-page']"))).isEmpty();
 	}
 
 	private static String uniqueEmail(String label) {

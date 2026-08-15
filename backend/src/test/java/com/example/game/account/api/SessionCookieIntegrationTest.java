@@ -78,7 +78,7 @@ class SessionCookieIntegrationTest {
 						.GET().build(),
 				BodyHandlers.ofString());
 		assertThat(me.statusCode()).isEqualTo(200);
-		assertThat(me.body()).contains("\"hasCharacter\":false");
+		assertThat(me.body()).contains("\"characterCount\":0");
 	}
 
 	@Test

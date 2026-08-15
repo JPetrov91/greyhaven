@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.example.game.TestcontainersConfiguration;
 import com.example.game.account.infrastructure.AccountPrincipal;
+import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
 
@@ -69,7 +70,8 @@ class AuthAndCharacterIntegrationTest {
 								""".formatted(email)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.email").value(email))
-				.andExpect(jsonPath("$.hasCharacter").value(false))
+				.andExpect(jsonPath("$.characterCount").value(0))
+				.andExpect(jsonPath("$.activeCharacterId").value((Object) null))
 				.andReturn();
 
 		MockHttpSession session = (MockHttpSession) registerResult.getRequest().getSession(false);
@@ -79,7 +81,8 @@ class AuthAndCharacterIntegrationTest {
 		mockMvc.perform(get("/api/v1/me").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.email").value(email))
-				.andExpect(jsonPath("$.hasCharacter").value(false));
+				.andExpect(jsonPath("$.characterCount").value(0))
+				.andExpect(jsonPath("$.activeCharacterId").value((Object) null));
 
 		MvcResult logoutResult = mockMvc.perform(withCsrf(post("/api/v1/auth/logout")).session(session))
 				.andExpect(status().isNoContent())
@@ -151,7 +154,7 @@ class AuthAndCharacterIntegrationTest {
 	}
 
 	@Test
-	void characterCreationEnforcesUniquenessAndOnePerAccount() throws Exception {
+	void characterCreationEnforcesUniquenessAndThreeSlotsPerAccount() throws Exception {
 		String emailA = "char-a-" + System.nanoTime() + "@greyhaven.test";
 		String emailB = "char-b-" + System.nanoTime() + "@greyhaven.test";
 		String sharedName = uniqueName("Ranger");
@@ -160,8 +163,8 @@ class AuthAndCharacterIntegrationTest {
 		MockHttpSession sessionB = registerAndGetSession(emailB);
 
 		mockMvc.perform(get("/api/v1/character").session(sessionA))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("CHARACTER_NOT_FOUND"));
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("NO_ACTIVE_CHARACTER"));
 
 		MvcResult createResult = mockMvc.perform(withCsrf(post("/api/v1/characters"))
 						.session(sessionA)
@@ -188,22 +191,84 @@ class AuthAndCharacterIntegrationTest {
 				.andReturn();
 		refreshCsrfCookie(createResult);
 
+		String firstId = JsonPath.read(createResult.getResponse().getContentAsString(), "$.id");
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(sessionA)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s","slotIndex":0}
+								""".formatted(uniqueName("Taken"))))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("CHARACTER_SLOT_OCCUPIED"));
+
 		mockMvc.perform(get("/api/v1/me").session(sessionA))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.hasCharacter").value(true));
+				.andExpect(jsonPath("$.characterCount").value(1))
+				.andExpect(jsonPath("$.activeCharacterId").value(firstId));
 
 		mockMvc.perform(get("/api/v1/character").session(sessionA))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value(sharedName));
+
+		String secondName = uniqueName("Another");
+		MvcResult second = mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(sessionA)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s"}
+								""".formatted(secondName)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.name").value(secondName))
+				.andReturn();
+		refreshCsrfCookie(second);
+		String secondId = JsonPath.read(second.getResponse().getContentAsString(), "$.id");
+
+		MvcResult third = mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(sessionA)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s"}
+								""".formatted(uniqueName("Third"))))
+				.andExpect(status().isCreated())
+				.andReturn();
+		refreshCsrfCookie(third);
 
 		mockMvc.perform(withCsrf(post("/api/v1/characters"))
 						.session(sessionA)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{"name":"%s"}
-								""".formatted(uniqueName("Another"))))
+								""".formatted(uniqueName("Fourth"))))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("CHARACTER_ALREADY_EXISTS"));
+				.andExpect(jsonPath("$.code").value("CHARACTER_SLOTS_FULL"));
+
+		mockMvc.perform(get("/api/v1/characters").session(sessionA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.slots.length()").value(3))
+				.andExpect(jsonPath("$.slots[0].empty").value(false))
+				.andExpect(jsonPath("$.slots[0].strength").value(5))
+				.andExpect(jsonPath("$.slots[0].equipped").isArray())
+				.andExpect(jsonPath("$.slots[0].healingPotions").value(org.hamcrest.Matchers.greaterThanOrEqualTo(0)))
+				.andExpect(jsonPath("$.slots[1].empty").value(false))
+				.andExpect(jsonPath("$.slots[2].empty").value(false));
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters/" + firstId + "/select")).session(sessionA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(firstId))
+				.andExpect(jsonPath("$.name").value(sharedName));
+
+		mockMvc.perform(get("/api/v1/character").session(sessionA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(firstId));
+
+		mockMvc.perform(get("/api/v1/inventory").session(sessionA))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.usedSlots").value(org.hamcrest.Matchers.greaterThan(0)));
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters/" + secondId + "/select")).session(sessionB))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("CHARACTER_NOT_FOUND"));
 
 		mockMvc.perform(withCsrf(post("/api/v1/characters"))
 						.session(sessionB)
@@ -225,6 +290,62 @@ class AuthAndCharacterIntegrationTest {
 				sharedName);
 		assertThat(accountCount).isEqualTo(2);
 		assertThat(characterCount).isEqualTo(1);
+	}
+
+	@Test
+	void selectIsRejectedWhileTheActiveCharacterIsInCombat() throws Exception {
+		MockHttpSession session = registerAndGetSession("slots-combat-" + System.nanoTime() + "@greyhaven.test");
+		MvcResult first = mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s"}
+								""".formatted(uniqueName("Blade"))))
+				.andExpect(status().isCreated())
+				.andReturn();
+		refreshCsrfCookie(first);
+		UUID firstId = UUID.fromString(JsonPath.read(first.getResponse().getContentAsString(), "$.id"));
+
+		MvcResult second = mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s"}
+								""".formatted(uniqueName("Shade"))))
+				.andExpect(status().isCreated())
+				.andReturn();
+		refreshCsrfCookie(second);
+		UUID secondId = UUID.fromString(JsonPath.read(second.getResponse().getContentAsString(), "$.id"));
+
+		UUID encounterId = UUID.randomUUID();
+		UUID monsterId = jdbcTemplate.queryForObject("select id from monster_definitions limit 1", UUID.class);
+		UUID locationId = jdbcTemplate.queryForObject(
+				"select id from locations where code = 'CITY_SQUARE'", UUID.class);
+		jdbcTemplate.update(
+				"""
+						insert into encounters (
+							id, character_id, location_id, monster_definition_id, status, created_at, updated_at, dungeon_optional)
+						values (?, ?, ?, ?, 'COMBAT_STARTED', now(), now(), false)
+						""",
+				encounterId,
+				secondId,
+				locationId,
+				monsterId);
+		jdbcTemplate.update(
+				"""
+						insert into combat_sessions (
+							id, encounter_id, character_id, monster_definition_id, status, round_number,
+							player_health, player_stamina, enemy_health, created_at, updated_at)
+						values (?, ?, ?, ?, 'ACTIVE', 1, 100, 80, 40, now(), now())
+						""",
+				UUID.randomUUID(),
+				encounterId,
+				secondId,
+				monsterId);
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters/" + firstId + "/select")).session(session))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("COMBAT_IN_PROGRESS"));
 	}
 
 	@Test

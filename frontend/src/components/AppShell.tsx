@@ -11,7 +11,7 @@ export function AppShell() {
   const location = useLocation()
   const [uiMode, setUiMode] = useState<UiMode>(() => readStoredUiMode())
 
-  const gameChrome = Boolean(isAuthenticated && me?.hasCharacter && location.pathname.startsWith('/game'))
+  const gameChrome = Boolean(isAuthenticated && me?.activeCharacterId && location.pathname.startsWith('/game'))
 
   useEffect(() => {
     const id = location.hash.replace(/^#/, '')
@@ -31,7 +31,7 @@ export function AppShell() {
     focusSection(id)
     const retry = window.setTimeout(() => focusSection(id), 120)
     return () => window.clearTimeout(retry)
-  }, [location.hash, location.pathname, me?.hasCharacter])
+  }, [location.hash, location.pathname, me?.activeCharacterId])
 
   async function handleLogout() {
     try {
@@ -51,7 +51,8 @@ export function AppShell() {
   const isAuthLanding =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/create-character'
+    location.pathname === '/create-character' ||
+    location.pathname === '/characters'
 
   return (
     <div className={isAuthLanding ? 'app-shell app-shell-auth' : 'app-shell'}>
@@ -63,7 +64,7 @@ export function AppShell() {
           <nav className="app-nav" aria-label="Primary">
             {isLoading ? null : isAuthenticated ? (
               <>
-                {!me?.hasCharacter ? <NavLink to="/create-character">Create Character</NavLink> : null}
+                {!me?.activeCharacterId ? <NavLink to="/characters">Characters</NavLink> : null}
                 <Button
                   type="button"
                   variant="ghost"

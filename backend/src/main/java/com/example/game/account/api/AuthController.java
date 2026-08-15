@@ -67,13 +67,14 @@ public class AuthController {
 	}
 
 	/**
-	 * {@code hasCharacter} is composed here so the account application layer stays free of
+	 * Roster fields are composed here so the account application layer stays free of
 	 * character-module dependencies.
 	 */
 	private MeResponse toMeResponse(AccountView account) {
 		return new MeResponse(
 				account.accountId(),
 				account.email(),
-				characterApplicationService.existsForAccount(account.accountId()));
+				characterApplicationService.countForAccount(account.accountId()),
+				characterApplicationService.activeCharacterId(account.accountId()));
 	}
 }

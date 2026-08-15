@@ -34,17 +34,29 @@ class Phase3BaselineSchemaIntegrationTest {
 			JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
 			var result = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
-			assertThat(result.migrationsExecuted).isEqualTo(3);
+			assertThat(result.migrationsExecuted).isEqualTo(5);
 
 			assertThat(jdbc.queryForObject(
 					"select count(*) from flyway_schema_history where success = true",
-					Integer.class)).isEqualTo(3);
+					Integer.class)).isEqualTo(5);
 			assertThat(jdbc.queryForList(
 					"select version from flyway_schema_history where success = true order by installed_rank",
-					String.class)).containsExactly("1", "2", "3");
+					String.class)).containsExactly("1", "2", "3", "4", "5");
 			assertThat(jdbc.queryForObject(
 					"select value from schema_meta where key = 'bootstrap_version'",
 					String.class)).isEqualTo("phase3");
+			assertThat(jdbc.queryForObject(
+					"""
+							select count(*) from pg_indexes
+							where tablename = 'characters' and indexname = 'uq_characters_account_slot'
+							""",
+					Integer.class)).isEqualTo(1);
+			assertThat(jdbc.queryForObject(
+					"""
+							select count(*) from information_schema.columns
+							where table_schema = 'public' and table_name = 'accounts' and column_name = 'active_character_id'
+							""",
+					Integer.class)).isEqualTo(1);
 
 			assertThat(jdbc.queryForObject(
 					"""

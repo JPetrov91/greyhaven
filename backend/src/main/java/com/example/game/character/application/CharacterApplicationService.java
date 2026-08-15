@@ -11,16 +11,22 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.account.infrastructure.AccountEntity;
+import com.example.game.account.infrastructure.AccountRepository;
 import com.example.game.character.domain.CharacterAppearance;
 import com.example.game.character.domain.CharacterBalance;
 import com.example.game.character.domain.CharacterGender;
+import com.example.game.character.domain.CharacterSlots;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.domain.ExperienceProgress;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.crafting.application.CraftingApplicationService;
+import com.example.game.inventory.application.PublicEquipmentQuery;
 import com.example.game.mastery.application.MasteryApplicationService;
+import com.example.game.world.infrastructure.LocationEntity;
+import com.example.game.world.infrastructure.LocationRepository;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.infrastructure.ConstraintViolations;
 import com.example.game.telemetry.application.GameTelemetry;
@@ -30,13 +36,18 @@ import com.example.game.telemetry.domain.GoldCreateReason;
 @Service
 public class CharacterApplicationService {
 
-	private static final String ONE_CHARACTER_PER_ACCOUNT_CONSTRAINT = "uq_characters_account_id";
+	private static final String SLOT_CONSTRAINT = "uq_characters_account_slot";
 	private static final String UNIQUE_NAME_CONSTRAINT = "uq_characters_name_lower";
 
 	private final CharacterRepository characterRepository;
+	private final AccountRepository accountRepository;
+	private final LocationRepository locationRepository;
+	private final ActiveCharacterResolver activeCharacterResolver;
+	private final CharacterCombatGuard characterCombatGuard;
 	private final StartingLocationProvider startingLocationProvider;
 	private final StarterLoadoutGranter starterLoadoutGranter;
 	private final EquippedBonusProvider equippedBonusProvider;
+	private final PublicEquipmentQuery publicEquipmentQuery;
 	private final CharacterStateSyncService characterStateSyncService;
 	private final MasteryApplicationService masteryApplicationService;
 	private final CraftingApplicationService craftingApplicationService;
@@ -46,9 +57,14 @@ public class CharacterApplicationService {
 
 	public CharacterApplicationService(
 			CharacterRepository characterRepository,
+			AccountRepository accountRepository,
+			LocationRepository locationRepository,
+			ActiveCharacterResolver activeCharacterResolver,
+			CharacterCombatGuard characterCombatGuard,
 			StartingLocationProvider startingLocationProvider,
 			StarterLoadoutGranter starterLoadoutGranter,
 			EquippedBonusProvider equippedBonusProvider,
+			PublicEquipmentQuery publicEquipmentQuery,
 			CharacterStateSyncService characterStateSyncService,
 			MasteryApplicationService masteryApplicationService,
 			CraftingApplicationService craftingApplicationService,
@@ -56,9 +72,14 @@ public class CharacterApplicationService {
 			CharacterUnlockQuery characterUnlockQuery,
 			Clock clock) {
 		this.characterRepository = characterRepository;
+		this.accountRepository = accountRepository;
+		this.locationRepository = locationRepository;
+		this.activeCharacterResolver = activeCharacterResolver;
+		this.characterCombatGuard = characterCombatGuard;
 		this.startingLocationProvider = startingLocationProvider;
 		this.starterLoadoutGranter = starterLoadoutGranter;
 		this.equippedBonusProvider = equippedBonusProvider;
+		this.publicEquipmentQuery = publicEquipmentQuery;
 		this.characterStateSyncService = characterStateSyncService;
 		this.masteryApplicationService = masteryApplicationService;
 		this.craftingApplicationService = craftingApplicationService;
@@ -69,14 +90,22 @@ public class CharacterApplicationService {
 
 	@Transactional
 	public CharacterView create(UUID accountId, String name) {
-		return create(accountId, name, null, null);
+		return create(accountId, name, null, null, null);
 	}
 
 	@Transactional
 	public CharacterView create(UUID accountId, String name, CharacterGender gender, String avatarCode) {
-		if (characterRepository.existsByAccountId(accountId)) {
-			throw characterAlreadyExists();
-		}
+		return create(accountId, name, gender, avatarCode, null);
+	}
+
+	@Transactional
+	public CharacterView create(
+			UUID accountId,
+			String name,
+			CharacterGender gender,
+			String avatarCode,
+			Integer slotIndex) {
+		int resolvedSlot = resolveSlot(accountId, slotIndex);
 
 		if (characterRepository.existsByNameIgnoreCase(name)) {
 			throw characterNameTaken();
@@ -103,6 +132,7 @@ public class CharacterApplicationService {
 		CharacterEntity character = new CharacterEntity(
 				UUID.randomUUID(),
 				accountId,
+				resolvedSlot,
 				name,
 				resolvedGender,
 				resolvedAvatar,
@@ -133,11 +163,12 @@ public class CharacterApplicationService {
 			starterLoadoutGranter.grantStarterLoadout(saved.getId());
 			masteryApplicationService.initializeForCharacter(saved.getId());
 			craftingApplicationService.initializeForCharacter(saved.getId());
+			assignActive(accountId, saved.getId(), now);
 			return toView(saved);
 		}
 		catch (DataIntegrityViolationException exception) {
-			if (ConstraintViolations.caused(exception, ONE_CHARACTER_PER_ACCOUNT_CONSTRAINT)) {
-				throw characterAlreadyExists();
+			if (ConstraintViolations.caused(exception, SLOT_CONSTRAINT)) {
+				throw CharacterErrors.slotOccupied();
 			}
 			if (ConstraintViolations.caused(exception, UNIQUE_NAME_CONSTRAINT)) {
 				throw characterNameTaken();
@@ -146,13 +177,93 @@ public class CharacterApplicationService {
 		}
 	}
 
+	@Transactional(readOnly = true)
+	public List<CharacterRosterSlotView> roster(UUID accountId) {
+		List<CharacterEntity> owned = characterRepository.findByAccountIdOrderBySlotIndexAsc(accountId);
+		CharacterRosterSlotView[] slots = new CharacterRosterSlotView[CharacterSlots.MAX];
+		for (int index = 0; index < CharacterSlots.MAX; index++) {
+			slots[index] = CharacterRosterSlotView.empty(index);
+		}
+		for (CharacterEntity character : owned) {
+			if (!CharacterSlots.validIndex(character.getSlotIndex())) {
+				continue;
+			}
+			String locationName = locationRepository.findById(character.getCurrentLocationId())
+					.map(LocationEntity::getName)
+					.orElse(null);
+			EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(character.getId());
+			DerivedCombatStats derived = CharacterStatCalculator.calculate(
+					character.getStrength(),
+					character.getAgility(),
+					character.getPerception(),
+					bonuses.weaponDamage(),
+					bonuses.armorValue(),
+					bonuses.accuracy(),
+					bonuses.dodge(),
+					bonuses.criticalChance(),
+					bonuses.strength(),
+					bonuses.agility(),
+					bonuses.endurance(),
+					bonuses.perception());
+			List<CharacterRosterEquippedView> equipped = publicEquipmentQuery.equippedItems(character.getId()).stream()
+					.map(item -> new CharacterRosterEquippedView(
+							item.slot().name(),
+							item.displayName(),
+							item.rarity().name()))
+					.toList();
+			int potions = publicEquipmentQuery.healingPotionStock(character.getId()).quantity();
+			slots[character.getSlotIndex()] = new CharacterRosterSlotView(
+					character.getSlotIndex(),
+					false,
+					character.getId(),
+					character.getName(),
+					character.getGender().name(),
+					character.getAvatarCode(),
+					character.getLevel(),
+					character.getGold(),
+					character.getCurrentLocationId(),
+					locationName,
+					character.getStrength(),
+					character.getAgility(),
+					character.getEndurance(),
+					character.getPerception(),
+					character.getCurrentHealth(),
+					character.getMaxHealth(),
+					character.getCurrentStamina(),
+					character.getMaxStamina(),
+					derived.physicalDamage(),
+					derived.accuracy(),
+					derived.dodge(),
+					derived.criticalChance(),
+					derived.armor(),
+					potions,
+					equipped);
+		}
+		return List.of(slots);
+	}
+
+	@Transactional
+	public CharacterView select(UUID accountId, UUID characterId) {
+		CharacterEntity target = characterRepository.findById(characterId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		if (!accountId.equals(target.getAccountId())) {
+			throw CharacterErrors.characterNotFound();
+		}
+		AccountEntity account = accountRepository.findById(accountId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		UUID currentActive = account.getActiveCharacterId();
+		if (currentActive != null && !currentActive.equals(characterId)) {
+			characterCombatGuard.assertNotInActiveCombat(currentActive);
+		}
+		assignActive(accountId, characterId, Instant.now(clock));
+		return current(accountId);
+	}
+
 	@Transactional
 	public CharacterView current(UUID accountId) {
-		CharacterEntity character = characterRepository.findByAccountId(accountId)
-				.orElseThrow(CharacterErrors::characterNotFound);
+		CharacterEntity character = activeCharacterResolver.requireActive(accountId);
 		if (characterStateSyncService.wouldMutate(character)) {
-			character = characterRepository.findWithLockByAccountId(accountId)
-					.orElseThrow(CharacterErrors::characterNotFound);
+			character = activeCharacterResolver.requireActiveLocked(accountId);
 			characterStateSyncService.sync(character);
 		}
 		return toView(character);
@@ -164,8 +275,15 @@ public class CharacterApplicationService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean existsForAccount(UUID accountId) {
-		return characterRepository.existsByAccountId(accountId);
+	public int countForAccount(UUID accountId) {
+		return characterRepository.countByAccountId(accountId);
+	}
+
+	@Transactional(readOnly = true)
+	public UUID activeCharacterId(UUID accountId) {
+		return accountRepository.findById(accountId)
+				.map(AccountEntity::getActiveCharacterId)
+				.orElse(null);
 	}
 
 	@Transactional(readOnly = true)
@@ -246,11 +364,39 @@ public class CharacterApplicationService {
 				characterUnlockQuery.unlockCodesOf(character.getId()));
 	}
 
-	private static ApiException characterAlreadyExists() {
-		return new ApiException(
-				"CHARACTER_ALREADY_EXISTS",
-				"This account already has a character.",
-				HttpStatus.CONFLICT);
+	private int resolveSlot(UUID accountId, Integer requestedSlot) {
+		if (requestedSlot != null) {
+			if (!CharacterSlots.validIndex(requestedSlot)) {
+				throw CharacterErrors.invalidSlot();
+			}
+			if (characterRepository.existsByAccountIdAndSlotIndex(accountId, requestedSlot)) {
+				throw CharacterErrors.slotOccupied();
+			}
+			return requestedSlot;
+		}
+		List<CharacterEntity> owned = characterRepository.findByAccountIdOrderBySlotIndexAsc(accountId);
+		if (owned.size() >= CharacterSlots.MAX) {
+			throw CharacterErrors.characterSlotsFull();
+		}
+		boolean[] taken = new boolean[CharacterSlots.MAX];
+		for (CharacterEntity character : owned) {
+			if (CharacterSlots.validIndex(character.getSlotIndex())) {
+				taken[character.getSlotIndex()] = true;
+			}
+		}
+		for (int index = 0; index < CharacterSlots.MAX; index++) {
+			if (!taken[index]) {
+				return index;
+			}
+		}
+		throw CharacterErrors.characterSlotsFull();
+	}
+
+	private void assignActive(UUID accountId, UUID characterId, Instant updatedAt) {
+		AccountEntity account = accountRepository.findById(accountId)
+				.orElseThrow(CharacterErrors::characterNotFound);
+		account.assignActiveCharacter(characterId, updatedAt);
+		accountRepository.saveAndFlush(account);
 	}
 
 	private static ApiException characterNameTaken() {

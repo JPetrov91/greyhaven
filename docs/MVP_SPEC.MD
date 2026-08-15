@@ -263,7 +263,7 @@ The backend must still model world connectivity explicitly so travel times can b
 
 5. Character Model
 
-Each account has exactly one character.
+Each account may have up to three characters. Gameplay APIs use the account's selected active character.
 
 Character fields:
 
@@ -1395,7 +1395,7 @@ Rules:
 
 unique email;
 unique character name;
-one character per account;
+up to three characters per account;
 secure password hashing;
 session authentication;
 HttpOnly cookie;

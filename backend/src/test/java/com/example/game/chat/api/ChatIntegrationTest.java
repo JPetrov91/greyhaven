@@ -296,8 +296,8 @@ class ChatIntegrationTest {
 		assertThat(session).isNotNull();
 
 		mockMvc.perform(get("/api/v1/chat/messages").session(session))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("CHARACTER_NOT_FOUND"));
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("NO_ACTIVE_CHARACTER"));
 	}
 
 	private static String uniqueName(String prefix) {

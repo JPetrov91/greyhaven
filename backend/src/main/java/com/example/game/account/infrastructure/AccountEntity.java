@@ -35,6 +35,9 @@ public class AccountEntity implements Persistable<UUID> {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	@Column(name = "active_character_id")
+	private UUID activeCharacterId;
+
 	/**
 	 * Identifiers are assigned by the application, so Spring Data cannot infer whether an
 	 * instance is new. Without this flag every save would be a merge and issue a redundant select.
@@ -84,5 +87,14 @@ public class AccountEntity implements Persistable<UUID> {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	public UUID getActiveCharacterId() {
+		return activeCharacterId;
+	}
+
+	public void assignActiveCharacter(UUID characterId, Instant updatedAt) {
+		this.activeCharacterId = characterId;
+		this.updatedAt = updatedAt;
 	}
 }

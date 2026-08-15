@@ -42,7 +42,7 @@ export function LoginPage() {
     const nextPassword = String(formData.get('password') ?? password)
     setSubmitting(true)
     try {
-      const me = await login(nextEmail, nextPassword)
+      await login(nextEmail, nextPassword)
       try {
         if (rememberMe) {
           localStorage.setItem(REMEMBER_EMAIL_KEY, nextEmail)
@@ -52,7 +52,7 @@ export function LoginPage() {
       } catch {
         // Ignore storage failures; the session still continues.
       }
-      navigate(me.hasCharacter ? '/game' : '/create-character', { replace: true })
+      navigate('/characters', { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)

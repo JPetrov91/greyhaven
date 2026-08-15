@@ -1,9 +1,12 @@
 package com.example.game.character.api;
 
+import java.util.UUID;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,7 +51,53 @@ public class CharacterController {
 				principal.getAccountId(),
 				request.name(),
 				request.gender(),
-				request.avatarCode()));
+				request.avatarCode(),
+				request.slotIndex()));
+	}
+
+	@GetMapping("/characters")
+	public CharacterRosterResponse roster(@AuthenticationPrincipal AccountPrincipal principal) {
+		return new CharacterRosterResponse(
+				characterApplicationService.roster(principal.getAccountId()).stream()
+						.map(slot -> new CharacterSlotResponse(
+								slot.slotIndex(),
+								slot.empty(),
+								slot.characterId(),
+								slot.name(),
+								slot.gender(),
+								slot.avatarCode(),
+								slot.level(),
+								slot.gold(),
+								slot.currentLocationId(),
+								slot.locationName(),
+								slot.strength(),
+								slot.agility(),
+								slot.endurance(),
+								slot.perception(),
+								slot.currentHealth(),
+								slot.maxHealth(),
+								slot.currentStamina(),
+								slot.maxStamina(),
+								slot.physicalDamage(),
+								slot.accuracy(),
+								slot.dodge(),
+								slot.criticalChance(),
+								slot.armor(),
+								slot.healingPotions(),
+								slot.equipped().stream()
+										.map(item -> new CharacterEquippedSlotResponse(
+												item.slot(),
+												item.displayName(),
+												item.rarity()))
+										.toList()))
+						.toList());
+	}
+
+	@PostMapping("/characters/{characterId}/select")
+	public CharacterResponse select(
+			@AuthenticationPrincipal AccountPrincipal principal,
+			@PathVariable UUID characterId) {
+		return toResponse(characterApplicationService.select(principal.getAccountId(), characterId));
 	}
 
 	@GetMapping("/characters/name-available")

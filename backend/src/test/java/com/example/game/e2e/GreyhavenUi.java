@@ -61,9 +61,29 @@ final class GreyhavenUi {
 	}
 
 	void createCharacter(String name) {
-		waitForTestId("create-character-page");
+		waitForCharacterRoster();
+		if (driver.findElements(By.cssSelector("[data-testid='character-name']")).isEmpty()) {
+			selectEmptySlot();
+		}
 		type(By.cssSelector("[data-testid='character-name']"), name);
 		driver.findElement(By.cssSelector("[data-testid='create-character-submit']")).click();
+	}
+
+	void enterWorld() {
+		waitForCharacterRoster();
+		if (!driver.findElements(By.cssSelector("[data-testid='character-inspect-card']")).isEmpty()) {
+			driver.findElement(By.cssSelector("[data-testid='create-character-submit']")).click();
+			return;
+		}
+		selectOccupiedSlot();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(
+				By.cssSelector("[data-testid='character-inspect-card']")));
+		driver.findElement(By.cssSelector("[data-testid='create-character-submit']")).click();
+	}
+
+	void waitForCharacterRoster() {
+		waitForTestId("create-character-page");
+		waitForTestId("character-slot-bar");
 	}
 
 	void logout() {
@@ -291,6 +311,36 @@ final class GreyhavenUi {
 		Map<String, Object> result = new LinkedHashMap<>();
 		map.forEach((key, value) -> result.put(String.valueOf(key), value));
 		return result;
+	}
+
+	private void selectEmptySlot() {
+		for (int index = 0; index < 3; index++) {
+			By locator = By.cssSelector("[data-testid='character-slot-" + index + "']");
+			if (driver.findElements(locator).isEmpty()) {
+				continue;
+			}
+			WebElement slot = driver.findElement(locator);
+			if (String.valueOf(slot.getAttribute("class")).contains("is-empty")) {
+				slot.click();
+				return;
+			}
+		}
+		throw new IllegalStateException("No empty character slot at " + driver.getCurrentUrl());
+	}
+
+	private void selectOccupiedSlot() {
+		for (int index = 0; index < 3; index++) {
+			By locator = By.cssSelector("[data-testid='character-slot-" + index + "']");
+			if (driver.findElements(locator).isEmpty()) {
+				continue;
+			}
+			WebElement slot = driver.findElement(locator);
+			if (String.valueOf(slot.getAttribute("class")).contains("is-occupied")) {
+				slot.click();
+				return;
+			}
+		}
+		throw new IllegalStateException("No occupied character slot at " + driver.getCurrentUrl());
 	}
 
 	private void waitForTestId(String testId) {

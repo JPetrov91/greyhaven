@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function refreshMe(): Promise<void> {
-    // Force a network read — cached register/login payloads can still say hasCharacter=false.
+    // Force a network read — cached register/login payloads can still lack an active character.
     await queryClient.fetchQuery({
       queryKey: ['me'],
       queryFn: fetchMe,
