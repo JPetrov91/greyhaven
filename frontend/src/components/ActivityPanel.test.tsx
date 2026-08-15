@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchActivity } from '../api/activity'
@@ -39,9 +39,17 @@ describe('ActivityPanel', () => {
       </MemoryRouter>,
     )
 
-    expect(await screen.findByText('Your Forest Patrol returned.')).toBeTruthy()
+    expect(await screen.findByText('Forest Patrol')).toBeTruthy()
+    expect(screen.getByText(/returned/)).toBeTruthy()
     expect(screen.getByTestId('activity-EXPEDITION_COMPLETED')).toBeTruthy()
+    expect(screen.getByTestId('activity-EXPEDITION_COMPLETED').querySelector('img')?.getAttribute('src')).toBe(
+      '/icons/activity/chest.webp',
+    )
+    expect(screen.getByText('Activity & Notifications')).toBeTruthy()
     expect(screen.queryByTestId('activity-view-all')).toBeNull()
+    fireEvent.click(screen.getByTestId('activity-filter'))
+    fireEvent.click(screen.getByRole('option', { name: 'Events' }))
+    expect(screen.getByTestId('activity-filter').textContent).toBe('Events')
   })
 
   it('shows a claimable expedition action without inventing world events', async () => {

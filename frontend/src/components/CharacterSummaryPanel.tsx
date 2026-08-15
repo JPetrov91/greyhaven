@@ -292,9 +292,6 @@ function CharacterOverview({
   character: CharacterResponse
   progression: CharacterResponse['progression']
 }) {
-  const xpInto = progression.experienceIntoCurrentLevel
-  const xpRequired = progression.experienceRequiredForNextLevel ?? 0
-
   return (
     <Panel
       as="aside"
@@ -302,20 +299,22 @@ function CharacterOverview({
       data-testid="character-summary"
       title="Character Overview"
     >
+      <div className="visually-hidden">
+        <h3 data-testid="character-summary-name" tabIndex={-1}>
+          {character.name}
+        </h3>
+        <p data-testid="character-summary-level">
+          {progression.maxLevel ? `Level ${character.level} — MAX` : `Level ${character.level}`}
+        </p>
+      </div>
       <div className="character-overview-hero">
-        <CharacterPortrait className="character-overview-portrait" />
+        <div className="character-overview-portrait-wrap">
+          <CharacterPortrait className="character-overview-portrait" />
+          {character.unspentAttributePoints > 0 ? (
+            <StatusBadge tone="upgrade">{character.unspentAttributePoints} unspent</StatusBadge>
+          ) : null}
+        </div>
         <div className="character-overview-vitals">
-          <div className="character-overview-identity">
-            <h3 data-testid="character-summary-name" tabIndex={-1}>
-              {character.name}
-            </h3>
-            <p className="muted" data-testid="character-summary-level">
-              {progression.maxLevel ? `Level ${character.level} — MAX` : `Level ${character.level}`}
-            </p>
-            {character.unspentAttributePoints > 0 ? (
-              <StatusBadge tone="upgrade">{character.unspentAttributePoints} unspent</StatusBadge>
-            ) : null}
-          </div>
           <VitalMeter
             icon="health"
             label="Health"
@@ -334,40 +333,28 @@ function CharacterOverview({
             current={character.currentStamina}
             ariaLabel={`Stamina ${character.currentStamina} of ${character.maxStamina}`}
           />
-          <div className="vital-meter" data-testid="character-summary-experience">
-            <div className="vital-meter-header">
-              <VitalIcon name="xp" />
-              <span>XP</span>
-              <span data-testid={progression.maxLevel ? 'xp-progress-label' : 'xp-current-required'}>
-                {progression.maxLevel ? 'MAX LEVEL' : `${formatXp(xpInto)} / ${formatXp(xpRequired)} XP`}
-              </span>
-            </div>
-            <ProgressBar
-              className="xp-bar"
-              testId="xp-progress-bar"
-              tone="xp"
-              max={100}
-              value={progression.maxLevel ? 100 : progression.progressPercent}
-              label={progression.maxLevel ? 'MAX LEVEL' : `${progression.progressPercent}% to next level`}
-            />
-          </div>
         </div>
       </div>
 
       <div className="character-overview-stats">
-        <OverviewStat label="XP" testId="overview-total-xp" value={formatXp(progression.totalExperience)} />
+        <OverviewStat accent label="XP" testId="overview-total-xp" value={formatXp(progression.totalExperience)} />
         <OverviewStat label="STR" testId="character-summary-strength" value={character.strength} />
         <OverviewStat label="AGI" testId="character-summary-agility" value={character.agility} />
         <OverviewStat label="END" testId="character-summary-endurance" value={character.endurance} />
         <OverviewStat label="PER" testId="character-summary-perception" value={character.perception} />
       </div>
 
-      <Link to={gameLink('character')} className="btn btn-secondary character-overview-cta" data-testid="view-character">
-        View Character
+      <Link to={gameLink('character')} className="character-overview-cta" data-testid="view-character">
+        <span className="character-overview-cta-label">View Character</span>
       </Link>
     </Panel>
   )
 }
+
+const VITAL_ART = {
+  health: '/icons/vitals/health.webp',
+  stamina: '/icons/vitals/stamina.webp',
+} as const
 
 function VitalMeter({
   icon,
@@ -378,7 +365,7 @@ function VitalMeter({
   current,
   ariaLabel,
 }: {
-  icon: 'health' | 'stamina'
+  icon: keyof typeof VITAL_ART
   label: string
   value: string
   tone: 'health' | 'stamina'
@@ -388,10 +375,12 @@ function VitalMeter({
 }) {
   return (
     <div className="vital-meter">
-      <div className="vital-meter-header">
-        <VitalIcon name={icon} />
-        <span>{label}</span>
-        <span>{value}</span>
+      <div className="vital-meter-head">
+        <img className="vital-icon-art" src={VITAL_ART[icon]} alt="" aria-hidden="true" />
+        <div className="vital-meter-copy">
+          <span className="vital-meter-label">{label}</span>
+          <span className="vital-meter-value">{value}</span>
+        </div>
       </div>
       <ProgressBar tone={tone} max={max} value={current} label={ariaLabel} />
     </div>
@@ -402,40 +391,20 @@ function OverviewStat({
   label,
   value,
   testId,
+  accent = false,
 }: {
   label: string
   value: number | string
   testId: string
+  accent?: boolean
 }) {
   return (
     <div className="overview-stat">
       <span className="overview-stat-label">{label}</span>
-      <strong className="overview-stat-value" data-testid={testId}>
+      <strong className={accent ? 'overview-stat-value overview-stat-value-xp' : 'overview-stat-value'} data-testid={testId}>
         {value}
       </strong>
     </div>
-  )
-}
-
-function VitalIcon({ name }: { name: 'health' | 'stamina' | 'xp' }) {
-  return (
-    <svg className="vital-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      {name === 'health' ? (
-        <path
-          d="M8 14 3.2 9.1A3.1 3.1 0 0 1 8 4.7a3.1 3.1 0 0 1 4.8 4.4Z"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-      ) : null}
-      {name === 'stamina' ? (
-        <path d="M9.2 1.8 4.5 8.6h3.2L6.6 14.2 12.2 7H8.8Z" fill="currentColor" />
-      ) : null}
-      {name === 'xp' ? (
-        <path d="M8 1.6 9.2 6H14l-3.8 2.8L11.6 14 8 11.2 4.4 14l1.4-5.2L2 6h4.8Z" fill="currentColor" />
-      ) : null}
-    </svg>
   )
 }
 

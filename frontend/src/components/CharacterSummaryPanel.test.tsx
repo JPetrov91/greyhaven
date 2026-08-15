@@ -240,8 +240,15 @@ describe('CharacterSummaryPanel', () => {
     expect(screen.getByTestId('character-summary').querySelector('.character-overview-portrait img')?.getAttribute('src')).toBe(
       '/character/default-avatar.webp',
     )
+    expect(screen.getByTestId('character-summary').querySelector('.vital-icon-art')?.getAttribute('src')).toBe(
+      '/icons/vitals/health.webp',
+    )
+    expect(screen.getByLabelText('Health 165 of 165')).toBeTruthy()
+    expect(screen.getByLabelText('Stamina 85 of 85')).toBeTruthy()
+    expect(screen.queryByTestId('xp-progress-bar')).toBeNull()
     expect(screen.getByTestId('character-summary-strength').textContent).toBe('5')
     expect(screen.getByTestId('overview-total-xp').textContent).toBe('8,470')
+    expect(screen.getByTestId('overview-total-xp').className).toContain('overview-stat-value-xp')
     expect(screen.getByTestId('view-character')).toBeTruthy()
     expect(screen.queryByTestId('character-summary-gold')).toBeNull()
   })

@@ -83,12 +83,16 @@ describe('ChatPanel', () => {
     renderChat()
 
     expect(await screen.findByText('Hello <b>Greyhaven</b>')).toBeTruthy()
+    expect(screen.getByTestId('chat-message-m1').textContent).toContain('[Alden]')
     expect((screen.getByTestId('chat-tab-trade') as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByTestId('chat-tab-trade').getAttribute('title')).toBe('Coming later')
     expect(screen.getByTestId('chat-tab-trade').querySelector('.coming-later-hint')).toBeNull()
     expect((screen.getByTestId('chat-tab-guild') as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByTestId('chat-tab-party') as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByTestId('chat-emoji') as HTMLButtonElement).disabled).toBe(true)
     expect(document.querySelector('b')).toBeNull()
+    fireEvent.click(screen.getByTestId('chat-channels-collapse'))
+    expect(screen.getByTestId('chat-panel').className).toContain('is-collapsed')
 
     await waitFor(() => expect(MockEventSource.instances[0]?.url).toContain('after=m1'))
     expect(screen.getByTestId('chat-stream-status').textContent).toBe('History')
