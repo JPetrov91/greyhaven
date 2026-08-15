@@ -83,21 +83,8 @@ class CombatIntegrationTest {
 	void flywaySeededMonstersAndEncounterWeights() {
 		Integer monsters = jdbcTemplate.queryForObject("select count(*) from monster_definitions", Integer.class);
 		Integer weights = jdbcTemplate.queryForObject("select count(*) from location_encounter_weights", Integer.class);
-		Integer flywayV9 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '9' and success = true",
-				Integer.class);
-		Integer flywayV10 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '10' and success = true",
-				Integer.class);
-		Integer flywayV12 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '12' and success = true",
-				Integer.class);
-
 		assertThat(monsters).isEqualTo(18);
 		assertThat(weights).isEqualTo(28);
-		assertThat(flywayV9).isEqualTo(1);
-		assertThat(flywayV10).isEqualTo(1);
-		assertThat(flywayV12).isEqualTo(1);
 	}
 
 	@Test

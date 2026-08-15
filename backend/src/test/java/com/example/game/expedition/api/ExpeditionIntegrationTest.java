@@ -102,13 +102,8 @@ class ExpeditionIntegrationTest {
 		Integer activity = jdbcTemplate.queryForObject(
 				"select count(*) from information_schema.tables where table_name = 'activity_entries'",
 				Integer.class);
-		Integer flywayV14 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '14' and success = true",
-				Integer.class);
-
 		assertThat(expeditions).isEqualTo(1);
 		assertThat(activity).isEqualTo(1);
-		assertThat(flywayV14).isEqualTo(1);
 	}
 
 	@Test

@@ -66,24 +66,8 @@ class MerchantIntegrationTest {
 
 	@Test
 	void flywaySeededMerchantCatalog() {
-		Integer flywayV24 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '24' and success = true",
-				Integer.class);
-		Integer flywayV25 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '25' and success = true",
-				Integer.class);
-		Integer flywayV26 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '26' and success = true",
-				Integer.class);
-		Integer flywayV27 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '27' and success = true",
-				Integer.class);
 		Integer merchants = jdbcTemplate.queryForObject("select count(*) from merchant_definitions", Integer.class);
 		Integer stock = jdbcTemplate.queryForObject("select count(*) from merchant_stock", Integer.class);
-		assertThat(flywayV24).isEqualTo(1);
-		assertThat(flywayV25).isEqualTo(1);
-		assertThat(flywayV26).isEqualTo(1);
-		assertThat(flywayV27).isEqualTo(1);
 		assertThat(merchants).isEqualTo(4);
 		assertThat(stock).isEqualTo(19);
 	}

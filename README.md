@@ -394,15 +394,24 @@ and actuator health.
 
 ## Database tables
 
-Managed by Flyway (`backend/src/main/resources/db/migration`):
+Managed by Flyway (`backend/src/main/resources/db/migration/V1__phase3_baseline.sql`).
+Phase 1–2 incremental scripts are archived at `backend/src/main/resources/db/archive/phase1-phase2` and are not applied.
+After pulling this baseline, recreate the local Compose volume (`docker compose down -v && docker compose up -d`).
 
 `schema_meta`, `accounts`, `characters`, `locations`, `location_connections`,
-`item_definitions`, `item_instances`, `equipment`, `monster_definitions`,
+`item_definitions`, `item_definition_modifiers`, `item_instances`, `equipment`,
+`affix_definitions`, `item_instance_affixes`, `monster_definitions`,
 `monster_loot_entries`, `location_encounter_weights`, `encounters`, `combat_sessions`,
-`combat_events`, `combat_reward_items`, `expeditions`, `expedition_reward_items`,
-`market_listings`, `market_buy_orders`, `market_buy_order_fills`, `character_professions`,
-`crafting_recipes`, `crafting_recipe_inputs`, `crafting_jobs`, `salvage_outputs`,
-`activity_entries`, `game_telemetry_events`, `chat_messages`, `flyway_schema_history`.
+`combat_events`, `combat_reward_items`, `combat_status_effects`,
+`combat_technique_definitions`, `weapon_masteries`, `character_techniques`,
+`technique_loadout_slots`, `dungeon_definitions`, `dungeon_rooms`, `dungeon_room_edges`,
+`dungeon_runs`, `dungeon_run_rooms`, `character_unique_drops`, `merchant_definitions`,
+`merchant_stock`, `market_listings`, `market_buy_orders`, `market_buy_order_fills`,
+`salvage_outputs`, `expeditions`, `expedition_reward_items`, `character_professions`,
+`crafting_recipes`, `crafting_recipe_inputs`, `crafting_jobs`, `arena_defense_profiles`,
+`pvp_matches`, `pvp_match_snapshots`, `pvp_match_events`, `pvp_match_statuses`,
+`pvp_battle_history`, `activity_entries`, `chat_messages`, `game_telemetry_events`,
+`flyway_schema_history`.
 
 ## Profiles
 

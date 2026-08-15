@@ -81,10 +81,20 @@ class CharacterProgressionIntegrationTest {
 
 	@Test
 	void flywayAddsRecoveryBaseline() {
-		Integer flywayV19 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '19' and success = true",
+		Integer recoveryColumn = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from information_schema.columns
+						where table_schema = 'public' and table_name = 'characters' and column_name = 'last_recovery_at'
+						""",
 				Integer.class);
-		assertThat(flywayV19).isEqualTo(1);
+		Integer levelMax = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from pg_constraint
+						where conname = 'chk_characters_level'
+						""",
+				Integer.class);
+		assertThat(recoveryColumn).isEqualTo(1);
+		assertThat(levelMax).isEqualTo(1);
 	}
 
 	@Test

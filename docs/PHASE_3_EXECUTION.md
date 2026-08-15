@@ -20,7 +20,7 @@ Do not ask Cursor to implement multiple tasks together.
 
 # Task Order
 
-01 Database & Flyway Consolidation
+01 Database & Flyway Consolidation (implemented: `V1__phase3_baseline.sql`, archive `db/archive/phase1-phase2`, tag `pre-phase3-flyway-v35`)
 02 Architecture Audit
 03 Test Coverage Audit & Safety Net
 04 Level 1–10 Player Journey Design

@@ -64,11 +64,17 @@ class MarketIntegrationTest {
 
 	@Test
 	void flywayCreatedMarketListings() {
-		Integer flywayV15 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '15' and success = true",
+		Integer listingsTable = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from information_schema.tables
+						where table_schema = 'public' and table_name = 'market_listings'
+						""",
 				Integer.class);
-		Integer flywayV16 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '16' and success = true",
+		Integer buyOrdersTable = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from information_schema.tables
+						where table_schema = 'public' and table_name = 'market_buy_orders'
+						""",
 				Integer.class);
 		Integer uniqueIndex = jdbcTemplate.queryForObject(
 				"""
@@ -76,8 +82,8 @@ class MarketIntegrationTest {
 						where tablename = 'market_listings' and indexname = 'uq_market_listings_active_item'
 						""",
 				Integer.class);
-		assertThat(flywayV15).isEqualTo(1);
-		assertThat(flywayV16).isEqualTo(1);
+		assertThat(listingsTable).isEqualTo(1);
+		assertThat(buyOrdersTable).isEqualTo(1);
 		assertThat(uniqueIndex).isZero();
 	}
 

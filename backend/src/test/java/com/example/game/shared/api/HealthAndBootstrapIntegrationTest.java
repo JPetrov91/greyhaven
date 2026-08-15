@@ -63,6 +63,6 @@ class HealthAndBootstrapIntegrationTest {
 		String bootstrapVersion = jdbcTemplate.queryForObject(
 				"select value from schema_meta where key = 'bootstrap_version'",
 				String.class);
-		assertThat(bootstrapVersion).isEqualTo("1");
+		assertThat(bootstrapVersion).isEqualTo("phase3");
 	}
 }

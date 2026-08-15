@@ -76,11 +76,7 @@ class MasteryIntegrationTest {
 		Integer techniques = jdbcTemplate.queryForObject(
 				"select count(*) from combat_technique_definitions",
 				Integer.class);
-		Integer flyway = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '22' and success = true",
-				Integer.class);
 		assertThat(techniques).isEqualTo(25);
-		assertThat(flyway).isEqualTo(1);
 	}
 
 	@Test
