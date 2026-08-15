@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { CombatAction } from './types'
+import type { CombatAction, CombatStatusResponse } from './types'
 
 export type ArenaDefense = {
   preferredAction: CombatAction
@@ -88,6 +88,8 @@ export type PvpMatchResponse = {
   waitingForOpponent: boolean
   yourPendingAction: CombatAction | null
   outcomeAcknowledged: boolean
+  attackerStatuses?: CombatStatusResponse[]
+  defenderStatuses?: CombatStatusResponse[]
 }
 
 export type PvpHistoryPageResponse = {

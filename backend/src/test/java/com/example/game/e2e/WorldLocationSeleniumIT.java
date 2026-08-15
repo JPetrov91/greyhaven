@@ -64,8 +64,7 @@ class WorldLocationSeleniumIT {
 
 	@BeforeEach
 	void clearBrowserState() {
-		driver.manage().deleteAllCookies();
-		driver.get(frontend.baseUrl() + "/login");
+		ui.clearClientState();
 	}
 
 	@Test
@@ -75,11 +74,12 @@ class WorldLocationSeleniumIT {
 
 		registerAndEnterGame(email, characterName);
 
+		ui.waitForWorld();
 		ui.waitForLocation("City Square");
 		assertThat(ui.text("location-code")).isEqualTo(LocationCodes.CITY_SQUARE);
-		assertThat(ui.text("location-safety")).isEqualTo("Safe");
+		assertThat(ui.text("location-safety")).isEqualTo("Safe Zone");
 		assertThat(ui.text("location-description")).contains("Greyhaven");
-		assertThat(driver.findElements(By.cssSelector("[data-testid='location-actions']"))).isNotEmpty();
+		assertThat(driver.findElements(By.cssSelector("[data-testid='destination-list']"))).isNotEmpty();
 
 		ui.waitForDestination(LocationCodes.FOREST);
 		ui.waitForDestination(LocationCodes.OLD_TOWN);
@@ -121,6 +121,7 @@ class WorldLocationSeleniumIT {
 				.contains("cannot travel directly");
 
 		ui.refreshGame();
+		ui.waitForWorld();
 		ui.waitForLocation("City Square");
 		assertThat(ui.text("location-code")).isEqualTo(LocationCodes.CITY_SQUARE);
 	}

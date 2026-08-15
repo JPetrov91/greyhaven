@@ -102,6 +102,17 @@ class MarketBuyOrderConcurrencyIntegrationTest {
 		int sellerGold = goldOf(sellerA.characterId) + goldOf(sellerB.characterId);
 		assertThat(sellerGold).isEqualTo(200 - 10 + MarketFeeCalculator.sellerProceeds(10) + 10);
 		assertThat(goldOf(buyer.characterId)).isEqualTo(90 - MarketFeeCalculator.buyOrderPostingFee(10));
+		Integer tradeEvents = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from game_telemetry_events
+						where event_type = 'MARKET_TRADE'
+						and character_id in (?, ?, ?)
+						""",
+				Integer.class,
+				buyer.characterId,
+				sellerA.characterId,
+				sellerB.characterId);
+		assertThat(tradeEvents).isEqualTo(1);
 	}
 
 	@Test

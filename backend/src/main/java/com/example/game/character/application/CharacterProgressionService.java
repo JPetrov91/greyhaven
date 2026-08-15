@@ -14,6 +14,9 @@ import com.example.game.character.infrastructure.CharacterRepository;
 import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.domain.EquipmentValidator;
 import com.example.game.shared.api.ApiException;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldDestroyReason;
 
 @Service
 public class CharacterProgressionService {
@@ -23,6 +26,7 @@ public class CharacterProgressionService {
 	private final CharacterStateSyncService characterStateSyncService;
 	private final CharacterCombatGuard characterCombatGuard;
 	private final InventoryApplicationService inventoryApplicationService;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public CharacterProgressionService(
@@ -31,12 +35,14 @@ public class CharacterProgressionService {
 			CharacterStateSyncService characterStateSyncService,
 			CharacterCombatGuard characterCombatGuard,
 			InventoryApplicationService inventoryApplicationService,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.characterApplicationService = characterApplicationService;
 		this.characterStateSyncService = characterStateSyncService;
 		this.characterCombatGuard = characterCombatGuard;
 		this.inventoryApplicationService = inventoryApplicationService;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
 	}
 
@@ -66,6 +72,13 @@ public class CharacterProgressionService {
 					HttpStatus.BAD_REQUEST);
 		}
 		characterRepository.saveAndFlush(character);
+		GameTelemetry.attributesAllocated(
+				gameTelemetryRecorder,
+				character.getId(),
+				strengthDelta,
+				agilityDelta,
+				enduranceDelta,
+				perceptionDelta);
 		return characterApplicationService.current(accountId);
 	}
 
@@ -85,6 +98,8 @@ public class CharacterProgressionService {
 		}
 		character.respec(now);
 		characterRepository.saveAndFlush(character);
+		GameTelemetry.goldDestroyed(gameTelemetryRecorder, character.getId(), cost, GoldDestroyReason.RESPEC);
+		GameTelemetry.respec(gameTelemetryRecorder, character.getId(), cost, character.getLevel());
 		inventoryApplicationService.unequipInvalidEquipment(
 				character.getId(),
 				new EquipmentValidator.CharacterRequirements(

@@ -14,6 +14,9 @@ import com.example.game.item.infrastructure.ItemDefinitionEntity;
 import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.ItemCreateSource;
 
 /**
  * Grants and equips the MVP starter loadout inside the character-creation transaction.
@@ -24,14 +27,17 @@ public class GreyhavenStarterLoadoutGranter implements StarterLoadoutGranter {
 	private final InventoryApplicationService inventoryApplicationService;
 	private final ItemInstanceRepository itemInstanceRepository;
 	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 
 	public GreyhavenStarterLoadoutGranter(
 			InventoryApplicationService inventoryApplicationService,
 			ItemInstanceRepository itemInstanceRepository,
-			ItemDefinitionRepository itemDefinitionRepository) {
+			ItemDefinitionRepository itemDefinitionRepository,
+			GameTelemetryRecorder gameTelemetryRecorder) {
 		this.inventoryApplicationService = inventoryApplicationService;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 	}
 
 	@Override
@@ -43,6 +49,19 @@ public class GreyhavenStarterLoadoutGranter implements StarterLoadoutGranter {
 
 		Map<UUID, ItemDefinitionEntity> definitions = itemDefinitionRepository.findAll().stream()
 				.collect(Collectors.toMap(ItemDefinitionEntity::getId, Function.identity()));
+		for (ItemInstanceEntity instance : itemInstanceRepository
+				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId)) {
+			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			if (definition != null) {
+				GameTelemetry.itemCreated(
+						gameTelemetryRecorder,
+						characterId,
+						definition.getCode(),
+						definition.getRarity(),
+						instance.getQuantity(),
+						ItemCreateSource.STARTER);
+			}
+		}
 
 		for (ItemInstanceEntity instance : itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId)) {

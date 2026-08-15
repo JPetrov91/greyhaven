@@ -43,3 +43,7 @@ logging:
   level:
     root: INFO
     com.example.game: INFO
+
+greyhaven:
+  diagnostics:
+    enabled: false

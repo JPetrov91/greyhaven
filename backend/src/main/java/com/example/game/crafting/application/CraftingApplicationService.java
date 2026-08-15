@@ -46,8 +46,13 @@ import com.example.game.item.application.AffixCatalogService;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
+import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.RolledAffixCodec;
 import com.example.game.shared.domain.RandomProvider;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldDestroyReason;
+import com.example.game.telemetry.domain.ItemCreateSource;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationAction;
@@ -73,6 +78,7 @@ public class CraftingApplicationService {
 	private final CraftingRecipeInputRepository craftingRecipeInputRepository;
 	private final CraftingJobRepository craftingJobRepository;
 	private final SalvageOutputRepository salvageOutputRepository;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 
@@ -90,6 +96,7 @@ public class CraftingApplicationService {
 			CraftingRecipeInputRepository craftingRecipeInputRepository,
 			CraftingJobRepository craftingJobRepository,
 			SalvageOutputRepository salvageOutputRepository,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			RandomProvider randomProvider,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
@@ -105,6 +112,7 @@ public class CraftingApplicationService {
 		this.craftingRecipeInputRepository = craftingRecipeInputRepository;
 		this.craftingJobRepository = craftingJobRepository;
 		this.salvageOutputRepository = salvageOutputRepository;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 	}
@@ -203,7 +211,10 @@ public class CraftingApplicationService {
 			inventoryApplicationService.consumeUnreservedByCode(vitals.characterId(), input.itemCode(), input.quantity());
 		}
 		if (recipe.getGoldCost() > 0) {
-			characterVitalsService.spendGold(vitals.characterId(), recipe.getGoldCost());
+			characterVitalsService.spendGold(
+					vitals.characterId(),
+					recipe.getGoldCost(),
+					GoldDestroyReason.CRAFTING);
 		}
 
 		ItemDefinitionView output = itemCatalogService.findByIds(List.of(recipe.getOutputItemDefinitionId()))
@@ -251,6 +262,11 @@ public class CraftingApplicationService {
 				vitals.characterId(),
 				ActivityType.CRAFTING_STARTED,
 				"You began crafting " + recipe.getName() + ".");
+		GameTelemetry.craftingStarted(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				recipe.getProfession().name(),
+				recipe.getCode());
 		return toJobView(job, recipe.getCode(), recipe.getName(), output.name());
 	}
 
@@ -324,11 +340,31 @@ public class CraftingApplicationService {
 				vitals.characterId(),
 				ActivityType.CRAFTING_CLAIMED,
 				"You finished " + recipeName + ".");
+		ItemRarity claimedRarity = job.getRarity() != null ? job.getRarity() : output.rarity();
+		GameTelemetry.craftingClaimed(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				job.getProfession().name(),
+				recipe == null ? output.code() : recipe.getCode(),
+				claimedRarity,
+				job.getOutputQuantity());
+		GameTelemetry.itemCreated(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				job.getOutputItemCode(),
+				claimedRarity,
+				job.getOutputQuantity(),
+				ItemCreateSource.CRAFTING);
 		if (progress.rank() > previousRank) {
 			activityApplicationService.record(
 					vitals.characterId(),
 					ActivityType.PROFESSION_RANK_UP,
 					job.getProfession().name() + " reached rank " + progress.rank() + ".");
+			GameTelemetry.professionRankUp(
+					gameTelemetryRecorder,
+					vitals.characterId(),
+					job.getProfession().name(),
+					progress.rank());
 		}
 		return toJobView(job, recipe == null ? output.code() : recipe.getCode(), recipeName, output.name());
 	}
@@ -395,16 +431,28 @@ public class CraftingApplicationService {
 
 		ItemDefinitionView sourceDefinition = itemCatalogService.findByCode(source.itemCode())
 				.orElseThrow(() -> CraftingErrors.itemDefinitionMissing(source.itemCode()));
+		Map<String, ItemDefinitionView> resultDefinitions = itemCatalogService.findByCodes(
+				outputs.stream().map(SalvageCalculator.SalvageOutput::itemCode).toList());
 		activityApplicationService.record(
 				vitals.characterId(),
 				ActivityType.ITEM_SALVAGED,
 				"You salvaged " + sourceDefinition.name() + ".");
+		Map<String, Integer> materials = new HashMap<>();
 		List<SalvageResultView> resultViews = new ArrayList<>();
 		for (SalvageCalculator.SalvageOutput output : outputs) {
-			ItemDefinitionView result = itemCatalogService.findByCode(output.itemCode())
-					.orElseThrow(() -> CraftingErrors.itemDefinitionMissing(output.itemCode()));
+			ItemDefinitionView result = resultDefinitions.get(output.itemCode());
+			if (result == null) {
+				throw CraftingErrors.itemDefinitionMissing(output.itemCode());
+			}
+			materials.put(output.itemCode(), output.quantity());
 			resultViews.add(new SalvageResultView(result.code(), result.name(), output.quantity()));
 		}
+		GameTelemetry.itemSalvaged(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				sourceDefinition.code(),
+				source.rarity(),
+				materials);
 		return new SalvageView(sourceDefinition.code(), sourceDefinition.name(), List.copyOf(resultViews));
 	}
 

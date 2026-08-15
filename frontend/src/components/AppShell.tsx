@@ -15,7 +15,17 @@ export function AppShell() {
 
   useEffect(() => {
     const id = location.hash.replace(/^#/, '')
-    if (id !== 'character' && id !== 'inventory' && id !== 'mastery' && id !== 'world' && id !== 'expeditions') {
+    if (
+      id !== 'character' &&
+      id !== 'inventory' &&
+      id !== 'equipment' &&
+      id !== 'mastery' &&
+      id !== 'world' &&
+      id !== 'expeditions' &&
+      id !== 'crafting' &&
+      id !== 'pvp' &&
+      id !== 'market'
+    ) {
       return
     }
     focusSection(id)

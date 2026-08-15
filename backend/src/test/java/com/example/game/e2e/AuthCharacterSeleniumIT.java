@@ -67,8 +67,7 @@ class AuthCharacterSeleniumIT {
 
 	@BeforeEach
 	void clearBrowserState() {
-		driver.manage().deleteAllCookies();
-		driver.get(frontend.baseUrl() + "/login");
+		ui.clearClientState();
 	}
 
 	@Test
@@ -81,9 +80,9 @@ class AuthCharacterSeleniumIT {
 		ui.createCharacter(characterName);
 		ui.waitForGameWithCharacter(characterName);
 
-		assertThat(ui.text("nav-email")).isEqualTo(email);
-		assertThat(ui.text("character-summary-level")).isEqualTo("1");
-		assertThat(ui.text("character-summary-gold")).isEqualTo("100");
+		assertThat(ui.text("character-summary-name")).isEqualTo(characterName);
+		assertThat(ui.text("character-summary-level")).isEqualTo("Level 1");
+		assertThat(ui.text("topbar-gold")).contains("100");
 	}
 
 	@Test
@@ -120,7 +119,7 @@ class AuthCharacterSeleniumIT {
 
 		ui.login(email, PASSWORD);
 		ui.waitForGameWithCharacter(characterName);
-		assertThat(ui.text("nav-email")).isEqualTo(email);
+		assertThat(ui.text("character-summary-name")).isEqualTo(characterName);
 
 		ui.logout();
 		assertThat(ui.currentPath()).isEqualTo("/login");

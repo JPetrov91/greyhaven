@@ -15,7 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerTest {
 
@@ -82,6 +84,17 @@ class GlobalExceptionHandlerTest {
 		assertThat(response.getBody().code()).isEqualTo("CONCURRENT_UPDATE");
 		assertThat(response.getBody().message()).isEqualTo("That action could not be completed. Try again.");
 		assertThat(response.getBody().message()).doesNotContain("could not obtain lock");
+	}
+
+	@Test
+	void mapsMissingResourceToNotFound() {
+		ResponseEntity<ApiError> response = handler.handleMissingResource(
+				new NoResourceFoundException(HttpMethod.GET, "/api/v1", "/dev/diagnostics"));
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(response.getBody()).isNotNull();
+		assertThat(response.getBody().code()).isEqualTo("NOT_FOUND");
+		assertThat(response.getBody().message()).isEqualTo("The requested resource was not found.");
 	}
 
 	@Test

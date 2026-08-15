@@ -395,6 +395,7 @@ export function MarketPanel({ onClose }: Props) {
       data-testid="market-panel"
       aria-label="Greyhaven Market"
       title="Greyhaven Market"
+      id="market"
       actions={
         onClose ? (
           <Button type="button" variant="ghost" data-testid="close-market" onClick={onClose}>

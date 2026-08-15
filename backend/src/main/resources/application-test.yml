@@ -14,3 +14,7 @@ logging:
   level:
     root: WARN
     com.example.game: INFO
+
+greyhaven:
+  diagnostics:
+    enabled: true

@@ -386,6 +386,7 @@ and actuator health.
 | POST | `/api/v1/crafting/jobs/{id}/claim` |
 | POST | `/api/v1/items/{itemId}/salvage` |
 | GET | `/api/v1/activity` |
+| GET | `/api/v1/dev/diagnostics` (local/test only) |
 | GET | `/api/v1/chat/messages` |
 | POST | `/api/v1/chat/messages` |
 | GET | `/api/v1/chat/stream` |
@@ -401,7 +402,7 @@ Managed by Flyway (`backend/src/main/resources/db/migration`):
 `combat_events`, `combat_reward_items`, `expeditions`, `expedition_reward_items`,
 `market_listings`, `market_buy_orders`, `market_buy_order_fills`, `character_professions`,
 `crafting_recipes`, `crafting_recipe_inputs`, `crafting_jobs`, `salvage_outputs`,
-`activity_entries`, `chat_messages`, `flyway_schema_history`.
+`activity_entries`, `game_telemetry_events`, `chat_messages`, `flyway_schema_history`.
 
 ## Profiles
 
@@ -414,3 +415,22 @@ Flyway migrations live in `backend/src/main/resources/db/migration`.
 Hibernate `ddl-auto` is `validate` — schema changes must go through Flyway.
 
 PostgreSQL 18 Compose volume is mounted at `/var/lib/postgresql` (not `/var/lib/postgresql/data`).
+
+## Phase 2 verification
+
+`GET /api/v1/dev/diagnostics` is authenticated and enabled only when `greyhaven.diagnostics.enabled=true` (`local` and `test` profiles). The default is off; production answers 404.
+
+Automated coverage: backend unit/integration tests (including telemetry and `GET /api/v1/dev/diagnostics` on the test profile) and Selenium `Phase2SeleniumIT` for inventory, equipment, crafting, market, Arena defense, Office Mode, and reload.
+
+Manual checklist before calling Phase 2 complete:
+
+1. Login and load a character
+2. Gain XP, level up, allocate attributes
+3. Equip several armor slots and compare a Rare item
+4. Unlock mastery/technique and change loadout
+5. Win a Combat 2.0 fight with status effects
+6. Enter the Ruined Keep dungeon and defeat the boss
+7. Configure Arena defense and complete an Arena challenge
+8. Craft an item, salvage unwanted gear, list on the Market, create or fill a buy order
+9. Switch to Office Mode, close the browser, return, and confirm persistent state
+

@@ -158,3 +158,49 @@ pvp:
   healWhenHpPercentBelowDefault: 40
   defendWhenStaminaPercentBelowDefault: 25
   finisherWhenEnemyHpPercentBelowDefault: 35
+
+expedition:
+  forestPatrolDurationMinutes: 20
+  strategies:
+    CAUTIOUS:
+      injuryChancePercent: 10
+      injuryDamageMin: 3
+      injuryDamageMax: 8
+      goldMin: 2
+      goldMax: 12
+      xpMin: 8
+      xpMax: 18
+      emptyHaulChancePercent: 20
+      materialChancePercent: 35
+      potionChancePercent: 20
+      commonGearChancePercent: 8
+      rareGearChancePercent: 4
+      herbChancePercent: 25
+    BALANCED:
+      injuryChancePercent: 25
+      injuryDamageMin: 5
+      injuryDamageMax: 12
+      goldMin: 5
+      goldMax: 20
+      xpMin: 15
+      xpMax: 30
+      emptyHaulChancePercent: 12
+      materialChancePercent: 50
+      potionChancePercent: 30
+      commonGearChancePercent: 15
+      rareGearChancePercent: 8
+      herbChancePercent: 40
+    AGGRESSIVE:
+      injuryChancePercent: 45
+      injuryDamageMin: 8
+      injuryDamageMax: 18
+      goldMin: 8
+      goldMax: 35
+      xpMin: 22
+      xpMax: 45
+      emptyHaulChancePercent: 8
+      materialChancePercent: 65
+      potionChancePercent: 40
+      commonGearChancePercent: 22
+      rareGearChancePercent: 12
+      herbChancePercent: 50

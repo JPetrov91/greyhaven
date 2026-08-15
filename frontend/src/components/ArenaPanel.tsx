@@ -16,7 +16,9 @@ import type { CombatAction } from '../api/types'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
+import { Field } from '../ui/Field'
 import { LoadingState } from '../ui/LoadingState'
+import { Panel } from '../ui/Panel'
 
 type Props = {
   onMatchStarted: () => void
@@ -92,21 +94,17 @@ export function ArenaPanel({ onMatchStarted }: Props) {
   }
 
   return (
-    <section className="game-column" data-testid="arena-panel">
-      <h2>Arena</h2>
+    <Panel id="pvp" className="game-column pvp-panel" data-testid="arena-panel" title="Arena">
       <p data-testid="arena-rating">
         Rating {profile.rating} · Marks {profile.marks}
       </p>
       {error ? (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
+        <ErrorState>{error}</ErrorState>
       ) : null}
 
       <form onSubmit={(event) => void saveDefense(event)} data-testid="arena-defense-form">
         <h3>Defense strategy</h3>
-        <label>
-          Preferred action
+        <Field label="Preferred action">
           <select name="preferredAction" defaultValue={profile.defense.preferredAction}>
             {profile.preferredActionOptions.map((action) => (
               <option key={action} value={action}>
@@ -114,13 +112,11 @@ export function ArenaPanel({ onMatchStarted }: Props) {
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Preferred technique
+        </Field>
+        <Field label="Preferred technique">
           <input name="preferredTechniqueCode" defaultValue={profile.defense.preferredTechniqueCode ?? ''} />
-        </label>
-        <label>
-          Heal when HP below %
+        </Field>
+        <Field label="Heal when HP below %">
           <input
             name="healWhenHpPercentBelow"
             type="number"
@@ -128,9 +124,8 @@ export function ArenaPanel({ onMatchStarted }: Props) {
             max={100}
             defaultValue={profile.defense.healWhenHpPercentBelow}
           />
-        </label>
-        <label>
-          Defend when stamina below %
+        </Field>
+        <Field label="Defend when stamina below %">
           <input
             name="defendWhenStaminaPercentBelow"
             type="number"
@@ -138,9 +133,8 @@ export function ArenaPanel({ onMatchStarted }: Props) {
             max={100}
             defaultValue={profile.defense.defendWhenStaminaPercentBelow}
           />
-        </label>
-        <label>
-          Finisher when enemy HP below %
+        </Field>
+        <Field label="Finisher when enemy HP below %">
           <input
             name="finisherWhenEnemyHpPercentBelow"
             type="number"
@@ -148,17 +142,18 @@ export function ArenaPanel({ onMatchStarted }: Props) {
             max={100}
             defaultValue={profile.defense.finisherWhenEnemyHpPercentBelow}
           />
-        </label>
-        <label>
-          Finisher technique
+        </Field>
+        <Field label="Finisher technique">
           <input name="finisherTechniqueCode" defaultValue={profile.defense.finisherTechniqueCode ?? ''} />
-        </label>
+        </Field>
         <Button type="submit">Save defense</Button>
       </form>
 
       <h3>Opponents</h3>
       {opponentsQuery.isError ? (
-        <p className="muted">Travel to the Arena to see available opponents.</p>
+        <ErrorState onRetry={() => void opponentsQuery.refetch()}>
+          Travel to the Arena to see available opponents.
+        </ErrorState>
       ) : opponentsQuery.data?.opponents.length ? (
         <ul data-testid="arena-opponents">
           {opponentsQuery.data.opponents.map((opponent) => (
@@ -214,6 +209,7 @@ export function ArenaPanel({ onMatchStarted }: Props) {
       ) : (
         <EmptyState>No battles recorded yet.</EmptyState>
       )}
-    </section>
+    </Panel>
   )
 }
+

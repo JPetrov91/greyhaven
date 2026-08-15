@@ -80,6 +80,9 @@ import com.example.game.mastery.domain.CombatTechniqueDefinition;
 import com.example.game.mastery.domain.TechniqueEffectSpec;
 import com.example.game.mastery.domain.TechniqueKind;
 import com.example.game.shared.domain.RandomProvider;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.ItemCreateSource;
 
 @Service
 public class CombatApplicationService {
@@ -101,6 +104,7 @@ public class CombatApplicationService {
 	private final TechniqueLoadoutQuery techniqueLoadoutQuery;
 	private final CombatTechniqueCatalogService combatTechniqueCatalogService;
 	private final EquippedWeaponQuery equippedWeaponQuery;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 	private final TransactionTemplate transactionTemplate;
@@ -124,6 +128,7 @@ public class CombatApplicationService {
 			TechniqueLoadoutQuery techniqueLoadoutQuery,
 			CombatTechniqueCatalogService combatTechniqueCatalogService,
 			EquippedWeaponQuery equippedWeaponQuery,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			RandomProvider randomProvider,
 			Clock clock,
 			PlatformTransactionManager transactionManager,
@@ -145,6 +150,7 @@ public class CombatApplicationService {
 		this.techniqueLoadoutQuery = techniqueLoadoutQuery;
 		this.combatTechniqueCatalogService = combatTechniqueCatalogService;
 		this.equippedWeaponQuery = equippedWeaponQuery;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -192,6 +198,13 @@ public class CombatApplicationService {
 		captureCombat2Snapshot(session, vitals.characterId(), monster);
 		combatSessionRepository.saveAndFlush(session);
 		createRewardPlan(session, monster, now);
+		GameTelemetry.combatStarted(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				session.getWeaponFamily(),
+				session.getTechniqueCodes(),
+				monster.getLevel(),
+				monster.getMonsterTier().name());
 		return toView(session, monster, vitals, loadEvents(session.getId()), null);
 	}
 
@@ -385,6 +398,22 @@ public class CombatApplicationService {
 			replaceStatuses(session.getId(), result.playerStatuses(), result.enemyStatuses());
 		}
 		persistEvents(session.getId(), result.roundNumber(), result.events(), now);
+		if (result.status() != CombatSessionStatus.ACTIVE) {
+			List<GameTelemetry.CombatLogLine> log = combatEventRepository
+					.findBySessionIdOrderByRoundNumberAscSequenceNumberAsc(session.getId())
+					.stream()
+					.map(event -> new GameTelemetry.CombatLogLine(event.getEventType(), event.getMessage()))
+					.toList();
+			GameTelemetry.combatEnded(
+					gameTelemetryRecorder,
+					session.getCharacterId(),
+					result.status(),
+					Math.max(0, now.toEpochMilli() - session.getCreatedAt().toEpochMilli()),
+					result.roundNumber(),
+					session.getWeaponFamily(),
+					session.getTechniqueCodes(),
+					log);
+		}
 
 		CharacterVitalsView synced;
 		if (result.status() == CombatSessionStatus.PLAYER_LOST) {
@@ -479,6 +508,13 @@ public class CombatApplicationService {
 					session.getCharacterId(),
 					item.name(),
 					reward.getQuantity());
+			GameTelemetry.itemCreated(
+					gameTelemetryRecorder,
+					session.getCharacterId(),
+					item.code(),
+					reward.hasPlannedRoll() ? reward.toGenerated().rarity() : item.rarity(),
+					reward.getQuantity(),
+					ItemCreateSource.PVE_LOOT);
 			if (uniqueCodes.contains(item.code())
 					&& !characterUniqueDropRepository.existsByCharacterIdAndItemCode(
 							session.getCharacterId(), item.code())) {

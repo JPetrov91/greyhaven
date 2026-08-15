@@ -72,10 +72,10 @@ public class ItemCatalogService {
 	@Transactional(readOnly = true)
 	public Map<String, ItemDefinitionView> findByCodes(Collection<String> itemCodes) {
 		Map<String, ItemDefinitionView> definitions = new HashMap<>();
-		List<ItemDefinitionEntity> entities = new ArrayList<>();
-		for (String code : itemCodes) {
-			itemDefinitionRepository.findByCode(code).ifPresent(entities::add);
+		if (itemCodes == null || itemCodes.isEmpty()) {
+			return definitions;
 		}
+		List<ItemDefinitionEntity> entities = itemDefinitionRepository.findByCodeIn(itemCodes);
 		Map<UUID, List<ItemModifierView>> modifiers = loadModifiers(
 				entities.stream().map(ItemDefinitionEntity::getId).toList());
 		for (ItemDefinitionEntity definition : entities) {

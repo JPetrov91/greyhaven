@@ -45,6 +45,8 @@ import com.example.game.pvp.infrastructure.PvpMatchSnapshotEntity;
 import com.example.game.pvp.infrastructure.PvpMatchSnapshotRepository;
 import com.example.game.pvp.infrastructure.PvpMatchStatusEntity;
 import com.example.game.pvp.infrastructure.PvpMatchStatusRepository;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationCodes;
 
@@ -61,6 +63,7 @@ public class PvpMatchSupport {
 	private final CharacterIdentityService characterIdentityService;
 	private final ActivityApplicationService activityApplicationService;
 	private final CombatTechniqueCatalogService combatTechniqueCatalogService;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public PvpMatchSupport(
@@ -74,6 +77,7 @@ public class PvpMatchSupport {
 			CharacterIdentityService characterIdentityService,
 			ActivityApplicationService activityApplicationService,
 			CombatTechniqueCatalogService combatTechniqueCatalogService,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.worldApplicationService = worldApplicationService;
 		this.snapshotCodec = snapshotCodec;
@@ -85,6 +89,7 @@ public class PvpMatchSupport {
 		this.characterIdentityService = characterIdentityService;
 		this.activityApplicationService = activityApplicationService;
 		this.combatTechniqueCatalogService = combatTechniqueCatalogService;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
 	}
 
@@ -244,6 +249,69 @@ public class PvpMatchSupport {
 					"Duel vs " + attackerName + " ended (" + match.getStatus().name().toLowerCase() + ").");
 		}
 		match.markSettlementApplied(now);
+		recordPvpTelemetry(match, attackerWon, attackerDelta, defenderDelta, attackerMarks, defenderMarks);
+	}
+
+	private void recordPvpTelemetry(
+			PvpMatchEntity match,
+			boolean attackerWon,
+			int attackerDelta,
+			int defenderDelta,
+			int attackerMarks,
+			int defenderMarks) {
+		com.example.game.item.domain.WeaponFamily attackerWeapon = null;
+		com.example.game.item.domain.WeaponFamily defenderWeapon = null;
+		String attackerBuild = "NONE";
+		String defenderBuild = "NONE";
+		if (snapshotRepository.existsById(match.getId())) {
+			PvpMatchSnapshot snapshot = loadSnapshot(match.getId());
+			attackerWeapon = snapshot.attacker().weaponFamily();
+			defenderWeapon = snapshot.defender().weaponFamily();
+			attackerBuild = dominantAttribute(snapshot.attacker());
+			defenderBuild = dominantAttribute(snapshot.defender());
+		}
+		int attackerAfter = Math.max(
+				PvPBalance.RATING_FLOOR,
+				match.getAttackerRatingAtStart() + attackerDelta);
+		int defenderAfter = Math.max(
+				PvPBalance.RATING_FLOOR,
+				match.getDefenderRatingAtStart() + defenderDelta);
+		boolean repeatOpponent = match.getRatingRewardMultiplier().doubleValue() < 1.0;
+		GameTelemetry.pvpMatchSettled(
+				gameTelemetryRecorder,
+				match.getAttackerId(),
+				match.getDefenderId(),
+				match.getMatchKind().name(),
+				attackerWon,
+				attackerWeapon,
+				defenderWeapon,
+				attackerBuild,
+				defenderBuild,
+				match.getAttackerRatingAtStart(),
+				attackerAfter,
+				match.getDefenderRatingAtStart(),
+				defenderAfter,
+				attackerMarks,
+				defenderMarks,
+				repeatOpponent);
+	}
+
+	private static String dominantAttribute(com.example.game.pvp.domain.PvpCombatantSnapshot combatant) {
+		int strength = combatant.strength();
+		int agility = combatant.agility();
+		int endurance = combatant.endurance();
+		int perception = combatant.perception();
+		int max = Math.max(Math.max(strength, agility), Math.max(endurance, perception));
+		if (max == strength) {
+			return "STR";
+		}
+		if (max == agility) {
+			return "AGI";
+		}
+		if (max == endurance) {
+			return "END";
+		}
+		return "PER";
 	}
 
 	PvpMatchView toView(PvpMatchEntity match, boolean viewerIsAttacker) {

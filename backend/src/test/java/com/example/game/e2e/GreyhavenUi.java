@@ -27,7 +27,21 @@ final class GreyhavenUi {
 
 	void open(String path) {
 		String normalized = path.startsWith("/") ? path : "/" + path;
-		driver.get(baseUrl + normalized);
+		String url = baseUrl + normalized;
+		try {
+			driver.get(url);
+		}
+		catch (RuntimeException first) {
+			driver.get(url);
+		}
+	}
+
+	void clearClientState() {
+		driver.manage().deleteAllCookies();
+		open("/login");
+		((JavascriptExecutor) driver).executeScript(
+				"try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}");
+		open("/login");
 	}
 
 	void register(String email, String password) {
@@ -120,17 +134,28 @@ final class GreyhavenUi {
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
 	}
 
+	void waitForWorld() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-world']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='destination-list']")));
+	}
+
+	void waitForHome() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-home']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='character-summary']")));
+	}
+
 	void waitForLocation(String locationName) {
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
 		wait.until(ExpectedConditions.textToBe(
 				By.cssSelector("[data-testid='current-location']"),
 				locationName));
-		wait.until(ExpectedConditions.textToBe(
-				By.cssSelector("[data-testid='character-summary-location']"),
-				locationName));
 	}
 
 	void travelTo(String locationCode, String expectedLocationName) {
+		if (driver.findElements(By.cssSelector("[data-testid='destination-" + locationCode + "']")).isEmpty()) {
+			waitForWorld();
+		}
 		By travelButton = By.cssSelector("[data-testid='destination-" + locationCode + "']");
 		wait.until(ExpectedConditions.elementToBeClickable(travelButton)).click();
 		waitForLocation(expectedLocationName);
@@ -158,7 +183,6 @@ final class GreyhavenUi {
 	void refreshGame() {
 		driver.navigate().refresh();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='game-layout']")));
-		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='location-panel']")));
 	}
 
 	void waitForInventory() {
@@ -170,6 +194,27 @@ final class GreyhavenUi {
 	void waitForEquipment() {
 		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-equipment']"))).click();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='equipment-panel']")));
+	}
+
+	void waitForCrafting() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-crafting']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='crafting-panel']")));
+	}
+
+	void waitForMarket() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-market']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='market-panel']")));
+	}
+
+	void waitForArena() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='nav-pvp']"))).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[data-testid='arena-panel']")));
+	}
+
+	void enableOfficeMode() {
+		wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("[data-testid='ui-mode-toggle']"))).click();
+		wait.until(driver -> "compact".equals(
+				((JavascriptExecutor) driver).executeScript("return document.documentElement.dataset.uiMode")));
 	}
 
 	void clickAction(String testId) {

@@ -33,6 +33,11 @@ import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
 import com.example.game.shared.domain.RandomProvider;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldCreateReason;
+import com.example.game.telemetry.domain.ItemCreateSource;
+import com.example.game.character.domain.XpSource;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationAction;
@@ -50,6 +55,7 @@ public class ExpeditionApplicationService {
 	private final ActivityApplicationService activityApplicationService;
 	private final ExpeditionRepository expeditionRepository;
 	private final ExpeditionRewardItemRepository expeditionRewardItemRepository;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 
@@ -63,6 +69,7 @@ public class ExpeditionApplicationService {
 			ActivityApplicationService activityApplicationService,
 			ExpeditionRepository expeditionRepository,
 			ExpeditionRewardItemRepository expeditionRewardItemRepository,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			RandomProvider randomProvider,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
@@ -74,6 +81,7 @@ public class ExpeditionApplicationService {
 		this.activityApplicationService = activityApplicationService;
 		this.expeditionRepository = expeditionRepository;
 		this.expeditionRewardItemRepository = expeditionRewardItemRepository;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 	}
@@ -244,10 +252,12 @@ public class ExpeditionApplicationService {
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
 				rewardRows.stream().map(ExpeditionRewardItemEntity::getItemDefinitionId).toList());
 
-		CharacterVitalsView after = characterVitalsService.grantCombatRewards(
+		CharacterVitalsView after = characterVitalsService.grantRewards(
 				expedition.getCharacterId(),
 				xp,
-				gold);
+				gold,
+				XpSource.EXPEDITION,
+				GoldCreateReason.EXPEDITION);
 		CharacterVitalsView afterInjury = characterVitalsService.applyInjury(expedition.getCharacterId(), injury);
 		int injuryApplied = after.currentHealth() - afterInjury.currentHealth();
 
@@ -275,6 +285,13 @@ public class ExpeditionApplicationService {
 					expedition.getCharacterId(),
 					item.name(),
 					reward.getQuantity());
+			GameTelemetry.itemCreated(
+					gameTelemetryRecorder,
+					expedition.getCharacterId(),
+					item.code(),
+					reward.hasPlannedRoll() ? reward.toGenerated().rarity() : item.rarity(),
+					reward.getQuantity(),
+					ItemCreateSource.EXPEDITION);
 		}
 
 		activityApplicationService.recordLevelUps(expedition.getCharacterId(), previousLevel, after.level());

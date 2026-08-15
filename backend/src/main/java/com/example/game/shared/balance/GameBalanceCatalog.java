@@ -41,7 +41,8 @@ public final class GameBalanceCatalog {
 				parseItems(map(root, "items")),
 				parseMarket(map(root, "market")),
 				parseCrafting(map(root, "crafting")),
-				parsePvp(map(root, "pvp")));
+				parsePvp(map(root, "pvp")),
+				parseExpedition(map(root, "expedition")));
 	}
 
 	private static GameBalance load() {
@@ -204,6 +205,32 @@ public final class GameBalanceCatalog {
 				intValue(node, "healWhenHpPercentBelowDefault"),
 				intValue(node, "defendWhenStaminaPercentBelowDefault"),
 				intValue(node, "finisherWhenEnemyHpPercentBelowDefault"));
+	}
+
+	private static GameBalance.Expedition parseExpedition(Map<String, Object> node) {
+		Map<String, Object> strategies = map(node, "strategies");
+		return new GameBalance.Expedition(
+				intValue(node, "forestPatrolDurationMinutes"),
+				parseExpeditionStrategy(map(strategies, "CAUTIOUS")),
+				parseExpeditionStrategy(map(strategies, "BALANCED")),
+				parseExpeditionStrategy(map(strategies, "AGGRESSIVE")));
+	}
+
+	private static GameBalance.ExpeditionStrategyKnobs parseExpeditionStrategy(Map<String, Object> node) {
+		return new GameBalance.ExpeditionStrategyKnobs(
+				intValue(node, "injuryChancePercent"),
+				intValue(node, "injuryDamageMin"),
+				intValue(node, "injuryDamageMax"),
+				intValue(node, "goldMin"),
+				intValue(node, "goldMax"),
+				intValue(node, "xpMin"),
+				intValue(node, "xpMax"),
+				intValue(node, "emptyHaulChancePercent"),
+				intValue(node, "materialChancePercent"),
+				intValue(node, "potionChancePercent"),
+				intValue(node, "commonGearChancePercent"),
+				intValue(node, "rareGearChancePercent"),
+				intValue(node, "herbChancePercent"));
 	}
 
 	private static GameBalance.Items parseItems(Map<String, Object> node) {

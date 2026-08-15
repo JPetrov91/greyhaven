@@ -9,8 +9,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.game.character.domain.CharacterBalance;
+import com.example.game.character.domain.XpSource;
 import com.example.game.character.infrastructure.CharacterEntity;
 import com.example.game.character.infrastructure.CharacterRepository;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldCreateReason;
+import com.example.game.telemetry.domain.GoldDestroyReason;
 
 /**
  * Character health/attribute state for other gameplay modules. Callers describe intent
@@ -21,14 +26,17 @@ public class CharacterVitalsService {
 
 	private final CharacterRepository characterRepository;
 	private final CharacterStateSyncService characterStateSyncService;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public CharacterVitalsService(
 			CharacterRepository characterRepository,
 			CharacterStateSyncService characterStateSyncService,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.characterStateSyncService = characterStateSyncService;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
 	}
 
@@ -124,6 +132,11 @@ public class CharacterVitalsService {
 
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void spendGold(UUID characterId, int amount) {
+		spendGold(characterId, amount, null);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void spendGold(UUID characterId, int amount, GoldDestroyReason destroyReason) {
 		if (amount < 0) {
 			throw new IllegalArgumentException("gold amount must be non-negative");
 		}
@@ -135,26 +148,51 @@ public class CharacterVitalsService {
 		}
 		character.spendGold(amount, Instant.now(clock));
 		characterRepository.saveAndFlush(character);
+		if (destroyReason != null) {
+			GameTelemetry.goldDestroyed(gameTelemetryRecorder, characterId, amount, destroyReason);
+		}
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void addGold(UUID characterId, int amount) {
+		addGold(characterId, amount, null);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void addGold(UUID characterId, int amount, GoldCreateReason createReason) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
 		characterStateSyncService.sync(character);
 		character.addGold(amount, Instant.now(clock));
 		characterRepository.saveAndFlush(character);
+		if (createReason != null) {
+			GameTelemetry.goldCreated(gameTelemetryRecorder, characterId, amount, createReason);
+		}
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
 	public CharacterVitalsView grantCombatRewards(UUID characterId, int xp, int gold) {
+		return grantRewards(characterId, xp, gold, XpSource.PVE_COMBAT, GoldCreateReason.PVE_COMBAT);
+	}
+
+	@Transactional(propagation = Propagation.MANDATORY)
+	public CharacterVitalsView grantRewards(
+			UUID characterId,
+			int xp,
+			int gold,
+			XpSource xpSource,
+			GoldCreateReason goldReason) {
 		CharacterEntity character = characterRepository.findWithLockById(characterId)
 				.orElseThrow(CharacterErrors::characterNotFound);
 		characterStateSyncService.sync(character);
 		Instant now = Instant.now(clock);
+		int previousLevel = character.getLevel();
 		character.grantExperience(xp, now);
 		character.addGold(gold, now);
 		characterRepository.saveAndFlush(character);
+		GameTelemetry.xpEarned(gameTelemetryRecorder, characterId, xp, xpSource);
+		GameTelemetry.goldCreated(gameTelemetryRecorder, characterId, gold, goldReason);
+		GameTelemetry.levelUp(gameTelemetryRecorder, characterId, previousLevel, character.getLevel());
 		return toView(character);
 	}
 

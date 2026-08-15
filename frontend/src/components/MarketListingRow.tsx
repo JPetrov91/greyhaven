@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { ItemType, MarketListingResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { classNames } from '../ui/classNames'
@@ -32,7 +33,7 @@ export function formatItemType(itemType: ItemType): string {
   return itemType.charAt(0) + itemType.slice(1).toLowerCase()
 }
 
-export function MarketListingRow({
+export const MarketListingRow = memo(function MarketListingRow({
   listing,
   selected,
   actionLabel,
@@ -87,4 +88,4 @@ export function MarketListingRow({
       </td>
     </tr>
   )
-}
+})

@@ -163,3 +163,113 @@ check migrations
 check application startup
 
 Report failures honestly.
+
+
+# Phase 3 Rules
+
+Phase 3 is defined by:
+
+- docs/PHASE_3_SPEC.md
+- docs/PHASE_3_EXECUTION.md
+- docs/tasks/phase-3/
+
+Phase 3 theme:
+
+Game Experience & Productization.
+
+Phase 1 and Phase 2 created the technical and gameplay systems.
+Phase 3 must turn those systems into a coherent playable game experience.
+
+Primary Phase 3 priorities:
+
+1. Establish a clean technical baseline.
+2. Design and implement the complete Level 1–10 player journey.
+3. Introduce the Quest/NPC framework.
+4. Refine combat, PvE and Arena rather than replacing them.
+5. Bring UI/UX close to release quality.
+6. Introduce the basic Clan and social foundation.
+7. Improve onboarding, return experience, diagnostics and production quality.
+
+The complete Level 1–10 journey is the main gameplay vertical slice of Phase 3.
+
+Do not introduce major Phase 4+ systems.
+
+Explicitly out of Phase 3:
+
+- clan wars
+- territory control
+- alliances
+- diplomacy
+- large-scale clan projects
+- regional political economy
+- large-scale world wars
+- major global world-event framework
+- large collaborative raids
+- housing
+- pets
+- mounts
+- second continent
+- prestige
+- seasonal reset architecture
+
+Future systems may be considered architecturally, but must not be implemented unless explicitly required by the current task.
+
+## Implementation Philosophy
+
+Prefer improving and completing existing systems over introducing new parallel systems.
+
+Do not create:
+
+- Combat 3.0
+- Inventory 3.0
+- Market 3.0
+- Character 3.0
+
+unless a fundamental architectural problem requires it.
+
+Phase 3 is primarily refinement, integration and productization.
+
+Server remains authoritative for gameplay.
+
+Frontend sends player intent.
+
+Use existing domain models wherever possible.
+
+Do not duplicate:
+
+- item models
+- character models
+- combat engines
+- market logic
+- progression logic
+
+for new Phase 3 systems.
+
+Maintain:
+
+- deterministic tests
+- injectable Clock
+- injectable RNG
+- transactional economy operations
+- exact-once rewards
+- refresh-safe gameplay
+- interruption-safe gameplay
+- asynchronous-first design
+
+## Cursor Workflow
+
+Every Phase 3 task must follow:
+
+PLAN
+→ Human Review
+→ IMPLEMENT
+→ AI REVIEW
+→ FIX
+→ Manual Verification
+→ Git Commit
+
+Do not combine multiple major Phase 3 tasks into one Cursor Agent run.
+
+A new Cursor Chat is recommended for every major task.
+
+Do not begin the next task before the current task is stable.

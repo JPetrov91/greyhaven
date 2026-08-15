@@ -1,5 +1,6 @@
 package com.example.game.item.infrastructure;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import com.example.game.item.domain.ItemType;
 public interface ItemDefinitionRepository extends JpaRepository<ItemDefinitionEntity, UUID> {
 
 	Optional<ItemDefinitionEntity> findByCode(String code);
+
+	List<ItemDefinitionEntity> findByCodeIn(Collection<String> codes);
 
 	boolean existsByCode(String code);
 

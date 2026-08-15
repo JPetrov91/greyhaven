@@ -46,6 +46,9 @@ import com.example.game.market.infrastructure.MarketBuyOrderFillRepository;
 import com.example.game.market.infrastructure.MarketBuyOrderRepository;
 import com.example.game.market.infrastructure.MarketListingEntity;
 import com.example.game.market.infrastructure.MarketListingRepository;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldDestroyReason;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationAction;
@@ -72,6 +75,7 @@ public class MarketApplicationService {
 	private final MarketListingRepository marketListingRepository;
 	private final MarketBuyOrderRepository marketBuyOrderRepository;
 	private final MarketBuyOrderFillRepository marketBuyOrderFillRepository;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public MarketApplicationService(
@@ -86,6 +90,7 @@ public class MarketApplicationService {
 			MarketListingRepository marketListingRepository,
 			MarketBuyOrderRepository marketBuyOrderRepository,
 			MarketBuyOrderFillRepository marketBuyOrderFillRepository,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterVitalsService = characterVitalsService;
 		this.characterLocationService = characterLocationService;
@@ -98,6 +103,7 @@ public class MarketApplicationService {
 		this.marketListingRepository = marketListingRepository;
 		this.marketBuyOrderRepository = marketBuyOrderRepository;
 		this.marketBuyOrderFillRepository = marketBuyOrderFillRepository;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
 	}
 
@@ -186,7 +192,7 @@ public class MarketApplicationService {
 			throw MarketErrors.insufficientGoldForListingFee();
 		}
 		if (listingFee > 0) {
-			characterVitalsService.spendGold(vitals.characterId(), listingFee);
+			characterVitalsService.spendGold(vitals.characterId(), listingFee, GoldDestroyReason.LISTING_FEE);
 		}
 
 		MarketListingEntity listing = new MarketListingEntity(
@@ -261,6 +267,15 @@ public class MarketApplicationService {
 		if (proceeds > 0) {
 			characterVitalsService.addGold(sellerId, proceeds);
 		}
+		GameTelemetry.goldDestroyed(gameTelemetryRecorder, buyerId, saleFee, GoldDestroyReason.SALE_FEE);
+		GameTelemetry.marketTrade(
+				gameTelemetryRecorder,
+				buyerId,
+				sellerId,
+				listing.getPrice(),
+				saleFee,
+				proceeds,
+				"LISTING");
 
 		ItemDefinitionView definition = requireDefinition(listing.getItemDefinitionId());
 		activityApplicationService.recordMarketSold(sellerId, listing.getPrice());
@@ -341,7 +356,10 @@ public class MarketApplicationService {
 			throw MarketErrors.insufficientGold();
 		}
 		if (postingFee > 0) {
-			characterVitalsService.spendGold(vitals.characterId(), postingFee);
+			characterVitalsService.spendGold(
+					vitals.characterId(),
+					postingFee,
+					GoldDestroyReason.BUY_ORDER_POSTING_FEE);
 		}
 		characterVitalsService.spendGold(vitals.characterId(), escrow);
 		MarketBuyOrderEntity order = new MarketBuyOrderEntity(
@@ -424,6 +442,15 @@ public class MarketApplicationService {
 		if (proceeds > 0) {
 			characterVitalsService.addGold(sellerId, proceeds);
 		}
+		GameTelemetry.goldDestroyed(gameTelemetryRecorder, buyerId, saleFee, GoldDestroyReason.SALE_FEE);
+		GameTelemetry.marketTrade(
+				gameTelemetryRecorder,
+				buyerId,
+				sellerId,
+				fill.grossGold(),
+				saleFee,
+				proceeds,
+				"BUY_ORDER");
 
 		ItemDefinitionView definition = requireDefinition(order.getItemDefinitionId());
 		activityApplicationService.record(

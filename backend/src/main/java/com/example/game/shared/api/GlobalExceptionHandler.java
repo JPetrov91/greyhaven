@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.example.game.shared.infrastructure.ConstraintViolations;
 
@@ -99,6 +100,17 @@ public class GlobalExceptionHandler {
 		log.warn("Pessimistic lock failure", exception);
 		return ResponseEntity.status(HttpStatus.CONFLICT)
 				.body(error("CONCURRENT_UPDATE", "That action could not be completed. Try again."));
+	}
+
+	/**
+	 * Unmapped API paths (including diagnostics when the property is off) must be 404, not 500.
+	 * The catch-all would otherwise claim {@link NoResourceFoundException} first.
+	 */
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<ApiError> handleMissingResource(NoResourceFoundException exception) {
+		log.debug("No handler for {}", exception.getResourcePath());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND)
+				.body(error("NOT_FOUND", "The requested resource was not found."));
 	}
 
 	@ExceptionHandler(Exception.class)

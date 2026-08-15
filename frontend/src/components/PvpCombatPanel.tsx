@@ -10,8 +10,11 @@ import {
   submitDuelAction,
   type PvpMatchResponse,
 } from '../api/pvp'
-import type { CombatAction } from '../api/types'
+import type { CombatAction, CombatStatusResponse } from '../api/types'
 import { Button } from '../ui/Button'
+import { ErrorState } from '../ui/ErrorState'
+import { Panel } from '../ui/Panel'
+import { StatusBadge } from '../ui/StatusBadge'
 
 type Props = {
   match: PvpMatchResponse
@@ -53,10 +56,11 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
   }
 
   return (
-    <section className="game-column" data-testid="pvp-combat-panel">
-      <h2>
-        {match.matchKind} — {match.attackerName} vs {match.defenderName}
-      </h2>
+    <Panel
+      className="game-column pvp-combat-panel"
+      data-testid="pvp-combat-panel"
+      title={`${match.matchKind} — ${match.attackerName} vs ${match.defenderName}`}
+    >
       <p>
         Round {match.roundNumber} · {match.status}
       </p>
@@ -66,6 +70,8 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
       <p>
         {match.defenderName} {match.defenderHealth}/{match.defenderMaxHealth} HP
       </p>
+      <StatusList label="Your statuses" statuses={match.attackerStatuses ?? []} testId="pvp-attacker-statuses" />
+      <StatusList label="Opponent statuses" statuses={match.defenderStatuses ?? []} testId="pvp-defender-statuses" />
       {match.defenderIntent ? <p>Defender intent: {match.defenderIntent.label}</p> : null}
       {match.status === 'PENDING' ? (
         <div data-testid="duel-pending">
@@ -95,11 +101,7 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
         </div>
       ) : null}
       {match.waitingForOpponent ? <p data-testid="pvp-waiting">Waiting for the other player…</p> : null}
-      {error ? (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <ErrorState>{error}</ErrorState> : null}
       {!terminal && match.status === 'ACTIVE' && !match.waitingForOpponent ? (
         <div>
           {ACTIONS.map((action) => (
@@ -132,11 +134,37 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
           </Button>
         </div>
       ) : null}
-      <ol>
+      <ol className="pvp-combat-log">
         {match.events.map((event) => (
           <li key={`${event.roundNumber}-${event.sequenceNumber}`}>{event.message}</li>
         ))}
       </ol>
-    </section>
+    </Panel>
+  )
+}
+
+function StatusList({
+  label,
+  statuses,
+  testId,
+}: {
+  label: string
+  statuses: CombatStatusResponse[]
+  testId: string
+}) {
+  return (
+    <p data-testid={testId}>
+      {label}:{' '}
+      {statuses.length === 0 ? (
+        <span className="muted">none</span>
+      ) : (
+        statuses.map((status) => (
+          <StatusBadge key={`${status.type}-${status.remainingRounds}`} tone="neutral">
+            {status.type}
+            {status.stacks > 1 ? ` ×${status.stacks}` : ''}
+          </StatusBadge>
+        ))
+      )}
+    </p>
   )
 }

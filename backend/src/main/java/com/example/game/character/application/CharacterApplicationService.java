@@ -21,6 +21,9 @@ import com.example.game.crafting.application.CraftingApplicationService;
 import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.infrastructure.ConstraintViolations;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldCreateReason;
 
 @Service
 public class CharacterApplicationService {
@@ -35,6 +38,7 @@ public class CharacterApplicationService {
 	private final CharacterStateSyncService characterStateSyncService;
 	private final MasteryApplicationService masteryApplicationService;
 	private final CraftingApplicationService craftingApplicationService;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
 
 	public CharacterApplicationService(
@@ -45,6 +49,7 @@ public class CharacterApplicationService {
 			CharacterStateSyncService characterStateSyncService,
 			MasteryApplicationService masteryApplicationService,
 			CraftingApplicationService craftingApplicationService,
+			GameTelemetryRecorder gameTelemetryRecorder,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.startingLocationProvider = startingLocationProvider;
@@ -53,6 +58,7 @@ public class CharacterApplicationService {
 		this.characterStateSyncService = characterStateSyncService;
 		this.masteryApplicationService = masteryApplicationService;
 		this.craftingApplicationService = craftingApplicationService;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
 	}
 
@@ -99,6 +105,11 @@ public class CharacterApplicationService {
 
 		try {
 			CharacterEntity saved = characterRepository.saveAndFlush(character);
+			GameTelemetry.goldCreated(
+					gameTelemetryRecorder,
+					saved.getId(),
+					CharacterBalance.STARTING_GOLD,
+					GoldCreateReason.STARTING);
 			starterLoadoutGranter.grantStarterLoadout(saved.getId());
 			masteryApplicationService.initializeForCharacter(saved.getId());
 			craftingApplicationService.initializeForCharacter(saved.getId());

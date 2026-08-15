@@ -29,6 +29,11 @@ import com.example.game.market.infrastructure.MerchantDefinitionEntity;
 import com.example.game.market.infrastructure.MerchantDefinitionRepository;
 import com.example.game.market.infrastructure.MerchantStockEntity;
 import com.example.game.market.infrastructure.MerchantStockRepository;
+import com.example.game.telemetry.application.GameTelemetry;
+import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.telemetry.domain.GoldCreateReason;
+import com.example.game.telemetry.domain.GoldDestroyReason;
+import com.example.game.telemetry.domain.ItemCreateSource;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationAction;
@@ -45,6 +50,7 @@ public class MerchantApplicationService {
 	private final WorldApplicationService worldApplicationService;
 	private final InventoryApplicationService inventoryApplicationService;
 	private final ActivityApplicationService activityApplicationService;
+	private final GameTelemetryRecorder gameTelemetryRecorder;
 
 	public MerchantApplicationService(
 			MerchantDefinitionRepository merchantDefinitionRepository,
@@ -54,7 +60,8 @@ public class MerchantApplicationService {
 			CharacterCombatGuard characterCombatGuard,
 			WorldApplicationService worldApplicationService,
 			InventoryApplicationService inventoryApplicationService,
-			ActivityApplicationService activityApplicationService) {
+			ActivityApplicationService activityApplicationService,
+			GameTelemetryRecorder gameTelemetryRecorder) {
 		this.merchantDefinitionRepository = merchantDefinitionRepository;
 		this.merchantStockRepository = merchantStockRepository;
 		this.itemCatalogService = itemCatalogService;
@@ -63,6 +70,7 @@ public class MerchantApplicationService {
 		this.worldApplicationService = worldApplicationService;
 		this.inventoryApplicationService = inventoryApplicationService;
 		this.activityApplicationService = activityApplicationService;
+		this.gameTelemetryRecorder = gameTelemetryRecorder;
 	}
 
 	@Transactional(readOnly = true)
@@ -123,7 +131,14 @@ public class MerchantApplicationService {
 		catch (InventoryFullException exception) {
 			throw MarketErrors.merchantInventoryFull();
 		}
-		characterVitalsService.spendGold(vitals.characterId(), totalPrice);
+		characterVitalsService.spendGold(vitals.characterId(), totalPrice, GoldDestroyReason.MERCHANT_BUY);
+		GameTelemetry.itemCreated(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				definition.code(),
+				definition.rarity(),
+				quantity,
+				ItemCreateSource.MERCHANT);
 
 		int goldRemaining = vitals.gold() - totalPrice;
 		if (shouldRecordPurchase(definition.type())) {
@@ -169,7 +184,7 @@ public class MerchantApplicationService {
 				vitals.characterId(),
 				itemInstanceId,
 				quantity);
-		characterVitalsService.addGold(vitals.characterId(), goldAwarded);
+		characterVitalsService.addGold(vitals.characterId(), goldAwarded, GoldCreateReason.MERCHANT_SELL);
 
 		int goldRemaining = vitals.gold() + goldAwarded;
 		if (shouldRecordSale(definition.type())) {

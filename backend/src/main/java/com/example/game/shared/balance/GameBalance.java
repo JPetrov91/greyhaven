@@ -15,7 +15,8 @@ public record GameBalance(
 		Items items,
 		Market market,
 		Crafting crafting,
-		Pvp pvp
+		Pvp pvp,
+		Expedition expedition
 ) {
 
 	public record Character(
@@ -169,6 +170,31 @@ public record GameBalance(
 			int lightDodge,
 			int mediumDodge,
 			int heavyDodge
+	) {
+	}
+
+	public record Expedition(
+			int forestPatrolDurationMinutes,
+			ExpeditionStrategyKnobs cautious,
+			ExpeditionStrategyKnobs balanced,
+			ExpeditionStrategyKnobs aggressive
+	) {
+	}
+
+	public record ExpeditionStrategyKnobs(
+			int injuryChancePercent,
+			int injuryDamageMin,
+			int injuryDamageMax,
+			int goldMin,
+			int goldMax,
+			int xpMin,
+			int xpMax,
+			int emptyHaulChancePercent,
+			int materialChancePercent,
+			int potionChancePercent,
+			int commonGearChancePercent,
+			int rareGearChancePercent,
+			int herbChancePercent
 	) {
 	}
 }

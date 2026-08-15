@@ -58,6 +58,10 @@ class GameBalanceCatalogTest {
 		assertThat(balance.pvp().ratingKFactor()).isEqualTo(24);
 		assertThat(balance.pvp().marksPerWin()).isEqualTo(8);
 		assertThat(balance.pvp().maxArenaChallengesPerDay()).isEqualTo(20);
+		assertThat(balance.expedition().forestPatrolDurationMinutes()).isEqualTo(20);
+		assertThat(balance.expedition().balanced().injuryChancePercent()).isEqualTo(25);
+		assertThat(com.example.game.expedition.domain.ExpeditionBalance.FOREST_PATROL_DURATION.toMinutes())
+				.isEqualTo(20);
 
 		assertThat(CharacterBalance.MAX_LEVEL).isEqualTo(30);
 		assertThat(ProgressionBalance.cumulativeXpForLevel(11)).isEqualTo(7230);

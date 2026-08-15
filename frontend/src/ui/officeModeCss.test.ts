@@ -17,5 +17,8 @@ describe('office mode CSS', () => {
     const css = readFileSync(join(here, 'game-shell.css'), 'utf8')
     expect(css).toMatch(/\[data-ui-mode='compact'\].*location-hero-art/s)
     expect(css).toMatch(/display:\s*none/)
+    expect(css).toMatch(/html\[data-ui-mode='compact'\] \.crafting-panel/)
+    expect(css).toMatch(/html\[data-ui-mode='compact'\] \.pvp-panel/)
+    expect(css).toMatch(/html\[data-ui-mode='compact'\] \.mastery-panel/)
   })
 })

@@ -64,8 +64,7 @@ class CombatSeleniumIT {
 
 	@BeforeEach
 	void clearBrowserState() {
-		driver.manage().deleteAllCookies();
-		driver.get(frontend.baseUrl() + "/login");
+		ui.clearClientState();
 	}
 
 	@Test

@@ -6,9 +6,11 @@ import { claimCraftingJob, fetchCurrentCraftingJob, fetchProfessions, fetchRecip
 import { fetchCurrentLocation } from '../api/world'
 import type { CraftingJobResponse, LocationAction, Profession, RecipeResponse } from '../api/types'
 import { Button } from '../ui/Button'
+import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
+import { ProgressBar } from '../ui/ProgressBar'
 import { gameLink } from '../ui/gameNav'
 
 const PROFESSION_LABELS: Record<Profession, string> = {
@@ -23,6 +25,15 @@ function formatRemaining(completesAt: string, nowMs: number): string {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+function jobProgressPercent(startedAt: string, completesAt: string, nowMs: number): number {
+  const start = Date.parse(startedAt)
+  const end = Date.parse(completesAt)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return 100
+  }
+  return Math.max(0, Math.min(100, ((nowMs - start) / (end - start)) * 100))
 }
 
 type Props = {
@@ -126,7 +137,7 @@ export function CraftingPanel({ onClose }: Props) {
 
   if (professionsQuery.isLoading || recipesQuery.isLoading || jobQuery.isLoading) {
     return (
-      <Panel className="expedition-panel" data-testid="crafting-panel" title="Craftsmen Ward">
+      <Panel className="crafting-panel" data-testid="crafting-panel" title="Craftsmen Ward">
         <LoadingState>Loading professions…</LoadingState>
       </Panel>
     )
@@ -138,7 +149,7 @@ export function CraftingPanel({ onClose }: Props) {
     (jobQuery.error instanceof ApiError && jobQuery.error.message)
   if (loadError) {
     return (
-      <Panel className="expedition-panel" data-testid="crafting-panel" title="Craftsmen Ward">
+      <Panel className="crafting-panel" data-testid="crafting-panel" title="Craftsmen Ward">
         <ErrorState
           onRetry={() => {
             void professionsQuery.refetch()
@@ -159,7 +170,7 @@ export function CraftingPanel({ onClose }: Props) {
   return (
     <Panel
       id="crafting"
-      className="expedition-panel"
+      className="crafting-panel"
       data-testid="crafting-panel"
       aria-label="Crafting"
       title="Craftsmen Ward"
@@ -173,7 +184,7 @@ export function CraftingPanel({ onClose }: Props) {
     >
       {!atWard ? (
         <div data-testid="crafting-travel-hint">
-          <p className="muted">Travel to the Craftsmen Ward to start, claim, or salvage work.</p>
+          <p className="muted">Travel to the Craftsmen Ward to start or claim work. Salvage equipment from Inventory while at the Ward.</p>
           <Link className="btn btn-secondary" to={gameLink('world')} data-testid="crafting-travel-cta">
             Open Locations
           </Link>
@@ -199,9 +210,16 @@ export function CraftingPanel({ onClose }: Props) {
             {job.rarity ? ` · ${job.rarity}` : ''}
           </p>
           {job.status === 'ACTIVE' && !visuallyComplete ? (
-            <p data-testid="crafting-countdown">
-              Remaining: <strong>{formatRemaining(job.completesAt, nowMs)}</strong>
-            </p>
+            <>
+              <ProgressBar
+                value={jobProgressPercent(job.startedAt, job.completesAt, nowMs)}
+                label="Crafting progress"
+                testId="crafting-progress"
+              />
+              <p data-testid="crafting-countdown">
+                Remaining: <strong>{formatRemaining(job.completesAt, nowMs)}</strong>
+              </p>
+            </>
           ) : null}
           {visuallyComplete ? (
             <p className="muted">Time is up. Refreshing completion from the server…</p>
@@ -224,7 +242,9 @@ export function CraftingPanel({ onClose }: Props) {
           ) : null}
         </section>
       ) : (
-        <p className="muted">No crafting job in progress. Claim finished work before starting another.</p>
+        <EmptyState testId="crafting-job-empty">
+          No crafting job in progress. Salvage unwanted gear from Inventory at the Ward.
+        </EmptyState>
       )}
 
       <section aria-labelledby="recipe-list-heading">

@@ -2506,6 +2506,19 @@ html[data-ui-mode='compact'] .inventory-slot {
   height: 3.2rem;
 }
 
+html[data-ui-mode='compact'] .crafting-panel,
+html[data-ui-mode='compact'] .mastery-panel,
+html[data-ui-mode='compact'] .pvp-panel,
+html[data-ui-mode='compact'] .pvp-combat-panel {
+  padding: 0.5rem 0.55rem;
+}
+
+html[data-ui-mode='compact'] .crafting-panel .strategy-list,
+html[data-ui-mode='compact'] .pvp-panel form,
+html[data-ui-mode='compact'] .pvp-combat-log {
+  font-size: 0.92rem;
+}
+
 html[data-ui-mode='compact'] .game-shell-body-combat {
   grid-template-columns: minmax(0, 1fr);
 }
