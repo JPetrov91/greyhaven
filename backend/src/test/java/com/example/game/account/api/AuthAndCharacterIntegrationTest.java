@@ -171,6 +171,8 @@ class AuthAndCharacterIntegrationTest {
 								""".formatted(sharedName)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.name").value(sharedName))
+				.andExpect(jsonPath("$.gender").value("MALE"))
+				.andExpect(jsonPath("$.avatarCode").value("male_unyielding"))
 				.andExpect(jsonPath("$.level").value(1))
 				.andExpect(jsonPath("$.strength").value(5))
 				.andExpect(jsonPath("$.agility").value(5))
@@ -401,6 +403,68 @@ class AuthAndCharacterIntegrationTest {
 				"select count(*) from locations where code = 'CITY_SQUARE'",
 				Integer.class);
 		assertThat(locationCount).isEqualTo(1);
+	}
+
+	@Test
+	void createCharacterPersistsRequestedAppearanceAndChecksNameAvailability() throws Exception {
+		MockHttpSession session = registerAndGetSession("looks-" + System.nanoTime() + "@greyhaven.test");
+		String name = uniqueName("Nyx");
+
+		mockMvc.perform(get("/api/v1/characters/name-available").session(session).param("name", name))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.available").value(true));
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s","gender":"FEMALE","avatarCode":"female_veiled"}
+								""".formatted(name)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.name").value(name))
+				.andExpect(jsonPath("$.gender").value("FEMALE"))
+				.andExpect(jsonPath("$.avatarCode").value("female_veiled"));
+
+		mockMvc.perform(get("/api/v1/characters/name-available").session(session).param("name", name))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.available").value(false));
+	}
+
+	@Test
+	void createCharacterRejectsGenderMismatchedAvatar() throws Exception {
+		MockHttpSession session = registerAndGetSession("looks-bad-" + System.nanoTime() + "@greyhaven.test");
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s","gender":"MALE","avatarCode":"female_veiled"}
+								""".formatted(uniqueName("Kael"))))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_CHARACTER_APPEARANCE"));
+	}
+
+	@Test
+	void createCharacterAcceptsSpacedNameAndRejectsSpecialCharacters() throws Exception {
+		MockHttpSession session = registerAndGetSession("name-rules-" + System.nanoTime() + "@greyhaven.test");
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"Ragnar_Ironfist"}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+		mockMvc.perform(withCsrf(post("/api/v1/characters"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"Ragnar Ironfist"}
+								"""))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.name").value("Ragnar Ironfist"));
 	}
 
 	private MockHttpSession registerAndGetSession(String email) throws Exception {

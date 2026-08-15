@@ -2,10 +2,12 @@ package com.example.game.character.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,11 +15,16 @@ import com.example.game.account.infrastructure.AccountPrincipal;
 import com.example.game.character.application.CharacterApplicationService;
 import com.example.game.character.application.CharacterProgressionService;
 import com.example.game.character.application.CharacterView;
+import com.example.game.character.domain.CharacterNameRules;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.domain.ExperienceProgress;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
+@Validated
 @RestController
 @RequestMapping("/api/v1")
 public class CharacterController {
@@ -37,7 +44,21 @@ public class CharacterController {
 	public CharacterResponse create(
 			@AuthenticationPrincipal AccountPrincipal principal,
 			@Valid @RequestBody CreateCharacterRequest request) {
-		return toResponse(characterApplicationService.create(principal.getAccountId(), request.name()));
+		return toResponse(characterApplicationService.create(
+				principal.getAccountId(),
+				request.name(),
+				request.gender(),
+				request.avatarCode()));
+	}
+
+	@GetMapping("/characters/name-available")
+	public NameAvailableResponse nameAvailable(
+			@RequestParam("name")
+			@NotBlank
+			@Size(min = 3, max = 24)
+			@Pattern(regexp = CharacterNameRules.PATTERN)
+			String name) {
+		return new NameAvailableResponse(characterApplicationService.isNameAvailable(name));
 	}
 
 	@GetMapping("/character")
@@ -67,6 +88,8 @@ public class CharacterController {
 				character.id(),
 				character.accountId(),
 				character.name(),
+				character.gender(),
+				character.avatarCode(),
 				character.level(),
 				character.experience(),
 				character.strength(),

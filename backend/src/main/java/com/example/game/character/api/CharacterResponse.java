@@ -8,6 +8,8 @@ public record CharacterResponse(
 		UUID id,
 		UUID accountId,
 		String name,
+		String gender,
+		String avatarCode,
 		int level,
 		int experience,
 		int strength,

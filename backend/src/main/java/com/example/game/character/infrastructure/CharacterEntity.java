@@ -6,12 +6,15 @@ import java.util.UUID;
 import org.springframework.data.domain.Persistable;
 
 import com.example.game.character.domain.CharacterBalance;
+import com.example.game.character.domain.CharacterGender;
 import com.example.game.character.domain.CharacterProgression;
 import com.example.game.character.domain.ProgressionBalance;
 import com.example.game.shared.balance.GameBalanceCatalog;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PostLoad;
 import jakarta.persistence.PostPersist;
@@ -33,6 +36,13 @@ public class CharacterEntity implements Persistable<UUID> {
 
 	@Column(nullable = false, length = 64)
 	private String name;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 8)
+	private CharacterGender gender;
+
+	@Column(name = "avatar_code", nullable = false, length = 64)
+	private String avatarCode;
 
 	@Column(nullable = false)
 	private int level;
@@ -102,6 +112,8 @@ public class CharacterEntity implements Persistable<UUID> {
 			UUID id,
 			UUID accountId,
 			String name,
+			CharacterGender gender,
+			String avatarCode,
 			int level,
 			int experience,
 			int strength,
@@ -121,6 +133,8 @@ public class CharacterEntity implements Persistable<UUID> {
 		this.id = id;
 		this.accountId = accountId;
 		this.name = name;
+		this.gender = gender;
+		this.avatarCode = avatarCode;
 		this.level = level;
 		this.experience = experience;
 		this.strength = strength;
@@ -164,6 +178,14 @@ public class CharacterEntity implements Persistable<UUID> {
 
 	public String getName() {
 		return name;
+	}
+
+	public CharacterGender getGender() {
+		return gender;
+	}
+
+	public String getAvatarCode() {
+		return avatarCode;
 	}
 
 	public int getLevel() {

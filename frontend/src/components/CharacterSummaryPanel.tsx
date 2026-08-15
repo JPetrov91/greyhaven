@@ -131,7 +131,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
       data-testid="character-summary"
     >
       <div className="character-identity">
-        <CharacterPortrait />
+        <CharacterPortrait avatarCode={character.avatarCode} />
         <div>
           <h2 data-testid="character-summary-name" tabIndex={-1}>
             {character.name}
@@ -309,7 +309,7 @@ function CharacterOverview({
       </div>
       <div className="character-overview-hero">
         <div className="character-overview-portrait-wrap">
-          <CharacterPortrait className="character-overview-portrait" />
+          <CharacterPortrait className="character-overview-portrait" avatarCode={character.avatarCode} />
           {character.unspentAttributePoints > 0 ? (
             <StatusBadge tone="upgrade">{character.unspentAttributePoints} unspent</StatusBadge>
           ) : null}

@@ -84,7 +84,7 @@ export function GameTopBar({ combatContext = null }: Props) {
         <span className="topbar-divider" aria-hidden="true" />
         {character ? (
           <div className="game-topbar-identity" data-testid="topbar-identity">
-            <CharacterPortrait className="topbar-portrait" />
+            <CharacterPortrait className="topbar-portrait" avatarCode={character.avatarCode} />
             <div>
               <p className="topbar-name">{character.name}</p>
               <p className="topbar-level muted">Level {character.level}</p>

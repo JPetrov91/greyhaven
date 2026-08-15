@@ -5,11 +5,21 @@ export function fetchCharacter(): Promise<CharacterResponse> {
   return apiRequest<CharacterResponse>('/api/v1/character')
 }
 
-export function createCharacter(name: string): Promise<CharacterResponse> {
+export function createCharacter(input: {
+  name: string
+  gender: 'MALE' | 'FEMALE'
+  avatarCode: string
+}): Promise<CharacterResponse> {
   return apiRequest<CharacterResponse>('/api/v1/characters', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(input),
   })
+}
+
+export function checkCharacterNameAvailable(name: string): Promise<{ available: boolean }> {
+  return apiRequest<{ available: boolean }>(
+    `/api/v1/characters/name-available?name=${encodeURIComponent(name)}`,
+  )
 }
 
 export function allocateAttributes(deltas: {

@@ -154,7 +154,7 @@ export function CombatPanel({ combat, onCombatUpdate }: Props) {
     <section className="combat-panel combat-hud" data-testid="combat-panel" aria-label="Combat">
       <aside className="combat-hud-player">
         <div className="combat-player-identity">
-          <CharacterPortrait className="combat-player-portrait" />
+          <CharacterPortrait className="combat-player-portrait" avatarCode={character?.avatarCode} />
           <div>
             <p className="combat-player-name">{character?.name ?? 'You'}</p>
             <p className="muted">Level {character?.level ?? '—'}</p>

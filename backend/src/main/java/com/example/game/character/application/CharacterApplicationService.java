@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.game.character.domain.CharacterAppearance;
 import com.example.game.character.domain.CharacterBalance;
+import com.example.game.character.domain.CharacterGender;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.character.domain.ExperienceProgress;
@@ -67,12 +69,25 @@ public class CharacterApplicationService {
 
 	@Transactional
 	public CharacterView create(UUID accountId, String name) {
+		return create(accountId, name, null, null);
+	}
+
+	@Transactional
+	public CharacterView create(UUID accountId, String name, CharacterGender gender, String avatarCode) {
 		if (characterRepository.existsByAccountId(accountId)) {
 			throw characterAlreadyExists();
 		}
 
 		if (characterRepository.existsByNameIgnoreCase(name)) {
 			throw characterNameTaken();
+		}
+
+		CharacterGender resolvedGender = CharacterAppearance.resolveGender(gender);
+		String resolvedAvatar = avatarCode == null || avatarCode.isBlank()
+				? CharacterAppearance.defaultAvatar(resolvedGender)
+				: avatarCode.trim();
+		if (!CharacterAppearance.isAllowed(resolvedGender, resolvedAvatar)) {
+			throw CharacterErrors.invalidAppearance();
 		}
 
 		UUID startingLocationId = startingLocationProvider.startingLocationId();
@@ -89,6 +104,8 @@ public class CharacterApplicationService {
 				UUID.randomUUID(),
 				accountId,
 				name,
+				resolvedGender,
+				resolvedAvatar,
 				CharacterBalance.STARTING_LEVEL,
 				CharacterBalance.STARTING_EXPERIENCE,
 				strength,
@@ -139,6 +156,11 @@ public class CharacterApplicationService {
 			characterStateSyncService.sync(character);
 		}
 		return toView(character);
+	}
+
+	@Transactional(readOnly = true)
+	public boolean isNameAvailable(String name) {
+		return !characterRepository.existsByNameIgnoreCase(name);
 	}
 
 	@Transactional(readOnly = true)
@@ -200,6 +222,8 @@ public class CharacterApplicationService {
 				character.getId(),
 				character.getAccountId(),
 				character.getName(),
+				character.getGender().name(),
+				character.getAvatarCode(),
 				character.getLevel(),
 				character.getExperience(),
 				character.getStrength(),

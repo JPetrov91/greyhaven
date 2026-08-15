@@ -9,6 +9,13 @@ final class CharacterErrors {
 	private CharacterErrors() {
 	}
 
+	static ApiException invalidAppearance() {
+		return new ApiException(
+				"INVALID_CHARACTER_APPEARANCE",
+				"Avatar must belong to the selected gender.",
+				HttpStatus.BAD_REQUEST);
+	}
+
 	static ApiException characterNotFound() {
 		return new ApiException(
 				"CHARACTER_NOT_FOUND",

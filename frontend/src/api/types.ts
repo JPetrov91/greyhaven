@@ -32,6 +32,8 @@ export type CharacterResponse = {
   id: string
   accountId: string
   name: string
+  gender?: 'MALE' | 'FEMALE'
+  avatarCode?: string
   level: number
   experience: number
   strength: number

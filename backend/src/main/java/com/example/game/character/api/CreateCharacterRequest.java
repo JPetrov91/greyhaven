@@ -1,5 +1,8 @@
 package com.example.game.character.api;
 
+import com.example.game.character.domain.CharacterGender;
+import com.example.game.character.domain.CharacterNameRules;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -7,9 +10,10 @@ import jakarta.validation.constraints.Size;
 public record CreateCharacterRequest(
 		@NotBlank
 		@Size(min = 3, max = 24)
-		@Pattern(
-				regexp = "^[A-Za-z][A-Za-z0-9_-]*$",
-				message = "must start with a letter and contain only letters, digits, underscores, or hyphens")
-		String name
+		@Pattern(regexp = CharacterNameRules.PATTERN, message = CharacterNameRules.MESSAGE)
+		String name,
+		CharacterGender gender,
+		@Size(max = 64)
+		String avatarCode
 ) {
 }
