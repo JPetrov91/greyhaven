@@ -141,6 +141,14 @@ class DungeonIntegrationTest {
 				Boolean.class,
 				characterId);
 		assertThat(unique).isTrue();
+		Integer uniqueDropRows = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from character_unique_drops
+						where character_id = ? and item_code = 'WARDENS_SIGNET'
+						""",
+				Integer.class,
+				characterId);
+		assertThat(uniqueDropRows).isEqualTo(1);
 
 		Integer affixes = jdbcTemplate.queryForObject(
 				"""

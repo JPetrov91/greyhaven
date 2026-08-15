@@ -39,6 +39,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.example.game.TestcontainersConfiguration;
 import com.example.game.expedition.application.ExpeditionApplicationService;
+import com.example.game.expedition.domain.ExpeditionStrategy;
 import com.example.game.shared.api.ApiException;
 import com.example.game.shared.domain.MutableClock;
 import com.example.game.shared.domain.MutableRandomProvider;
@@ -431,6 +432,36 @@ class ExpeditionIntegrationTest {
 	}
 
 	@Test
+	void concurrentStartsCreateExactlyOneActiveExpedition() throws Exception {
+		String email = "exp-start-race-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID accountId = accountIdForEmail(email);
+		UUID characterId = characterIdForEmail(email);
+		moveToTavern(session);
+
+		CountDownLatch start = new CountDownLatch(1);
+		AtomicInteger successes = new AtomicInteger();
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			List<Future<?>> attempts = List.of(
+					pool.submit(startAttempt(start, accountId, ExpeditionStrategy.CAUTIOUS, successes)),
+					pool.submit(startAttempt(start, accountId, ExpeditionStrategy.AGGRESSIVE, successes)));
+			start.countDown();
+			for (Future<?> attempt : attempts) {
+				attempt.get(20, TimeUnit.SECONDS);
+			}
+		}
+		finally {
+			pool.shutdownNow();
+		}
+
+		assertThat(successes.get()).isEqualTo(1);
+		assertThat(intColumn(
+				"select count(*) from expeditions where character_id = ? and status = 'ACTIVE'",
+				characterId)).isEqualTo(1);
+	}
+
+	@Test
 	void concurrentClaimsAwardRewardsOnce() throws Exception {
 		String email = "exp-race-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
@@ -477,6 +508,24 @@ class ExpeditionIntegrationTest {
 				"select status from expeditions where id = ?",
 				String.class,
 				expeditionId)).isEqualTo("CLAIMED");
+	}
+
+	private Callable<Void> startAttempt(
+			CountDownLatch start,
+			UUID accountId,
+			ExpeditionStrategy strategy,
+			AtomicInteger successes) {
+		return () -> {
+			start.await();
+			try {
+				expeditionApplicationService.start(accountId, strategy);
+				successes.incrementAndGet();
+			}
+			catch (ApiException expected) {
+				assertThat(expected.getCode()).isEqualTo("EXPEDITION_IN_PROGRESS");
+			}
+			return null;
+		};
 	}
 
 	private Callable<Void> claimAttempt(
