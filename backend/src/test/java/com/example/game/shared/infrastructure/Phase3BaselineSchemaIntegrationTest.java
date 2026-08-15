@@ -34,14 +34,14 @@ class Phase3BaselineSchemaIntegrationTest {
 			JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
 			var result = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
-			assertThat(result.migrationsExecuted).isEqualTo(2);
+			assertThat(result.migrationsExecuted).isEqualTo(3);
 
 			assertThat(jdbc.queryForObject(
 					"select count(*) from flyway_schema_history where success = true",
-					Integer.class)).isEqualTo(2);
+					Integer.class)).isEqualTo(3);
 			assertThat(jdbc.queryForList(
 					"select version from flyway_schema_history where success = true order by installed_rank",
-					String.class)).containsExactly("1", "2");
+					String.class)).containsExactly("1", "2", "3");
 			assertThat(jdbc.queryForObject(
 					"select value from schema_meta where key = 'bootstrap_version'",
 					String.class)).isEqualTo("phase3");
@@ -73,6 +73,13 @@ class Phase3BaselineSchemaIntegrationTest {
 			assertThat(jdbc.queryForObject("select count(*) from quest_definition", Integer.class)).isEqualTo(2);
 			assertThat(jdbc.queryForObject("select count(*) from quest_objective_definition", Integer.class)).isEqualTo(4);
 			assertThat(jdbc.queryForObject("select count(*) from quest_reward_definition", Integer.class)).isEqualTo(3);
+			assertThat(jdbc.queryForObject(
+					"""
+							select count(*) from information_schema.table_constraints
+							where table_schema = 'public' and table_name = 'quest_definition'
+							  and constraint_name in ('fk_quest_definition_prerequisite', 'fk_quest_definition_next')
+							""",
+					Integer.class)).isEqualTo(2);
 
 			assertThat(jdbc.queryForObject(
 					"""

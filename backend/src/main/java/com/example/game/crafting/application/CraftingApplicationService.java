@@ -49,7 +49,6 @@ import com.example.game.item.domain.GeneratedItem;
 import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.RolledAffixCodec;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.CraftClaimedFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -372,7 +371,7 @@ public class CraftingApplicationService {
 					progress.rank());
 		}
 		String recipeCode = recipe == null ? output.code() : recipe.getCode();
-		questProgressSink.notify(vitals.characterId(), new CraftClaimedFact(recipeCode, job.getId()));
+		questProgressSink.onCraftClaimed(vitals.characterId(), recipeCode, job.getId());
 		return toJobView(job, recipeCode, recipeName, output.name());
 	}
 

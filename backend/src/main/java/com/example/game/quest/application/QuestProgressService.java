@@ -87,13 +87,13 @@ public class QuestProgressService implements QuestProgressSink {
 	@Override
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void notify(UUID characterId, QuestProgressFact fact) {
-		if (fact.dedupeKind() != null && fact.dedupeId() != null && !recordSource(characterId, fact.dedupeKind(), fact.dedupeId())) {
-			return;
-		}
 		List<CharacterQuestEntity> open = characterQuestRepository.findWithLockByCharacterIdAndStatusIn(
 				characterId,
 				OPEN);
 		if (open.isEmpty()) {
+			return;
+		}
+		if (fact.dedupeKind() != null && fact.dedupeId() != null && !recordSource(characterId, fact.dedupeKind(), fact.dedupeId())) {
 			return;
 		}
 		List<UUID> questIds = open.stream().map(CharacterQuestEntity::getQuestId).toList();

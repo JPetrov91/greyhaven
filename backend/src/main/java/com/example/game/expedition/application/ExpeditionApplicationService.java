@@ -33,7 +33,6 @@ import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.ExpeditionCompletedFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -187,9 +186,10 @@ public class ExpeditionApplicationService {
 		activityApplicationService.recordExpeditionCompleted(
 				expedition.getCharacterId(),
 				expedition.getExpeditionType().displayName());
-		questProgressSink.notify(
+		questProgressSink.onExpeditionCompleted(
 				expedition.getCharacterId(),
-				new ExpeditionCompletedFact(expedition.getExpeditionType().name(), expedition.getId()));
+				expedition.getExpeditionType().name(),
+				expedition.getId());
 	}
 
 	/**

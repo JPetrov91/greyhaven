@@ -48,8 +48,6 @@ import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
 import com.example.game.market.domain.MerchantPriceCalculator;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.InventoryChangedFact;
-import com.example.game.quest.domain.ItemsGrantedFact;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -1139,9 +1137,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	}
 
 	private void notifyItemsGranted(UUID characterId, String itemCode, int quantity) {
-		questProgressSink.notify(
-				characterId,
-				new ItemsGrantedFact(itemCode, quantity, "INV:" + UUID.randomUUID()));
+		questProgressSink.onItemsGranted(characterId, itemCode, quantity, "INV:" + UUID.randomUUID());
 		notifyInventoryChanged(characterId);
 	}
 
@@ -1151,7 +1147,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	}
 
 	private void notifyInventoryChanged(UUID characterId) {
-		questProgressSink.notify(characterId, new InventoryChangedFact());
+		questProgressSink.onInventoryChanged(characterId);
 	}
 
 	private ItemDefinitionView requireDefinition(UUID definitionId) {

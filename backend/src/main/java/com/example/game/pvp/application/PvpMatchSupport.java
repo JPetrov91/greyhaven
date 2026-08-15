@@ -46,7 +46,6 @@ import com.example.game.pvp.infrastructure.PvpMatchSnapshotRepository;
 import com.example.game.pvp.infrastructure.PvpMatchStatusEntity;
 import com.example.game.pvp.infrastructure.PvpMatchStatusRepository;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.ArenaWonFact;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
 import com.example.game.world.application.WorldApplicationService;
@@ -256,14 +255,10 @@ public class PvpMatchSupport {
 		match.markSettlementApplied(now);
 		recordPvpTelemetry(match, attackerWon, attackerDelta, defenderDelta, attackerMarks, defenderMarks);
 		if (match.getStatus() == PvpMatchStatus.ATTACKER_WON) {
-			questProgressSink.notify(
-					match.getAttackerId(),
-					new ArenaWonFact(match.getMatchKind().name(), match.getId()));
+			questProgressSink.onArenaWon(match.getAttackerId(), match.getMatchKind().name(), match.getId());
 		}
 		else if (match.getStatus() == PvpMatchStatus.DEFENDER_WON) {
-			questProgressSink.notify(
-					match.getDefenderId(),
-					new ArenaWonFact(match.getMatchKind().name(), match.getId()));
+			questProgressSink.onArenaWon(match.getDefenderId(), match.getMatchKind().name(), match.getId());
 		}
 	}
 

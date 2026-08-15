@@ -21,10 +21,11 @@ import com.example.game.character.application.CharacterLocationView;
 import com.example.game.character.application.CharacterUnlockQuery;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
-import com.example.game.quest.domain.InventoryChangedFact;
-import com.example.game.quest.domain.LocationVisitedFact;
+import com.example.game.item.application.ItemCatalogService;
+import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.quest.domain.QuestAvailability;
 import com.example.game.quest.domain.QuestListStatus;
+import com.example.game.quest.domain.QuestRewardKind;
 import com.example.game.quest.domain.QuestStatus;
 import com.example.game.quest.infrastructure.CharacterQuestEntity;
 import com.example.game.quest.infrastructure.CharacterQuestObjectiveEntity;
@@ -51,6 +52,7 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 	private final CharacterLocationService characterLocationService;
 	private final LocationRepository locationRepository;
 	private final NpcDefinitionRepository npcDefinitionRepository;
+	private final ItemCatalogService itemCatalogService;
 	private final QuestCatalog questCatalog;
 	private final CharacterQuestRepository characterQuestRepository;
 	private final CharacterQuestObjectiveRepository characterQuestObjectiveRepository;
@@ -66,6 +68,7 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 			CharacterLocationService characterLocationService,
 			LocationRepository locationRepository,
 			NpcDefinitionRepository npcDefinitionRepository,
+			ItemCatalogService itemCatalogService,
 			QuestCatalog questCatalog,
 			CharacterQuestRepository characterQuestRepository,
 			CharacterQuestObjectiveRepository characterQuestObjectiveRepository,
@@ -79,6 +82,7 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 		this.characterLocationService = characterLocationService;
 		this.locationRepository = locationRepository;
 		this.npcDefinitionRepository = npcDefinitionRepository;
+		this.itemCatalogService = itemCatalogService;
 		this.questCatalog = questCatalog;
 		this.characterQuestRepository = characterQuestRepository;
 		this.characterQuestObjectiveRepository = characterQuestObjectiveRepository;
@@ -128,25 +132,42 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 			throw QuestErrors.questNotAvailable();
 		}
 		assertAtNpc(location.currentLocationId(), definition.getStartNpcCode());
-		CharacterQuestEntity characterQuest;
-		try {
-			characterQuest = characterQuestRepository.saveAndFlush(new CharacterQuestEntity(
-					UUID.randomUUID(),
-					vitals.characterId(),
-					definition.getId(),
-					Instant.now(clock)));
+		CharacterQuestEntity characterQuest = characterQuestRepository
+				.findWithLockByCharacterIdAndQuestId(vitals.characterId(), definition.getId())
+				.orElse(null);
+		if (characterQuest != null && characterQuest.getStatus() == QuestStatus.COMPLETED && definition.isRepeatable()) {
+			characterQuest.reopen(Instant.now(clock));
+			characterQuestRepository.saveAndFlush(characterQuest);
+			for (CharacterQuestObjectiveEntity row : characterQuestObjectiveRepository.findByCharacterQuestId(characterQuest.getId())) {
+				row.apply(0, false);
+				characterQuestObjectiveRepository.save(row);
+			}
+			characterQuestObjectiveRepository.flush();
 		}
-		catch (DataIntegrityViolationException exception) {
+		else if (characterQuest != null) {
 			throw QuestErrors.questAlreadyAccepted();
 		}
-		for (QuestObjectiveDefinitionEntity objective : questCatalog.objectivesOf(definition.getId())) {
-			characterQuestObjectiveRepository.save(new CharacterQuestObjectiveEntity(
-					UUID.randomUUID(),
-					characterQuest.getId(),
-					objective.getId()));
+		else {
+			try {
+				characterQuest = characterQuestRepository.saveAndFlush(new CharacterQuestEntity(
+						UUID.randomUUID(),
+						vitals.characterId(),
+						definition.getId(),
+						Instant.now(clock)));
+			}
+			catch (DataIntegrityViolationException exception) {
+				throw QuestErrors.questAlreadyAccepted();
+			}
+			for (QuestObjectiveDefinitionEntity objective : questCatalog.objectivesOf(definition.getId())) {
+				characterQuestObjectiveRepository.save(new CharacterQuestObjectiveEntity(
+						UUID.randomUUID(),
+						characterQuest.getId(),
+						objective.getId()));
+			}
+			characterQuestObjectiveRepository.flush();
 		}
-		characterQuestObjectiveRepository.flush();
-		if (characterQuestTrackRepository.countByCharacterId(vitals.characterId()) < MAX_TRACKED) {
+		if (characterQuestTrackRepository.findByCharacterIdAndQuestId(vitals.characterId(), definition.getId()).isEmpty()
+				&& characterQuestTrackRepository.countByCharacterId(vitals.characterId()) < MAX_TRACKED) {
 			characterQuestTrackRepository.save(new CharacterQuestTrackEntity(
 					UUID.randomUUID(),
 					vitals.characterId(),
@@ -161,9 +182,9 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				.map(LocationEntity::getCode)
 				.orElse(null);
 		if (locationCode != null) {
-			questProgressSink.notify(vitals.characterId(), new LocationVisitedFact(locationCode));
+			questProgressSink.onLocationVisited(vitals.characterId(), locationCode);
 		}
-		questProgressSink.notify(vitals.characterId(), new InventoryChangedFact());
+		questProgressSink.onInventoryChanged(vitals.characterId());
 		return requireView(vitals, code);
 	}
 
@@ -247,11 +268,20 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 		Set<String> completedCodes = new HashSet<>();
 		for (QuestDefinitionEntity definition : definitions) {
 			CharacterQuestEntity state = states.get(definition.getId());
-			if (state != null && state.getStatus() == QuestStatus.COMPLETED) {
+			if (state != null && (state.getStatus() == QuestStatus.COMPLETED || state.getCompletedAt() != null)) {
 				completedCodes.add(definition.getCode());
 			}
 		}
-		List<String> unlocks = unlockCodesOf(vitals.characterId());
+		Map<String, NpcDefinitionEntity> npcs = npcDefinitionRepository.findAllByOrderBySortOrderAsc().stream()
+				.collect(Collectors.toMap(NpcDefinitionEntity::getCode, npc -> npc, (left, right) -> left));
+		Map<String, String> questNames = definitions.stream()
+				.collect(Collectors.toMap(QuestDefinitionEntity::getCode, QuestDefinitionEntity::getName, (left, right) -> left));
+		Set<String> itemCodes = rewards.values().stream()
+				.flatMap(List::stream)
+				.map(QuestRewardDefinitionEntity::getItemCode)
+				.filter(code -> code != null && !code.isBlank())
+				.collect(Collectors.toSet());
+		Map<String, ItemDefinitionView> items = itemCatalogService.findByCodes(itemCodes);
 		List<QuestView> views = new ArrayList<>();
 		for (QuestDefinitionEntity definition : definitions) {
 			CharacterQuestEntity state = states.get(definition.getId());
@@ -276,25 +306,27 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 			else {
 				status = QuestListStatus.ACTIVE;
 			}
-			views.add(toView(definition, status, state, objectives, rewards, progress, tracked, unlocks));
+			views.add(toView(definition, status, state, objectives, rewards, progress, tracked, npcs, questNames, items));
 		}
 		return views;
 	}
 
 	private boolean isAvailable(CharacterVitalsView vitals, QuestDefinitionEntity definition) {
 		Set<String> completed = characterQuestRepository.findByCharacterId(vitals.characterId()).stream()
-				.filter(quest -> quest.getStatus() == QuestStatus.COMPLETED)
+				.filter(quest -> quest.getStatus() == QuestStatus.COMPLETED || quest.getCompletedAt() != null)
 				.map(quest -> questCatalog.requireById(quest.getQuestId()).getCode())
 				.collect(Collectors.toSet());
-		boolean started = characterQuestRepository
+		CharacterQuestEntity existing = characterQuestRepository
 				.findByCharacterIdAndQuestId(vitals.characterId(), definition.getId())
-				.isPresent();
+				.orElse(null);
+		boolean blocked = existing != null
+				&& (existing.getStatus() != QuestStatus.COMPLETED || !definition.isRepeatable());
 		return QuestAvailability.isAvailable(
 				vitals.level(),
 				definition.getMinLevel(),
 				definition.getPrerequisiteQuestCode(),
 				completed,
-				started);
+				blocked);
 	}
 
 	private void assertAtNpc(UUID locationId, String npcCode) {
@@ -316,7 +348,9 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 			Map<UUID, List<QuestRewardDefinitionEntity>> rewards,
 			Map<UUID, List<CharacterQuestObjectiveEntity>> progress,
 			Set<UUID> tracked,
-			List<String> unlocks) {
+			Map<String, NpcDefinitionEntity> npcs,
+			Map<String, String> questNames,
+			Map<String, ItemDefinitionView> items) {
 		Map<UUID, CharacterQuestObjectiveEntity> progressByObjective = state == null
 				? Map.of()
 				: progress.getOrDefault(state.getId(), List.of()).stream()
@@ -335,8 +369,24 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				})
 				.toList();
 		List<QuestRewardView> rewardViews = rewards.getOrDefault(definition.getId(), List.of()).stream()
-				.map(reward -> QuestRewardView.of(reward.getKind(), reward.getAmount(), reward.getItemCode(), reward.getUnlockCode()))
+				.map(reward -> {
+					String itemName = reward.getItemCode() == null
+							? null
+							: items.containsKey(reward.getItemCode()) ? items.get(reward.getItemCode()).name() : reward.getItemCode();
+					return QuestRewardView.of(
+							reward.getKind(),
+							reward.getAmount(),
+							reward.getItemCode(),
+							itemName,
+							reward.getUnlockCode());
+				})
 				.toList();
+		List<String> unlocks = status != QuestListStatus.COMPLETED
+				? List.of()
+				: rewards.getOrDefault(definition.getId(), List.of()).stream()
+						.filter(reward -> reward.getKind() == QuestRewardKind.UNLOCK && reward.getUnlockCode() != null)
+						.map(QuestRewardDefinitionEntity::getUnlockCode)
+						.toList();
 		return QuestView.of(
 				definition.getCode(),
 				definition.getName(),
@@ -345,11 +395,23 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				status,
 				definition.getRecommendedLevel(),
 				definition.getStartNpcCode(),
+				npcName(npcs, definition.getStartNpcCode()),
 				definition.getTurnInNpcCode(),
+				npcName(npcs, definition.getTurnInNpcCode()),
 				definition.getNextQuestCode(),
+				definition.getNextQuestCode() == null ? null : questNames.get(definition.getNextQuestCode()),
+				definition.isRepeatable(),
 				tracked.contains(definition.getId()),
 				objectiveViews,
 				rewardViews,
-				status == QuestListStatus.COMPLETED ? unlocks : List.of());
+				unlocks);
+	}
+
+	private static String npcName(Map<String, NpcDefinitionEntity> npcs, String code) {
+		if (code == null || code.isBlank()) {
+			return null;
+		}
+		NpcDefinitionEntity npc = npcs.get(code);
+		return npc == null ? code : npc.getName();
 	}
 }

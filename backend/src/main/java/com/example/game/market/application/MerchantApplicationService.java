@@ -38,6 +38,8 @@ import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
 import com.example.game.world.domain.LocationAction;
 import com.example.game.world.domain.LocationActions;
+import com.example.game.world.infrastructure.NpcDefinitionEntity;
+import com.example.game.world.infrastructure.NpcDefinitionRepository;
 
 @Service
 public class MerchantApplicationService {
@@ -51,6 +53,7 @@ public class MerchantApplicationService {
 	private final InventoryApplicationService inventoryApplicationService;
 	private final ActivityApplicationService activityApplicationService;
 	private final GameTelemetryRecorder gameTelemetryRecorder;
+	private final NpcDefinitionRepository npcDefinitionRepository;
 
 	public MerchantApplicationService(
 			MerchantDefinitionRepository merchantDefinitionRepository,
@@ -61,7 +64,8 @@ public class MerchantApplicationService {
 			WorldApplicationService worldApplicationService,
 			InventoryApplicationService inventoryApplicationService,
 			ActivityApplicationService activityApplicationService,
-			GameTelemetryRecorder gameTelemetryRecorder) {
+			GameTelemetryRecorder gameTelemetryRecorder,
+			NpcDefinitionRepository npcDefinitionRepository) {
 		this.merchantDefinitionRepository = merchantDefinitionRepository;
 		this.merchantStockRepository = merchantStockRepository;
 		this.itemCatalogService = itemCatalogService;
@@ -71,6 +75,7 @@ public class MerchantApplicationService {
 		this.inventoryApplicationService = inventoryApplicationService;
 		this.activityApplicationService = activityApplicationService;
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
+		this.npcDefinitionRepository = npcDefinitionRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -86,9 +91,10 @@ public class MerchantApplicationService {
 		}
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
 				stockRows.stream().map(MerchantStockEntity::getItemDefinitionId).toList());
+		Map<String, NpcDefinitionEntity> people = peopleByMerchantCode();
 		List<MerchantView> views = new ArrayList<>();
 		for (MerchantDefinitionEntity merchant : merchants) {
-			views.add(toView(merchant, stockByMerchant.getOrDefault(merchant.getId(), List.of()), definitions));
+			views.add(toView(merchant, stockByMerchant.getOrDefault(merchant.getId(), List.of()), definitions, people));
 		}
 		return views;
 	}
@@ -100,7 +106,7 @@ public class MerchantApplicationService {
 		List<MerchantStockEntity> stock = merchantStockRepository.findByMerchantIdOrderBySortOrderAsc(merchantId);
 		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
 				stock.stream().map(MerchantStockEntity::getItemDefinitionId).toList());
-		return toView(merchant, stock, definitions);
+		return toView(merchant, stock, definitions, peopleByMerchantCode());
 	}
 
 	@Transactional
@@ -202,7 +208,8 @@ public class MerchantApplicationService {
 	private MerchantView toView(
 			MerchantDefinitionEntity merchant,
 			List<MerchantStockEntity> stock,
-			Map<UUID, ItemDefinitionView> definitions) {
+			Map<UUID, ItemDefinitionView> definitions,
+			Map<String, NpcDefinitionEntity> people) {
 		List<MerchantStockItemView> items = new ArrayList<>();
 		for (MerchantStockEntity row : stock) {
 			ItemDefinitionView definition = definitions.get(row.getItemDefinitionId());
@@ -211,15 +218,22 @@ public class MerchantApplicationService {
 			}
 			items.add(toStockView(row, definition));
 		}
+		NpcDefinitionEntity person = people.get(merchant.getCode());
 		return new MerchantView(
 				merchant.getId(),
 				merchant.getCode(),
-				merchant.getName(),
-				merchant.getTitle(),
-				merchant.getDescription(),
+				person != null ? person.getName() : merchant.getName(),
+				person != null ? person.getTitle() : merchant.getTitle(),
+				person != null ? person.getDescription() : merchant.getDescription(),
 				merchant.getMerchantType(),
-				merchant.getPortraitCode(),
+				person != null ? person.getPortraitCode() : merchant.getPortraitCode(),
 				items);
+	}
+
+	private Map<String, NpcDefinitionEntity> peopleByMerchantCode() {
+		return npcDefinitionRepository.findAllByOrderBySortOrderAsc().stream()
+				.filter(npc -> npc.getMerchantCode() != null && !npc.getMerchantCode().isBlank())
+				.collect(Collectors.toMap(NpcDefinitionEntity::getMerchantCode, npc -> npc, (left, right) -> left));
 	}
 
 	private static MerchantStockItemView toStockView(MerchantStockEntity row, ItemDefinitionView definition) {

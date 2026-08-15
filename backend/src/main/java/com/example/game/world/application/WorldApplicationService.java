@@ -11,7 +11,6 @@ import com.example.game.character.application.CharacterAtLocationView;
 import com.example.game.character.application.CharacterLocationService;
 import com.example.game.character.application.CharacterLocationView;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.LocationVisitedFact;
 import com.example.game.shared.api.ApiException;
 import com.example.game.world.domain.LocationActions;
 import com.example.game.world.domain.LocationConnectivity;
@@ -99,7 +98,7 @@ public class WorldApplicationService {
 		}
 
 		characterLocationService.relocate(accountId, destination.getId());
-		questProgressSink.notify(character.characterId(), new LocationVisitedFact(destination.getCode()));
+		questProgressSink.onLocationVisited(character.characterId(), destination.getCode());
 		return toLocationView(destination);
 	}
 

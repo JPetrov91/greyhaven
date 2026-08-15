@@ -81,6 +81,7 @@ class MerchantIntegrationTest {
 				.andExpect(jsonPath("$.merchants.length()").value(4))
 				.andExpect(jsonPath("$.merchants[0].code").value(MerchantCodes.WEAPONSMITH))
 				.andExpect(jsonPath("$.merchants[0].name").value("Edric Varn"))
+				.andExpect(jsonPath("$.merchants[0].title").value("Weaponsmith"))
 				.andExpect(jsonPath("$.merchants[0].stock[0].itemCode").value(ItemCodes.RUSTY_SWORD))
 				.andExpect(jsonPath("$.merchants[0].stock[0].sellPrice").value(7))
 				.andExpect(jsonPath("$.merchants[0].stock[0].rarity").value("COMMON"))

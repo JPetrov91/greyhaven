@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { acceptQuest, fetchQuests, trackQuest, turnInQuest, untrackQuest } from '../api/quests'
+import { fetchQuests, trackQuest, untrackQuest } from '../api/quests'
 import { ApiError } from '../api/client'
 import type { QuestResponse } from '../api/types'
 import { Button } from '../ui/Button'
@@ -16,7 +16,7 @@ function currentObjective(quest: QuestResponse) {
   return quest.objectives.find((objective) => !objective.completed) ?? quest.objectives[quest.objectives.length - 1]
 }
 
-function rewardPreview(quest: QuestResponse): string {
+export function rewardPreview(quest: QuestResponse): string {
   return quest.rewards
     .map((reward) => {
       if (reward.kind === 'XP') {
@@ -26,7 +26,7 @@ function rewardPreview(quest: QuestResponse): string {
         return `${reward.amount} gold`
       }
       if (reward.kind === 'ITEM') {
-        return reward.itemCode
+        return reward.itemName ?? reward.itemCode
       }
       return reward.unlockCode
     })
@@ -43,23 +43,6 @@ export function QuestLogPanel() {
     retry: false,
   })
 
-  const acceptMutation = useMutation({
-    mutationFn: (code: string) => acceptQuest(code),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['quests'] })
-      await queryClient.invalidateQueries({ queryKey: ['activity'] })
-      await queryClient.invalidateQueries({ queryKey: ['character'] })
-    },
-  })
-  const turnInMutation = useMutation({
-    mutationFn: (code: string) => turnInQuest(code),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['quests'] })
-      await queryClient.invalidateQueries({ queryKey: ['activity'] })
-      await queryClient.invalidateQueries({ queryKey: ['character'] })
-      await queryClient.invalidateQueries({ queryKey: ['inventory'] })
-    },
-  })
   const trackMutation = useMutation({
     mutationFn: async ({ code, tracked }: { code: string; tracked: boolean }) =>
       tracked ? untrackQuest(code) : trackQuest(code),
@@ -90,11 +73,7 @@ export function QuestLogPanel() {
     }
     return quest.status === tab
   })
-  const actionError =
-    (acceptMutation.error instanceof ApiError && acceptMutation.error.message) ||
-    (turnInMutation.error instanceof ApiError && turnInMutation.error.message) ||
-    (trackMutation.error instanceof ApiError && trackMutation.error.message) ||
-    null
+  const actionError = trackMutation.error instanceof ApiError ? trackMutation.error.message : null
 
   return (
     <Panel title="Quest Log" data-testid="quest-log">
@@ -121,9 +100,15 @@ export function QuestLogPanel() {
                   <strong>{quest.name}</strong>
                   <p className="muted">
                     Lv {quest.recommendedLevel}
-                    {quest.startNpcCode ? ` · ${quest.startNpcCode}` : ''}
+                    {quest.startNpcName ? ` · ${quest.startNpcName}` : ''}
                   </p>
-                  {objective ? (
+                  {quest.status === 'AVAILABLE' && quest.startNpcName ? (
+                    <p data-testid={`quest-hint-${quest.code}`}>Talk to {quest.startNpcName} to accept</p>
+                  ) : null}
+                  {quest.status === 'READY_TO_TURN_IN' && quest.turnInNpcName ? (
+                    <p data-testid={`quest-hint-${quest.code}`}>Return to {quest.turnInNpcName}</p>
+                  ) : null}
+                  {objective && quest.status !== 'AVAILABLE' ? (
                     <p data-testid={`quest-objective-${quest.code}`}>
                       {objective.displayText} {objective.currentAmount}/{objective.requiredAmount}
                     </p>
@@ -131,24 +116,6 @@ export function QuestLogPanel() {
                   <p className="muted">{rewardPreview(quest)}</p>
                 </div>
                 <div className="quest-log-actions">
-                  {quest.status === 'AVAILABLE' ? (
-                    <Button
-                      type="button"
-                      data-testid={`accept-quest-${quest.code}`}
-                      onClick={() => acceptMutation.mutate(quest.code)}
-                    >
-                      Accept
-                    </Button>
-                  ) : null}
-                  {quest.status === 'READY_TO_TURN_IN' ? (
-                    <Button
-                      type="button"
-                      data-testid={`turn-in-quest-${quest.code}`}
-                      onClick={() => turnInMutation.mutate(quest.code)}
-                    >
-                      Turn in
-                    </Button>
-                  ) : null}
                   {quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN' ? (
                     <Button
                       type="button"

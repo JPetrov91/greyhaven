@@ -27,10 +27,13 @@ export function QuestTracker() {
         <ul className="quest-tracker-list">
           {tracked.map((quest) => {
             const objective = quest.objectives.find((item) => !item.completed) ?? quest.objectives[0]
+            const ready = quest.status === 'READY_TO_TURN_IN'
             return (
               <li key={quest.code} data-testid={`tracked-quest-${quest.code}`}>
                 <strong>{quest.name}</strong>
-                {objective ? (
+                {ready && quest.turnInNpcName ? (
+                  <p data-testid={`tracked-return-${quest.code}`}>Return to {quest.turnInNpcName}</p>
+                ) : objective ? (
                   <p>
                     {objective.displayText} {objective.currentAmount}/{objective.requiredAmount}
                   </p>

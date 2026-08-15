@@ -4,6 +4,7 @@ public record QuestRewardResponse(
 		String kind,
 		int amount,
 		String itemCode,
+		String itemName,
 		String unlockCode
 ) {
 }

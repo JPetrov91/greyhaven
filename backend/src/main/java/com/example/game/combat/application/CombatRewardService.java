@@ -33,7 +33,6 @@ import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
 import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.CombatVictoryFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -206,7 +205,7 @@ public class CombatRewardService {
 
 		session.markRewards(xp, gold, previousLevel, after.level(), now);
 		combatSessionRepository.saveAndFlush(session);
-		questProgressSink.notify(session.getCharacterId(), new CombatVictoryFact(monster.getCode(), session.getId()));
+		questProgressSink.onCombatVictory(session.getCharacterId(), monster.getCode(), session.getId());
 	}
 
 	CombatRewardsView loadRewards(CombatSessionEntity session) {

@@ -700,6 +700,7 @@ export type QuestRewardResponse = {
   kind: string
   amount: number
   itemCode: string | null
+  itemName: string | null
   unlockCode: string | null
 }
 
@@ -711,8 +712,12 @@ export type QuestResponse = {
   status: 'AVAILABLE' | 'ACTIVE' | 'READY_TO_TURN_IN' | 'COMPLETED'
   recommendedLevel: number
   startNpcCode: string | null
+  startNpcName: string | null
   turnInNpcCode: string | null
+  turnInNpcName: string | null
   nextQuestCode: string | null
+  nextQuestName: string | null
+  repeatable: boolean
   tracked: boolean
   objectives: QuestObjectiveResponse[]
   rewards: QuestRewardResponse[]

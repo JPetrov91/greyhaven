@@ -35,6 +35,7 @@ import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.domain.InventoryBalance;
 import com.example.game.item.domain.ItemCodes;
 import com.example.game.quest.domain.QuestCodes;
+import com.example.game.quest.domain.UnlockCodes;
 import com.example.game.shared.domain.MutableRandomProvider;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.world.domain.LocationCodes;
@@ -118,7 +119,11 @@ class QuestIntegrationTest {
 		moveTo(session, LocationCodes.CITY_SQUARE);
 		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE + "/turn-in")).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("COMPLETED"));
+				.andExpect(jsonPath("$.status").value("COMPLETED"))
+				.andExpect(jsonPath("$.startNpcName").value("Watch-Sergeant Bren"))
+				.andExpect(jsonPath("$.nextQuestName").value("Arm the Watch"))
+				.andExpect(jsonPath("$.rewards[?(@.kind=='ITEM')].itemName").value("Healing Potion"))
+				.andExpect(jsonPath("$.unlocks").isEmpty());
 
 		assertThat(xpOf(characterId)).isEqualTo(xpBefore + 40 + 20);
 		assertThat(goldOf(characterId)).isGreaterThanOrEqualTo(goldBefore + 15);
@@ -325,6 +330,55 @@ class QuestIntegrationTest {
 				.isEqualTo(potionsBefore + 1);
 	}
 
+	@Test
+	void starterGrantsDoNotRecordProgressSourcesWithoutOpenQuests() throws Exception {
+		String email = "quest-source-" + System.nanoTime() + "@greyhaven.test";
+		registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		assertThat(jdbcTemplate.queryForObject(
+				"select count(*) from character_quest_progress_source where character_id = ?",
+				Integer.class,
+				characterId)).isZero();
+	}
+
+	@Test
+	void repeatableQuestCanBeAcceptedAgain() throws Exception {
+		String email = "quest-repeat-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		insertRepeatableVisitQuest();
+		mockMvc.perform(withCsrf(post("/api/v1/quests/QST_SQUARE_DRILL/accept")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("COMPLETED"));
+		mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"questCode\":\"QST_SQUARE_DRILL\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.actions[?(@.type=='ACCEPT')].questCode").value("QST_SQUARE_DRILL"));
+		mockMvc.perform(withCsrf(post("/api/v1/quests/QST_SQUARE_DRILL/accept")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("COMPLETED"));
+		assertThat(jdbcTemplate.queryForObject(
+				"""
+						select count(*) from character_quest q
+						join quest_definition d on d.id = q.quest_id
+						where q.character_id = ? and d.code = 'QST_SQUARE_DRILL'
+						""",
+				Integer.class,
+				characterId)).isEqualTo(1);
+	}
+
+	@Test
+	void completedQuestUnlocksAreOnlyThatQuest() throws Exception {
+		String email = "quest-unlock-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		insertUnlockQuest();
+		mockMvc.perform(withCsrf(post("/api/v1/quests/QST_YARD_PASS/accept")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("COMPLETED"))
+				.andExpect(jsonPath("$.unlocks[0]").value(UnlockCodes.TRAINING_GROUNDS));
+	}
+
 	private void winStreetThug(MockHttpSession session) throws Exception {
 		mutableRandomProvider.queue(1);
 		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
@@ -413,6 +467,64 @@ class QuestIntegrationTest {
 						(id, quest_id, kind, amount, item_code, unlock_code, sort_order)
 						values ('e0000000-0000-4000-8000-000000000234', 'e0000000-0000-4000-8000-000000000204',
 						 'ITEM', 1, 'IRON_SWORD', null, 1)
+						on conflict do nothing
+						""");
+	}
+
+	private void insertRepeatableVisitQuest() {
+		jdbcTemplate.update(
+				"""
+						insert into quest_definition
+						(id, code, name, description, category, recommended_level, min_level, start_npc_code, turn_in_npc_code,
+						 prerequisite_quest_code, next_quest_code, repeatable, sort_order, offer_text, progress_text, complete_text)
+						values ('e0000000-0000-4000-8000-000000000205', 'QST_SQUARE_DRILL', 'Square Drill', 'Stand in the square.',
+						 'SIDE', 1, 1, 'MILITIA_OFFICER', null, null, null, true, 94,
+						 'Stand here.', 'Go on.', 'Again.')
+						on conflict do nothing
+						""");
+		jdbcTemplate.update(
+				"""
+						insert into quest_objective_definition
+						(id, quest_id, sort_order, type, target_code, required_amount, display_text, consume_on_turn_in)
+						values ('e0000000-0000-4000-8000-000000000215', 'e0000000-0000-4000-8000-000000000205', 1,
+						 'VISIT_LOCATION', 'CITY_SQUARE', 1, 'Stand in the Square', false)
+						on conflict do nothing
+						""");
+		jdbcTemplate.update(
+				"""
+						insert into quest_reward_definition
+						(id, quest_id, kind, amount, item_code, unlock_code, sort_order)
+						values ('e0000000-0000-4000-8000-000000000235', 'e0000000-0000-4000-8000-000000000205',
+						 'GOLD', 1, null, null, 1)
+						on conflict do nothing
+						""");
+	}
+
+	private void insertUnlockQuest() {
+		jdbcTemplate.update(
+				"""
+						insert into quest_definition
+						(id, code, name, description, category, recommended_level, min_level, start_npc_code, turn_in_npc_code,
+						 prerequisite_quest_code, next_quest_code, repeatable, sort_order, offer_text, progress_text, complete_text)
+						values ('e0000000-0000-4000-8000-000000000206', 'QST_YARD_PASS', 'Yard Pass', 'The yard.',
+						 'SIDE', 1, 1, 'MILITIA_OFFICER', null, null, null, false, 95,
+						 'Take this.', 'Go on.', 'Here.')
+						on conflict do nothing
+						""");
+		jdbcTemplate.update(
+				"""
+						insert into quest_objective_definition
+						(id, quest_id, sort_order, type, target_code, required_amount, display_text, consume_on_turn_in)
+						values ('e0000000-0000-4000-8000-000000000216', 'e0000000-0000-4000-8000-000000000206', 1,
+						 'VISIT_LOCATION', 'CITY_SQUARE', 1, 'Stand in the Square', false)
+						on conflict do nothing
+						""");
+		jdbcTemplate.update(
+				"""
+						insert into quest_reward_definition
+						(id, quest_id, kind, amount, item_code, unlock_code, sort_order)
+						values ('e0000000-0000-4000-8000-000000000236', 'e0000000-0000-4000-8000-000000000206',
+						 'UNLOCK', 1, null, 'TRAINING_GROUNDS', 1)
 						on conflict do nothing
 						""");
 	}

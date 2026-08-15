@@ -16,7 +16,6 @@ import com.example.game.quest.application.QuestApplicationService;
 import com.example.game.quest.application.QuestErrors;
 import com.example.game.quest.application.QuestProgressSink;
 import com.example.game.quest.application.QuestView;
-import com.example.game.quest.domain.TalkFact;
 import com.example.game.quest.infrastructure.QuestDefinitionEntity;
 import com.example.game.quest.infrastructure.QuestDefinitionRepository;
 import com.example.game.world.domain.NpcInteraction;
@@ -84,12 +83,12 @@ public class NpcApplicationService {
 		if (!npc.getLocationCode().equals(locationCode)) {
 			throw QuestErrors.npcNotAtLocation();
 		}
-		questProgressSink.notify(vitals.characterId(), new TalkFact(npc.getCode()));
+		questProgressSink.onTalk(vitals.characterId(), npc.getCode());
 		List<QuestView> quests = questApplicationService.list(accountId);
 		QuestView focused = resolveFocusedQuest(npc, quests, questCode);
 		String text = dialogueText(npc, focused);
 		List<NpcTalkActionView> actions = new ArrayList<>();
-		if (focused != null && "AVAILABLE".equals(focused.status()) && npc.getCode().equals(focused.startNpcCode())) {
+		if (focused != null && canAcceptFrom(npc, focused)) {
 			actions.add(new NpcTalkActionView("ACCEPT", focused.code(), null, "Accept quest"));
 		}
 		if (focused != null && "READY_TO_TURN_IN".equals(focused.status())
@@ -114,6 +113,9 @@ public class NpcApplicationService {
 		List<String> badges = new ArrayList<>();
 		for (QuestView quest : quests) {
 			if ("AVAILABLE".equals(quest.status()) && npc.getCode().equals(quest.startNpcCode())) {
+				badges.add("AVAILABLE_QUEST");
+			}
+			if ("COMPLETED".equals(quest.status()) && quest.repeatable() && npc.getCode().equals(quest.startNpcCode())) {
 				badges.add("AVAILABLE_QUEST");
 			}
 			if ("READY_TO_TURN_IN".equals(quest.status()) && npc.getCode().equals(quest.turnInNpcCode())) {
@@ -148,10 +150,23 @@ public class NpcApplicationService {
 						.filter(quest -> "AVAILABLE".equals(quest.status()) && npc.getCode().equals(quest.startNpcCode()))
 						.findFirst())
 				.or(() -> quests.stream()
+						.filter(quest -> "COMPLETED".equals(quest.status())
+								&& quest.repeatable()
+								&& npc.getCode().equals(quest.startNpcCode()))
+						.findFirst())
+				.or(() -> quests.stream()
 						.filter(quest -> "ACTIVE".equals(quest.status())
 								&& (npc.getCode().equals(quest.startNpcCode()) || npc.getCode().equals(quest.turnInNpcCode())))
 						.findFirst())
 				.orElse(null);
+	}
+
+	private static boolean canAcceptFrom(NpcDefinitionEntity npc, QuestView focused) {
+		if (!npc.getCode().equals(focused.startNpcCode())) {
+			return false;
+		}
+		return "AVAILABLE".equals(focused.status())
+				|| ("COMPLETED".equals(focused.status()) && focused.repeatable());
 	}
 
 	private String dialogueText(NpcDefinitionEntity npc, QuestView focused) {
@@ -165,7 +180,7 @@ public class NpcApplicationService {
 		return switch (focused.status()) {
 			case "AVAILABLE" -> definition.getOfferText();
 			case "READY_TO_TURN_IN" -> definition.getCompleteText();
-			case "COMPLETED" -> definition.getCompleteText();
+			case "COMPLETED" -> focused.repeatable() ? definition.getOfferText() : definition.getCompleteText();
 			default -> definition.getProgressText();
 		};
 	}

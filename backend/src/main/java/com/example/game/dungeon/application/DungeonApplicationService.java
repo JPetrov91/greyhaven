@@ -28,7 +28,6 @@ import com.example.game.combat.infrastructure.EncounterRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
 import com.example.game.quest.application.QuestProgressSink;
-import com.example.game.quest.domain.DungeonCompletedFact;
 import com.example.game.dungeon.domain.DungeonCodes;
 import com.example.game.dungeon.domain.DungeonConnectivity;
 import com.example.game.dungeon.domain.DungeonConnectivity.DungeonEdge;
@@ -286,9 +285,7 @@ public class DungeonApplicationService {
 				}
 				run.complete(now);
 				dungeonRunRepository.saveAndFlush(run);
-				questProgressSink.notify(
-						run.getCharacterId(),
-						new DungeonCompletedFact(dungeon.getCode(), run.getId()));
+				questProgressSink.onDungeonCompleted(run.getCharacterId(), dungeon.getCode(), run.getId());
 				return;
 			}
 			unlockOutgoing(run, rooms, room, now, false);

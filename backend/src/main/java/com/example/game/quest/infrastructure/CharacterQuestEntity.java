@@ -116,6 +116,13 @@ public class CharacterQuestEntity implements Persistable<UUID> {
 		this.readyAt = null;
 	}
 
+	public void reopen(Instant now) {
+		this.status = QuestStatus.ACTIVE;
+		this.acceptedAt = now;
+		this.readyAt = null;
+		this.rewardsApplied = false;
+	}
+
 	public void markCompleted(Instant now) {
 		this.status = QuestStatus.COMPLETED;
 		this.completedAt = now;

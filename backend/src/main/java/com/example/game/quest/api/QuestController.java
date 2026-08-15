@@ -74,8 +74,12 @@ public class QuestController {
 				view.status(),
 				view.recommendedLevel(),
 				view.startNpcCode(),
+				view.startNpcName(),
 				view.turnInNpcCode(),
+				view.turnInNpcName(),
 				view.nextQuestCode(),
+				view.nextQuestName(),
+				view.repeatable(),
 				view.tracked(),
 				view.objectives().stream().map(QuestController::toObjective).toList(),
 				view.rewards().stream().map(QuestController::toReward).toList(),
@@ -94,6 +98,6 @@ public class QuestController {
 	}
 
 	private static QuestRewardResponse toReward(QuestRewardView view) {
-		return new QuestRewardResponse(view.kind(), view.amount(), view.itemCode(), view.unlockCode());
+		return new QuestRewardResponse(view.kind(), view.amount(), view.itemCode(), view.itemName(), view.unlockCode());
 	}
 }

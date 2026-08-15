@@ -15,5 +15,6 @@ class QuestAvailabilityTest {
 		assertThat(QuestAvailability.isAvailable(2, 1, "QST_A", Set.of(), false)).isFalse();
 		assertThat(QuestAvailability.isAvailable(2, 1, "QST_A", Set.of("QST_A"), false)).isTrue();
 		assertThat(QuestAvailability.isAvailable(2, 1, "QST_A", Set.of("QST_A"), true)).isFalse();
+		assertThat(QuestAvailability.isAvailable(1, 1, null, Set.of("QST_REPEAT"), false)).isTrue();
 	}
 }

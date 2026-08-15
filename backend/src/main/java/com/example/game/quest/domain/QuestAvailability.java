@@ -12,8 +12,8 @@ public final class QuestAvailability {
 			int minLevel,
 			String prerequisiteQuestCode,
 			Set<String> completedQuestCodes,
-			boolean alreadyStarted) {
-		if (alreadyStarted) {
+			boolean hasOpenOrLockedQuest) {
+		if (hasOpenOrLockedQuest) {
 			return false;
 		}
 		if (characterLevel < minLevel) {
