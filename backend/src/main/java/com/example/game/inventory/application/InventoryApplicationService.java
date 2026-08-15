@@ -27,6 +27,8 @@ import com.example.game.inventory.domain.InventoryBalance;
 import com.example.game.inventory.infrastructure.EquipmentEntity;
 import com.example.game.inventory.infrastructure.EquipmentRepository;
 import com.example.game.item.application.AffixCatalogService;
+import com.example.game.item.application.ItemCatalogService;
+import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.AffixCatalog;
 import com.example.game.item.domain.ArmorCategory;
 import com.example.game.item.domain.GeneratedItem;
@@ -39,10 +41,6 @@ import com.example.game.item.domain.ItemStatCalculator;
 import com.example.game.item.domain.ItemStats;
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.domain.RolledAffix;
-import com.example.game.item.infrastructure.ItemDefinitionEntity;
-import com.example.game.item.infrastructure.ItemDefinitionModifierEntity;
-import com.example.game.item.infrastructure.ItemDefinitionModifierRepository;
-import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceAffixEntity;
 import com.example.game.item.infrastructure.ItemInstanceAffixRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
@@ -53,38 +51,35 @@ import com.example.game.shared.domain.RandomProvider;
 @Service
 public class InventoryApplicationService implements HealingPotionConsumption {
 
-	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final ItemCatalogService itemCatalogService;
 	private final ItemInstanceRepository itemInstanceRepository;
 	private final EquipmentRepository equipmentRepository;
 	private final CharacterVitalsService characterVitalsService;
 	private final CharacterCombatGuard characterCombatGuard;
 	private final ItemReservationQuery itemReservationQuery;
 	private final ItemInstanceAffixRepository itemInstanceAffixRepository;
-	private final ItemDefinitionModifierRepository itemDefinitionModifierRepository;
 	private final AffixCatalogService affixCatalogService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 
 	public InventoryApplicationService(
-			ItemDefinitionRepository itemDefinitionRepository,
+			ItemCatalogService itemCatalogService,
 			ItemInstanceRepository itemInstanceRepository,
 			EquipmentRepository equipmentRepository,
 			CharacterVitalsService characterVitalsService,
 			CharacterCombatGuard characterCombatGuard,
 			ItemReservationQuery itemReservationQuery,
 			ItemInstanceAffixRepository itemInstanceAffixRepository,
-			ItemDefinitionModifierRepository itemDefinitionModifierRepository,
 			AffixCatalogService affixCatalogService,
 			RandomProvider randomProvider,
 			Clock clock) {
-		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.itemCatalogService = itemCatalogService;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.equipmentRepository = equipmentRepository;
 		this.characterVitalsService = characterVitalsService;
 		this.characterCombatGuard = characterCombatGuard;
 		this.itemReservationQuery = itemReservationQuery;
 		this.itemInstanceAffixRepository = itemInstanceAffixRepository;
-		this.itemDefinitionModifierRepository = itemDefinitionModifierRepository;
 		this.affixCatalogService = affixCatalogService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
@@ -126,7 +121,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
 		characterCombatGuard.assertNotInActiveCombat(vitals.characterId());
 		ItemInstanceEntity instance = requireOwnedInstance(vitals.characterId(), itemInstanceId);
-		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+		ItemDefinitionView definition = requireDefinition(instance.getItemDefinitionId());
 
 		if (!isUsable(definition) || equipmentRepository.existsByItemInstanceId(instance.getId())) {
 			throw InventoryErrors.itemNotUsable();
@@ -143,7 +138,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
 
-		characterVitalsService.heal(accountId, definition.getHealAmount());
+		characterVitalsService.heal(accountId, definition.healAmount());
 		CharacterVitalsView updatedVitals = characterVitalsService.vitalsOf(accountId);
 		return buildInventoryView(updatedVitals);
 	}
@@ -153,36 +148,36 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	 */
 	@Transactional(readOnly = true)
 	public boolean hasHealingPotion(UUID characterId) {
-		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+		ItemDefinitionView potion = itemCatalogService.findByCode(ItemCodes.HEALING_POTION)
 				.orElse(null);
-		if (potion == null || potion.getHealAmount() == null) {
+		if (potion == null || potion.healAmount() == null) {
 			return false;
 		}
 		return itemInstanceRepository
-				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.id())
 				.filter(instance -> unreservedQuantity(instance) > 0)
 				.isPresent();
 	}
 
 	@Transactional(readOnly = true)
 	public HealingPotionStock healingPotionStock(UUID characterId) {
-		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+		ItemDefinitionView potion = itemCatalogService.findByCode(ItemCodes.HEALING_POTION)
 				.orElse(null);
-		if (potion == null || potion.getHealAmount() == null) {
+		if (potion == null || potion.healAmount() == null) {
 			return new HealingPotionStock(0, 0);
 		}
 		int quantity = itemInstanceRepository
-				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, potion.id())
 				.map(this::unreservedQuantity)
 				.orElse(0);
-		return new HealingPotionStock(quantity, potion.getHealAmount());
+		return new HealingPotionStock(quantity, potion.healAmount());
 	}
 
 	@Transactional(readOnly = true)
 	public List<PublicEquippedItemView> publicEquippedItems(UUID characterId) {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId);
-		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, ItemDefinitionView> definitions = loadDefinitions(instances);
 		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
 		AffixCatalog catalog = affixCatalogService.load();
 		Map<UUID, ItemInstanceEntity> byId = new HashMap<>();
@@ -195,14 +190,14 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			if (instance == null) {
 				continue;
 			}
-			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
 			if (definition == null) {
 				continue;
 			}
 			ItemStats stats = statsOf(
 					instance,
 					definition,
-					loadCatalogModifiers(Set.of(definition.getId())),
+					loadCatalogModifiers(List.of(definition)),
 					affixesByInstance,
 					catalog);
 			List<RolledAffix> rolled = rolledAffixes(affixesByInstance.getOrDefault(instance.getId(), List.of()));
@@ -219,8 +214,8 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 					.toList();
 			equipped.add(new PublicEquippedItemView(
 					entry.getKey(),
-					definition.getCode(),
-					ItemDisplayNames.compose(definition.getName(), rolled, catalog),
+					definition.code(),
+					ItemDisplayNames.compose(definition.name(), rolled, catalog),
 					instance.getRarity(),
 					stats.weaponDamage() == 0 ? null : stats.weaponDamage(),
 					stats.armor() == 0 ? null : stats.armor(),
@@ -237,17 +232,17 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	@Transactional
 	public HealingPotionStock consumeUpTo(UUID characterId, int maxCharges) {
 		characterVitalsService.lockVitalsByCharacterId(characterId);
-		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+		ItemDefinitionView potion = itemCatalogService.findByCode(ItemCodes.HEALING_POTION)
 				.orElse(null);
-		if (potion == null || potion.getHealAmount() == null) {
+		if (potion == null || potion.healAmount() == null) {
 			return new HealingPotionStock(0, 0);
 		}
-		int healAmount = potion.getHealAmount();
+		int healAmount = potion.healAmount();
 		if (maxCharges < 1) {
 			return new HealingPotionStock(0, healAmount);
 		}
 		ItemInstanceEntity instance = itemInstanceRepository
-				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.id())
 				.orElse(null);
 		if (instance == null) {
 			return new HealingPotionStock(0, healAmount);
@@ -272,13 +267,13 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	@Transactional
 	public int consumeOneHealingPotion(UUID characterId) {
 		characterVitalsService.lockVitalsByCharacterId(characterId);
-		ItemDefinitionEntity potion = itemDefinitionRepository.findByCode(ItemCodes.HEALING_POTION)
+		ItemDefinitionView potion = itemCatalogService.findByCode(ItemCodes.HEALING_POTION)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(ItemCodes.HEALING_POTION));
-		if (potion.getHealAmount() == null) {
+		if (potion.healAmount() == null) {
 			throw InventoryErrors.itemNotUsable();
 		}
 		ItemInstanceEntity instance = itemInstanceRepository
-				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.getId())
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, potion.id())
 				.orElseThrow(InventoryErrors::itemNotFound);
 		if (unreservedQuantity(instance) < 1) {
 			throw InventoryErrors.itemListed();
@@ -290,7 +285,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		else {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
-		return potion.getHealAmount();
+		return potion.healAmount();
 	}
 
 	/**
@@ -305,13 +300,13 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		// Serialize capacity and stack merges against the character row.
 		characterVitalsService.lockVitalsByCharacterId(characterId);
 
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
-		boolean stackable = definition.getType().isStackable();
+		boolean stackable = definition.type().isStackable();
 
 		if (stackable) {
 			ItemInstanceEntity existing = itemInstanceRepository
-					.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
+					.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.id())
 					.orElse(null);
 			if (existing != null) {
 				existing.increaseQuantity(quantity);
@@ -342,7 +337,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	 */
 	@Transactional(readOnly = true)
 	public GeneratedItem rollItem(String itemCode) {
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
 		return rollItem(definition, affixCatalogService.load());
 	}
@@ -359,9 +354,9 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			throw new IllegalArgumentException("generated item is required");
 		}
 		characterVitalsService.lockVitalsByCharacterId(characterId);
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
-		if (definition.getType().isStackable()) {
+		if (definition.type().isStackable()) {
 			grantItems(characterId, itemCode, quantity);
 			return;
 		}
@@ -382,12 +377,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			throw new IllegalArgumentException("quantity must be positive");
 		}
 		characterVitalsService.lockVitalsByCharacterId(characterId);
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
 		GeneratedItem generated = new GeneratedItem(
-				definition.getRarity(),
-				definition.getWeaponDamage(),
-				definition.getArmorValue(),
+				definition.rarity(),
+				definition.weaponDamage(),
+				definition.armorValue(),
 				List.of());
 		ensureCapacity(characterId, quantity);
 		Instant now = Instant.now(clock);
@@ -402,9 +397,9 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	 */
 	@Transactional(propagation = Propagation.MANDATORY)
 	public void grantMerchantPurchase(UUID characterId, String itemCode, int quantity) {
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
-		if (definition.getType().isStackable()) {
+		if (definition.type().isStackable()) {
 			grantItems(characterId, itemCode, quantity);
 			return;
 		}
@@ -444,10 +439,10 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		if (quantity < 1) {
 			throw new IllegalArgumentException("quantity must be positive");
 		}
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode)
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode)
 				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(itemCode));
 		ItemInstanceEntity instance = itemInstanceRepository
-				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
+				.findWithLockByOwnerCharacterIdAndItemDefinitionId(characterId, definition.id())
 				.orElseThrow(InventoryErrors::missingMaterials);
 		if (unreservedQuantity(instance) < quantity) {
 			throw InventoryErrors.missingMaterials();
@@ -465,12 +460,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 
 	@Transactional(readOnly = true)
 	public int unreservedQuantityByCode(UUID characterId, String itemCode) {
-		ItemDefinitionEntity definition = itemDefinitionRepository.findByCode(itemCode).orElse(null);
+		ItemDefinitionView definition = itemCatalogService.findByCode(itemCode).orElse(null);
 		if (definition == null) {
 			return 0;
 		}
 		ItemInstanceEntity instance = itemInstanceRepository
-				.findByOwnerCharacterIdAndItemDefinitionId(characterId, definition.getId())
+				.findByOwnerCharacterIdAndItemDefinitionId(characterId, definition.id())
 				.orElse(null);
 		if (instance == null) {
 			return 0;
@@ -481,12 +476,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	@Transactional(propagation = Propagation.MANDATORY)
 	public SalvageSourceSnapshot requireSalvageSource(UUID characterId, UUID itemInstanceId) {
 		ItemInstanceEntity instance = requireOwnedInstance(characterId, itemInstanceId);
-		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+		ItemDefinitionView definition = requireDefinition(instance.getItemDefinitionId());
 		return new SalvageSourceSnapshot(
 				instance.getId(),
-				definition.getId(),
-				definition.getCode(),
-				definition.getType(),
+				definition.id(),
+				definition.code(),
+				definition.type(),
 				instance.getRarity(),
 				equipmentRepository.existsByItemInstanceId(instance.getId()),
 				reservedQuantity(instance.getId()));
@@ -518,12 +513,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			return Map.of();
 		}
 		List<ItemInstanceEntity> instances = itemInstanceRepository.findAllById(itemInstanceIds);
-		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, ItemDefinitionView> definitions = loadDefinitions(instances);
 		AffixCatalog catalog = affixCatalogService.load();
 		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
 		Map<UUID, MarketItemDisplay> displays = new HashMap<>();
 		for (ItemInstanceEntity instance : instances) {
-			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
 			if (definition == null) {
 				continue;
 			}
@@ -541,11 +536,11 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 					.toList();
 			displays.put(instance.getId(), new MarketItemDisplay(
 					instance.getId(),
-					ItemDisplayNames.compose(definition.getName(), rolled, catalog),
-					definition.getType(),
+					ItemDisplayNames.compose(definition.name(), rolled, catalog),
+					definition.type(),
 					instance.getRarity(),
-					definition.getWeaponFamily(),
-					definition.getRequiredLevel(),
+					definition.weaponFamily(),
+					definition.requiredLevel(),
 					affixViews));
 		}
 		return displays;
@@ -649,7 +644,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		if (reservedQuantity(instance.getId()) > 0) {
 			throw InventoryErrors.itemListed();
 		}
-		ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+		ItemDefinitionView definition = requireDefinition(instance.getItemDefinitionId());
 
 		ItemDefinitionData data = definition.toData();
 		boolean listed = reservedQuantity(instance.getId()) > 0;
@@ -674,7 +669,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		}
 
 		EquipmentSlot slot = data.equipmentSlot();
-		if (definition.isTwoHanded()) {
+		if (definition.twoHanded()) {
 			equipmentRepository.findWithLockByCharacterIdAndSlot(vitals.characterId(), EquipmentSlot.OFF_HAND)
 					.ifPresent(offHand -> {
 						equipmentRepository.delete(offHand);
@@ -701,7 +696,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			List<EquipmentEntity> equipped = equipmentRepository.findWithLockByCharacterId(characterId);
 			for (EquipmentEntity row : equipped) {
 				ItemInstanceEntity instance = requireOwnedInstance(characterId, row.getItemInstanceId());
-				ItemDefinitionEntity definition = requireDefinition(instance.getItemDefinitionId());
+				ItemDefinitionView definition = requireDefinition(instance.getItemDefinitionId());
 				EquipmentValidator.Failure failure = EquipmentValidator.validate(
 						definition.toData(),
 						false,
@@ -722,12 +717,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	EquippedBonusesSnapshot equippedBonuses(UUID characterId) {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(characterId);
-		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
+		Map<UUID, ItemDefinitionView> definitions = loadDefinitions(instances);
 		return equippedBonuses(
 				equippedItemIds(characterId),
 				instances,
 				definitions,
-				loadCatalogModifiers(definitions.keySet()),
+				loadCatalogModifiers(definitions.values()),
 				loadAffixes(instances),
 				affixCatalogService.load());
 	}
@@ -735,7 +730,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	private EquippedBonusesSnapshot equippedBonuses(
 			Map<EquipmentSlot, UUID> equipped,
 			List<ItemInstanceEntity> instances,
-			Map<UUID, ItemDefinitionEntity> definitions,
+			Map<UUID, ItemDefinitionView> definitions,
 			Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers,
 			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
 			AffixCatalog catalog) {
@@ -753,12 +748,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			if (instance == null) {
 				continue;
 			}
-			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
 			if (definition == null) {
 				definition = requireDefinition(instance.getItemDefinitionId());
 			}
 			total = total.plus(statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog));
-			heaviestArmor = ArmorCategory.heaviest(heaviestArmor, definition.getArmorCategory());
+			heaviestArmor = ArmorCategory.heaviest(heaviestArmor, definition.armorCategory());
 		}
 		total = total.plusDodge(ItemBalance.armorDodge(heaviestArmor));
 		return new EquippedBonusesSnapshot(
@@ -777,8 +772,8 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	private InventoryView buildInventoryView(CharacterVitalsView vitals) {
 		List<ItemInstanceEntity> instances = itemInstanceRepository
 				.findByOwnerCharacterIdOrderByCreatedAtAscIdAsc(vitals.characterId());
-		Map<UUID, ItemDefinitionEntity> definitions = loadDefinitions(instances);
-		Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers = loadCatalogModifiers(definitions.keySet());
+		Map<UUID, ItemDefinitionView> definitions = loadDefinitions(instances);
+		Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers = loadCatalogModifiers(definitions.values());
 		Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance = loadAffixes(instances);
 		AffixCatalog catalog = affixCatalogService.load();
 		Map<EquipmentSlot, UUID> equippedBySlot = equippedItemIds(vitals.characterId());
@@ -787,7 +782,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 				instances.stream().map(ItemInstanceEntity::getId).toList());
 		Map<UUID, ItemStats> statsByInstance = new HashMap<>();
 		for (ItemInstanceEntity instance : instances) {
-			ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
+			ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
 			statsByInstance.put(instance.getId(), statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog));
 		}
 		EquipmentValidator.CharacterRequirements requirements = requirementsOf(vitals);
@@ -795,9 +790,9 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 
 		List<InventoryItemView> items = instances.stream()
 				.map(instance -> {
-					ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
-					EquipmentSlot slot = definition.getType().isEquippable()
-							? EquipmentSlot.forDefinition(definition.getEquipmentSlot(), definition.getType())
+					ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
+					EquipmentSlot slot = definition.type().isEquippable()
+							? EquipmentSlot.forDefinition(definition.equipmentSlot(), definition.type())
 							: null;
 					int listedQuantity = reservedQuantities.getOrDefault(instance.getId(), 0);
 					int available = instance.getQuantity() - listedQuantity;
@@ -828,38 +823,38 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 									statsByInstance);
 					return new InventoryItemView(
 							instance.getId(),
-							definition.getId(),
-							definition.getCode(),
-							definition.getName(),
-							ItemDisplayNames.compose(definition.getName(), rolled, catalog),
-							definition.getDescription(),
-							definition.getType(),
+							definition.id(),
+							definition.code(),
+							definition.name(),
+							ItemDisplayNames.compose(definition.name(), rolled, catalog),
+							definition.description(),
+							definition.type(),
 							instance.getRarity(),
 							instance.getQuantity(),
-							definition.getRequiredLevel(),
-							definition.getRequiredStrength(),
-							definition.getRequiredAgility(),
-							definition.getRequiredEndurance(),
-							definition.getRequiredPerception(),
-							definition.getBaseValue(),
+							definition.requiredLevel(),
+							definition.requiredStrength(),
+							definition.requiredAgility(),
+							definition.requiredEndurance(),
+							definition.requiredPerception(),
+							definition.baseValue(),
 							MerchantPriceCalculator.merchantBuyPrice(
-									definition.getBaseValue(),
+									definition.baseValue(),
 									instance.getRarity(),
 									rolled.size()),
 							equipped,
 							canEquip,
-							definition.isTwoHanded(),
+							definition.twoHanded(),
 							instance.isLegacy(),
 							slot,
-							definition.getWeaponFamily(),
-							definition.getArmorCategory(),
+							definition.weaponFamily(),
+							definition.armorCategory(),
 							isUsable(definition) && available > 0,
 							listedQuantity,
 							instance.getRolledWeaponDamage(),
 							instance.getRolledArmorValue(),
 							displayWeaponDamage(instance.getRolledWeaponDamage(), statsByInstance.get(instance.getId())),
 							displayArmorValue(instance.getRolledArmorValue(), statsByInstance.get(instance.getId())),
-							definition.getHealAmount(),
+							definition.healAmount(),
 							statsByInstance.get(instance.getId()).accuracy(),
 							statsByInstance.get(instance.getId()).criticalChance(),
 							statsByInstance.get(instance.getId()).dodge(),
@@ -933,7 +928,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 
 	private ItemStats statsOf(
 			ItemInstanceEntity instance,
-			ItemDefinitionEntity definition,
+			ItemDefinitionView definition,
 			Map<UUID, List<ItemStatCalculator.AppliedAffix>> catalogModifiers,
 			Map<UUID, List<ItemInstanceAffixEntity>> affixesByInstance,
 			AffixCatalog catalog) {
@@ -947,18 +942,19 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		return ItemStatCalculator.calculate(
 				instance.getRolledWeaponDamage(),
 				instance.getRolledArmorValue(),
-				catalogModifiers.getOrDefault(definition.getId(), List.of()),
+				catalogModifiers.getOrDefault(definition.id(), List.of()),
 				applied);
 	}
 
-	private Map<UUID, List<ItemStatCalculator.AppliedAffix>> loadCatalogModifiers(Set<UUID> definitionIds) {
+	private Map<UUID, List<ItemStatCalculator.AppliedAffix>> loadCatalogModifiers(Collection<ItemDefinitionView> definitions) {
 		Map<UUID, List<ItemStatCalculator.AppliedAffix>> modifiers = new HashMap<>();
-		if (definitionIds.isEmpty()) {
-			return modifiers;
-		}
-		for (ItemDefinitionModifierEntity row : itemDefinitionModifierRepository.findByItemDefinitionIdIn(definitionIds)) {
-			modifiers.computeIfAbsent(row.getItemDefinitionId(), key -> new ArrayList<>())
-					.add(new ItemStatCalculator.AppliedAffix(row.getStat(), row.getMagnitude()));
+		for (ItemDefinitionView definition : definitions) {
+			List<ItemStatCalculator.AppliedAffix> applied = definition.modifiers().stream()
+					.map(modifier -> new ItemStatCalculator.AppliedAffix(modifier.stat(), modifier.magnitude()))
+					.toList();
+			if (!applied.isEmpty()) {
+				modifiers.put(definition.id(), applied);
+			}
 		}
 		return modifiers;
 	}
@@ -987,13 +983,13 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 
 	private void persistOwnedInstance(
 			UUID characterId,
-			ItemDefinitionEntity definition,
+			ItemDefinitionView definition,
 			GeneratedItem generated,
 			boolean legacy,
 			Instant now) {
 		ItemInstanceEntity instance = new ItemInstanceEntity(
 				UUID.randomUUID(),
-				definition.getId(),
+				definition.id(),
 				characterId,
 				1,
 				false,
@@ -1015,12 +1011,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		itemInstanceAffixRepository.flush();
 	}
 
-	private GeneratedItem rollItem(ItemDefinitionEntity definition, AffixCatalog catalog) {
-		if (!definition.getType().isEquippable()) {
+	private GeneratedItem rollItem(ItemDefinitionView definition, AffixCatalog catalog) {
+		if (!definition.type().isEquippable()) {
 			return new GeneratedItem(
-					definition.getRarity(),
-					definition.getWeaponDamage(),
-					definition.getArmorValue(),
+					definition.rarity(),
+					definition.weaponDamage(),
+					definition.armorValue(),
 					List.of());
 		}
 		return ItemGenerator.generate(definition.toData(), catalog, randomProvider);
@@ -1048,19 +1044,19 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 
 	private ItemInstanceEntity copyDefinitionInstance(
 			UUID characterId,
-			ItemDefinitionEntity definition,
+			ItemDefinitionView definition,
 			int quantity,
 			boolean stackable,
 			Instant now) {
 		return new ItemInstanceEntity(
 				UUID.randomUUID(),
-				definition.getId(),
+				definition.id(),
 				characterId,
 				quantity,
 				stackable,
-				definition.getRarity(),
-				definition.getWeaponDamage(),
-				definition.getArmorValue(),
+				definition.rarity(),
+				definition.weaponDamage(),
+				definition.armorValue(),
 				false,
 				now);
 	}
@@ -1073,7 +1069,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 					if (instance == null) {
 						return false;
 					}
-					return requireDefinition(instance.getItemDefinitionId()).isTwoHanded();
+					return requireDefinition(instance.getItemDefinitionId()).twoHanded();
 				})
 				.orElse(false);
 	}
@@ -1081,14 +1077,14 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	private static boolean isTwoHanded(
 			UUID mainHandItemId,
 			List<ItemInstanceEntity> instances,
-			Map<UUID, ItemDefinitionEntity> definitions) {
+			Map<UUID, ItemDefinitionView> definitions) {
 		if (mainHandItemId == null) {
 			return false;
 		}
 		for (ItemInstanceEntity instance : instances) {
 			if (instance.getId().equals(mainHandItemId)) {
-				ItemDefinitionEntity definition = definitions.get(instance.getItemDefinitionId());
-				return definition != null && definition.isTwoHanded();
+				ItemDefinitionView definition = definitions.get(instance.getItemDefinitionId());
+				return definition != null && definition.twoHanded();
 			}
 		}
 		return false;
@@ -1111,24 +1107,29 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		return equipped;
 	}
 
-	private Map<UUID, ItemDefinitionEntity> loadDefinitions(List<ItemInstanceEntity> instances) {
+	private Map<UUID, ItemDefinitionView> loadDefinitions(List<ItemInstanceEntity> instances) {
 		Set<UUID> ids = new HashSet<>();
 		for (ItemInstanceEntity instance : instances) {
 			ids.add(instance.getItemDefinitionId());
 		}
-		Map<UUID, ItemDefinitionEntity> definitions = new HashMap<>();
-		for (ItemDefinitionEntity definition : itemDefinitionRepository.findAllById(ids)) {
-			definitions.put(definition.getId(), definition);
-		}
-		return definitions;
+		return itemCatalogService.findByIds(ids);
 	}
+
+	private ItemDefinitionView requireDefinition(UUID definitionId) {
+		ItemDefinitionView definition = itemCatalogService.findByIds(List.of(definitionId)).get(definitionId);
+		if (definition == null) {
+			throw InventoryErrors.itemDefinitionMissing(definitionId.toString());
+		}
+		return definition;
+	}
+
 
 	/**
 	 * The single definition of "can be used", shared by {@link #use} and the inventory view so
 	 * the client never has to re-derive the rule.
 	 */
-	private static boolean isUsable(ItemDefinitionEntity definition) {
-		return definition.getType() == ItemType.CONSUMABLE && definition.getHealAmount() != null;
+	private static boolean isUsable(ItemDefinitionView definition) {
+		return definition.type() == ItemType.CONSUMABLE && definition.healAmount() != null;
 	}
 
 	private int reservedQuantity(UUID itemInstanceId) {
@@ -1148,10 +1149,6 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		return instance;
 	}
 
-	private ItemDefinitionEntity requireDefinition(UUID definitionId) {
-		return itemDefinitionRepository.findById(definitionId)
-				.orElseThrow(() -> InventoryErrors.itemDefinitionMissing(definitionId.toString()));
-	}
 
 	private void ensureCapacity(UUID characterId, int slotsNeeded) {
 		long used = itemInstanceRepository.countByOwnerCharacterId(characterId);

@@ -1,5 +1,6 @@
 package com.example.game.inventory.application;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -8,10 +9,10 @@ import org.springframework.stereotype.Component;
 import com.example.game.inventory.domain.EquipmentSlot;
 import com.example.game.inventory.infrastructure.EquipmentEntity;
 import com.example.game.inventory.infrastructure.EquipmentRepository;
+import com.example.game.item.application.ItemCatalogService;
+import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.ItemType;
 import com.example.game.item.domain.WeaponFamily;
-import com.example.game.item.infrastructure.ItemDefinitionEntity;
-import com.example.game.item.infrastructure.ItemDefinitionRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
 
@@ -20,15 +21,15 @@ public class InventoryEquippedWeaponQuery implements EquippedWeaponQuery {
 
 	private final EquipmentRepository equipmentRepository;
 	private final ItemInstanceRepository itemInstanceRepository;
-	private final ItemDefinitionRepository itemDefinitionRepository;
+	private final ItemCatalogService itemCatalogService;
 
 	public InventoryEquippedWeaponQuery(
 			EquipmentRepository equipmentRepository,
 			ItemInstanceRepository itemInstanceRepository,
-			ItemDefinitionRepository itemDefinitionRepository) {
+			ItemCatalogService itemCatalogService) {
 		this.equipmentRepository = equipmentRepository;
 		this.itemInstanceRepository = itemInstanceRepository;
-		this.itemDefinitionRepository = itemDefinitionRepository;
+		this.itemCatalogService = itemCatalogService;
 	}
 
 	@Override
@@ -43,15 +44,12 @@ public class InventoryEquippedWeaponQuery implements EquippedWeaponQuery {
 		if (instance.isEmpty()) {
 			return Optional.empty();
 		}
-		Optional<ItemDefinitionEntity> definition = itemDefinitionRepository.findById(
-				instance.get().getItemDefinitionId());
-		if (definition.isEmpty()) {
+		ItemDefinitionView definition = itemCatalogService.findByIds(
+				List.of(instance.get().getItemDefinitionId()))
+				.get(instance.get().getItemDefinitionId());
+		if (definition == null || definition.type() != ItemType.WEAPON) {
 			return Optional.empty();
 		}
-		ItemDefinitionEntity item = definition.get();
-		if (item.getType() != ItemType.WEAPON) {
-			return Optional.empty();
-		}
-		return Optional.ofNullable(item.getWeaponFamily());
+		return Optional.ofNullable(definition.weaponFamily());
 	}
 }

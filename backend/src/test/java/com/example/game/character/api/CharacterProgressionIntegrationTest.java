@@ -193,6 +193,16 @@ class CharacterProgressionIntegrationTest {
 		mockMvc.perform(withCsrf(post("/api/v1/character/respec")).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.gold").value(0));
+
+		Integer destroyed = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from game_telemetry_events
+						where character_id = ? and event_type = 'GOLD_DESTROYED'
+						and payload ->> 'reason' = 'RESPEC'
+						""",
+				Integer.class,
+				characterId);
+		assertThat(destroyed).isEqualTo(1);
 	}
 
 	@Test
@@ -215,10 +225,57 @@ class CharacterProgressionIntegrationTest {
 				.andExpect(jsonPath("$.currentHealth").value(83))
 				.andExpect(jsonPath("$.currentStamina").value(44));
 
+		Timestamp recoveryAt = jdbcTemplate.queryForObject(
+				"select last_recovery_at from characters where id = ?",
+				Timestamp.class,
+				characterId);
+		Timestamp updatedAt = jdbcTemplate.queryForObject(
+				"select updated_at from characters where id = ?",
+				Timestamp.class,
+				characterId);
+
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.currentHealth").value(83))
 				.andExpect(jsonPath("$.currentStamina").value(44));
+
+		assertThat(jdbcTemplate.queryForObject(
+				"select last_recovery_at from characters where id = ?",
+				Timestamp.class,
+				characterId)).isEqualTo(recoveryAt);
+		assertThat(jdbcTemplate.queryForObject(
+				"select updated_at from characters where id = ?",
+				Timestamp.class,
+				characterId)).isEqualTo(updatedAt);
+	}
+
+	@Test
+	void characterGetDoesNotWriteWhenVitalsAreAlreadyCurrent() throws Exception {
+		String email = "prog-get-nowrite-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		Timestamp recoveryAt = jdbcTemplate.queryForObject(
+				"select last_recovery_at from characters where id = ?",
+				Timestamp.class,
+				characterId);
+		Timestamp updatedAt = jdbcTemplate.queryForObject(
+				"select updated_at from characters where id = ?",
+				Timestamp.class,
+				characterId);
+
+		mockMvc.perform(get("/api/v1/character").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.currentHealth").value(165))
+				.andExpect(jsonPath("$.maxHealth").value(165));
+
+		assertThat(jdbcTemplate.queryForObject(
+				"select last_recovery_at from characters where id = ?",
+				Timestamp.class,
+				characterId)).isEqualTo(recoveryAt);
+		assertThat(jdbcTemplate.queryForObject(
+				"select updated_at from characters where id = ?",
+				Timestamp.class,
+				characterId)).isEqualTo(updatedAt);
 	}
 
 	@Test

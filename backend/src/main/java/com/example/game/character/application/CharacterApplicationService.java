@@ -128,9 +128,13 @@ public class CharacterApplicationService {
 
 	@Transactional
 	public CharacterView current(UUID accountId) {
-		CharacterEntity character = characterRepository.findWithLockByAccountId(accountId)
+		CharacterEntity character = characterRepository.findByAccountId(accountId)
 				.orElseThrow(CharacterErrors::characterNotFound);
-		characterStateSyncService.sync(character);
+		if (characterStateSyncService.wouldMutate(character)) {
+			character = characterRepository.findWithLockByAccountId(accountId)
+					.orElseThrow(CharacterErrors::characterNotFound);
+			characterStateSyncService.sync(character);
+		}
 		return toView(character);
 	}
 

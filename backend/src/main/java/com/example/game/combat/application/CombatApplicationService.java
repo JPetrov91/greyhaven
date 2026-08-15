@@ -3,11 +3,8 @@ package com.example.game.combat.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,14 +13,12 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.example.game.activity.application.ActivityApplicationService;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.character.application.EquippedBonusProvider;
 import com.example.game.character.application.EquippedBonuses;
 import com.example.game.character.domain.CharacterStatCalculator;
 import com.example.game.character.domain.DerivedCombatStats;
-import com.example.game.character.domain.ProgressionBalance;
 import com.example.game.combat.domain.ActionCombatBalance;
 import com.example.game.combat.domain.Combat2State;
 import com.example.game.combat.domain.CombatAction;
@@ -39,22 +34,14 @@ import com.example.game.combat.domain.CombatV2Balance;
 import com.example.game.combat.domain.CombatantSide;
 import com.example.game.combat.domain.CombatantStats;
 import com.example.game.combat.domain.EncounterStatus;
-import com.example.game.combat.domain.LootDrop;
-import com.example.game.combat.domain.LootGenerator;
-import com.example.game.combat.domain.LootTableEntry;
 import com.example.game.combat.domain.MonsterCombatProfile;
 import com.example.game.combat.domain.MonsterCombatStats;
 import com.example.game.combat.domain.Phase1CombatEngine;
 import com.example.game.combat.domain.StatusEffectEngine;
 import com.example.game.combat.domain.StatusInstance;
 import com.example.game.combat.domain.StatusType;
-import com.example.game.combat.domain.UniqueLoot;
-import com.example.game.combat.infrastructure.CharacterUniqueDropEntity;
-import com.example.game.combat.infrastructure.CharacterUniqueDropRepository;
 import com.example.game.combat.infrastructure.CombatEventEntity;
 import com.example.game.combat.infrastructure.CombatEventRepository;
-import com.example.game.combat.infrastructure.CombatRewardItemEntity;
-import com.example.game.combat.infrastructure.CombatRewardItemRepository;
 import com.example.game.combat.infrastructure.CombatSessionEntity;
 import com.example.game.combat.infrastructure.CombatSessionRepository;
 import com.example.game.combat.infrastructure.CombatStatusEffectEntity;
@@ -63,17 +50,11 @@ import com.example.game.combat.infrastructure.EncounterEntity;
 import com.example.game.combat.infrastructure.EncounterRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
-import com.example.game.combat.infrastructure.MonsterLootEntryEntity;
-import com.example.game.combat.infrastructure.MonsterLootEntryRepository;
 import com.example.game.inventory.application.EquippedWeaponQuery;
 import com.example.game.inventory.application.InventoryApplicationService;
 import com.example.game.inventory.application.InventoryFullException;
-import com.example.game.item.application.ItemCatalogService;
-import com.example.game.item.application.ItemDefinitionView;
-import com.example.game.item.domain.GeneratedItem;
 import com.example.game.item.domain.WeaponFamily;
 import com.example.game.mastery.application.CombatTechniqueCatalogService;
-import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.mastery.application.TechniqueLoadoutQuery;
 import com.example.game.mastery.domain.CombatTechniqueCatalog;
 import com.example.game.mastery.domain.CombatTechniqueDefinition;
@@ -82,7 +63,6 @@ import com.example.game.mastery.domain.TechniqueKind;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
-import com.example.game.telemetry.domain.ItemCreateSource;
 
 @Service
 public class CombatApplicationService {
@@ -90,17 +70,12 @@ public class CombatApplicationService {
 	private final CharacterVitalsService characterVitalsService;
 	private final EquippedBonusProvider equippedBonusProvider;
 	private final InventoryApplicationService inventoryApplicationService;
-	private final ActivityApplicationService activityApplicationService;
 	private final EncounterRepository encounterRepository;
 	private final CombatSessionRepository combatSessionRepository;
 	private final CombatEventRepository combatEventRepository;
-	private final CombatRewardItemRepository combatRewardItemRepository;
 	private final CombatStatusEffectRepository combatStatusEffectRepository;
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
-	private final MonsterLootEntryRepository monsterLootEntryRepository;
-	private final CharacterUniqueDropRepository characterUniqueDropRepository;
-	private final ItemCatalogService itemCatalogService;
-	private final MasteryApplicationService masteryApplicationService;
+	private final CombatRewardService combatRewardService;
 	private final TechniqueLoadoutQuery techniqueLoadoutQuery;
 	private final CombatTechniqueCatalogService combatTechniqueCatalogService;
 	private final EquippedWeaponQuery equippedWeaponQuery;
@@ -114,17 +89,12 @@ public class CombatApplicationService {
 			CharacterVitalsService characterVitalsService,
 			EquippedBonusProvider equippedBonusProvider,
 			InventoryApplicationService inventoryApplicationService,
-			ActivityApplicationService activityApplicationService,
 			EncounterRepository encounterRepository,
 			CombatSessionRepository combatSessionRepository,
 			CombatEventRepository combatEventRepository,
-			CombatRewardItemRepository combatRewardItemRepository,
 			CombatStatusEffectRepository combatStatusEffectRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
-			MonsterLootEntryRepository monsterLootEntryRepository,
-			CharacterUniqueDropRepository characterUniqueDropRepository,
-			ItemCatalogService itemCatalogService,
-			MasteryApplicationService masteryApplicationService,
+			CombatRewardService combatRewardService,
 			TechniqueLoadoutQuery techniqueLoadoutQuery,
 			CombatTechniqueCatalogService combatTechniqueCatalogService,
 			EquippedWeaponQuery equippedWeaponQuery,
@@ -136,17 +106,12 @@ public class CombatApplicationService {
 		this.characterVitalsService = characterVitalsService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.inventoryApplicationService = inventoryApplicationService;
-		this.activityApplicationService = activityApplicationService;
 		this.encounterRepository = encounterRepository;
 		this.combatSessionRepository = combatSessionRepository;
 		this.combatEventRepository = combatEventRepository;
-		this.combatRewardItemRepository = combatRewardItemRepository;
 		this.combatStatusEffectRepository = combatStatusEffectRepository;
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
-		this.monsterLootEntryRepository = monsterLootEntryRepository;
-		this.characterUniqueDropRepository = characterUniqueDropRepository;
-		this.itemCatalogService = itemCatalogService;
-		this.masteryApplicationService = masteryApplicationService;
+		this.combatRewardService = combatRewardService;
 		this.techniqueLoadoutQuery = techniqueLoadoutQuery;
 		this.combatTechniqueCatalogService = combatTechniqueCatalogService;
 		this.equippedWeaponQuery = equippedWeaponQuery;
@@ -197,7 +162,7 @@ public class CombatApplicationService {
 		combatSessionRepository.saveAndFlush(session);
 		captureCombat2Snapshot(session, vitals.characterId(), monster);
 		combatSessionRepository.saveAndFlush(session);
-		createRewardPlan(session, monster, now);
+		combatRewardService.createRewardPlan(session, monster, now);
 		GameTelemetry.combatStarted(
 				gameTelemetryRecorder,
 				vitals.characterId(),
@@ -221,7 +186,7 @@ public class CombatApplicationService {
 						.findByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())
 						.map(pending -> {
 							MonsterDefinitionEntity monster = requireMonster(pending.getMonsterDefinitionId());
-							CombatRewardsView rewards = pending.isRewardsApplied() ? loadRewards(pending) : null;
+							CombatRewardsView rewards = pending.isRewardsApplied() ? combatRewardService.loadRewards(pending) : null;
 							return toView(pending, monster, vitals, loadEvents(pending.getId()), rewards);
 						}))
 				.orElse(null);
@@ -291,7 +256,7 @@ public class CombatApplicationService {
 		if (session.getStatus() != CombatSessionStatus.ACTIVE) {
 			if (session.isRewardsApplied()) {
 				MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
-				return toView(session, monster, vitals, loadEvents(session.getId()), loadRewards(session));
+				return toView(session, monster, vitals, loadEvents(session.getId()), combatRewardService.loadRewards(session));
 			}
 			if (session.getStatus() == CombatSessionStatus.PLAYER_WON) {
 				MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
@@ -305,7 +270,7 @@ public class CombatApplicationService {
 
 		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
 		if (!session.isRewardPlanCreated()) {
-			createRewardPlan(session, monster, Instant.now(clock));
+			combatRewardService.createRewardPlan(session, monster, Instant.now(clock));
 		}
 		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(vitals.characterId());
 		DerivedCombatStats derived = CharacterStatCalculator.calculate(
@@ -443,7 +408,7 @@ public class CombatApplicationService {
 					result.playerStamina());
 		}
 
-		CombatRewardsView rewards = session.isRewardsApplied() ? loadRewards(session) : null;
+		CombatRewardsView rewards = session.isRewardsApplied() ? combatRewardService.loadRewards(session) : null;
 		return toView(session, monster, synced, loadEvents(session.getId()), rewards);
 	}
 
@@ -459,147 +424,10 @@ public class CombatApplicationService {
 		}
 		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
 		if (!session.isRewardsApplied()) {
-			applyRewardsExactlyOnce(session, monster, Instant.now(clock));
+			combatRewardService.applyRewardsExactlyOnce(session, monster, Instant.now(clock));
 			vitals = characterVitalsService.lockVitalsByCharacterId(vitals.characterId());
 		}
-		return toView(session, monster, vitals, loadEvents(session.getId()), loadRewards(session));
-	}
-
-	/**
-	 * Idempotent reward application. Safe under concurrent completion attempts because the session
-	 * row is locked and {@code rewards_applied} flips in the same transaction.
-	 *
-	 * <p>The combat round is committed before this runs. A full inventory leaves the victory in
-	 * place so the player can make room and claim without re-rolling the fight.
-	 */
-	void applyRewardsExactlyOnce(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
-		if (session.isRewardsApplied()) {
-			return;
-		}
-		int gold = session.getPlannedGold();
-		int xp = session.getPlannedXp();
-		List<CombatRewardItemEntity> rewardRows = combatRewardItemRepository.findBySessionId(session.getId());
-		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
-				rewardRows.stream().map(CombatRewardItemEntity::getItemDefinitionId).toList());
-
-		CharacterVitalsView before = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
-		int previousLevel = before.level();
-
-		characterVitalsService.grantCombatRewards(session.getCharacterId(), xp, gold);
-		masteryApplicationService.grantVictoryMastery(session.getCharacterId());
-		Set<String> uniqueCodes = uniqueItemCodes(monster.getId());
-
-		for (CombatRewardItemEntity reward : rewardRows) {
-			ItemDefinitionView item = requireItem(definitions, reward.getItemDefinitionId());
-			if (item.type().isStackable() || !reward.hasPlannedRoll()) {
-				inventoryApplicationService.grantItems(
-						session.getCharacterId(),
-						item.code(),
-						reward.getQuantity());
-			}
-			else {
-				inventoryApplicationService.grantRolled(
-						session.getCharacterId(),
-						item.code(),
-						reward.getQuantity(),
-						reward.toGenerated());
-			}
-			activityApplicationService.recordItemFound(
-					session.getCharacterId(),
-					item.name(),
-					reward.getQuantity());
-			GameTelemetry.itemCreated(
-					gameTelemetryRecorder,
-					session.getCharacterId(),
-					item.code(),
-					reward.hasPlannedRoll() ? reward.toGenerated().rarity() : item.rarity(),
-					reward.getQuantity(),
-					ItemCreateSource.PVE_LOOT);
-			if (uniqueCodes.contains(item.code())
-					&& !characterUniqueDropRepository.existsByCharacterIdAndItemCode(
-							session.getCharacterId(), item.code())) {
-				characterUniqueDropRepository.saveAndFlush(new CharacterUniqueDropEntity(
-						UUID.randomUUID(),
-						session.getCharacterId(),
-						item.code(),
-						now));
-			}
-		}
-
-		CharacterVitalsView after = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
-		activityApplicationService.recordCombatVictory(session.getCharacterId(), monster.getName());
-		activityApplicationService.recordLevelUps(session.getCharacterId(), previousLevel, after.level());
-
-		session.markRewards(xp, gold, previousLevel, after.level(), now);
-		combatSessionRepository.saveAndFlush(session);
-	}
-
-	private static int attributePointsGained(CombatSessionEntity session) {
-		Integer previous = session.getRewardPreviousLevel();
-		Integer next = session.getRewardNewLevel();
-		if (previous == null || next == null || next <= previous) {
-			return 0;
-		}
-		return (next - previous) * ProgressionBalance.ATTRIBUTE_POINTS_PER_LEVEL;
-	}
-
-	private void createRewardPlan(
-			CombatSessionEntity session,
-			MonsterDefinitionEntity monster,
-			Instant now) {
-		if (session.isRewardPlanCreated()) {
-			return;
-		}
-		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
-		Set<String> granted = new HashSet<>(
-				characterUniqueDropRepository.findItemCodesByCharacterId(session.getCharacterId()));
-		List<LootTableEntry> table = UniqueLoot.excludingGranted(buildLootTable(monster.getId()), granted);
-		Set<String> uniqueCodes = uniqueItemCodes(monster.getId());
-		List<LootDrop> drops = LootGenerator.generate(table, randomProvider);
-		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
-				drops.stream().map(LootDrop::itemDefinitionId).toList());
-		List<CombatRewardItemEntity> rewardRows = new ArrayList<>();
-		for (LootDrop drop : drops) {
-			ItemDefinitionView item = requireItem(definitions, drop.itemDefinitionId());
-			if (item.type().isStackable()) {
-				rewardRows.add(new CombatRewardItemEntity(
-						UUID.randomUUID(),
-						session.getId(),
-						drop.itemDefinitionId(),
-						drop.quantity(),
-						new GeneratedItem(item.rarity(), null, null, List.of())));
-			}
-			else if (uniqueCodes.contains(item.code())) {
-				for (int i = 0; i < drop.quantity(); i++) {
-					rewardRows.add(new CombatRewardItemEntity(
-							UUID.randomUUID(),
-							session.getId(),
-							drop.itemDefinitionId(),
-							1,
-							new GeneratedItem(
-									item.rarity(),
-									item.weaponDamage(),
-									item.armorValue(),
-									List.of())));
-				}
-			}
-			else {
-				for (int i = 0; i < drop.quantity(); i++) {
-					rewardRows.add(new CombatRewardItemEntity(
-							UUID.randomUUID(),
-							session.getId(),
-							drop.itemDefinitionId(),
-							1,
-							inventoryApplicationService.rollItem(item.code())));
-				}
-			}
-		}
-		if (!rewardRows.isEmpty()) {
-			combatRewardItemRepository.saveAll(rewardRows);
-			combatRewardItemRepository.flush();
-		}
-		session.markRewardPlan(monster.getXpReward(), gold, now);
-		combatSessionRepository.saveAndFlush(session);
+		return toView(session, monster, vitals, loadEvents(session.getId()), combatRewardService.loadRewards(session));
 	}
 
 	private void resolveEncounter(UUID encounterId, EncounterCloseReason reason, Instant now) {
@@ -612,34 +440,6 @@ public class CombatApplicationService {
 		if (encounter.isDungeonEncounter()) {
 			eventPublisher.publishEvent(new EncounterClosedEvent(encounter.getCharacterId(), encounterId, reason));
 		}
-	}
-
-	private List<LootTableEntry> buildLootTable(UUID monsterDefinitionId) {
-		List<MonsterLootEntryEntity> rows = monsterLootEntryRepository.findByMonsterDefinitionId(monsterDefinitionId);
-		Map<UUID, ItemDefinitionView> items = itemCatalogService.findByIds(
-				rows.stream().map(MonsterLootEntryEntity::getItemDefinitionId).toList());
-		List<LootTableEntry> table = new ArrayList<>(rows.size());
-		for (MonsterLootEntryEntity row : rows) {
-			ItemDefinitionView item = requireItem(items, row.getItemDefinitionId());
-			table.add(new LootTableEntry(
-					item.id(),
-					item.code(),
-					row.getDropChancePercent(),
-					row.getQuantityMin(),
-					row.getQuantityMax(),
-					row.isOncePerCharacter()));
-		}
-		return table;
-	}
-
-	private Set<String> uniqueItemCodes(UUID monsterDefinitionId) {
-		Set<String> codes = new HashSet<>();
-		for (LootTableEntry entry : buildLootTable(monsterDefinitionId)) {
-			if (entry.oncePerCharacter()) {
-				codes.add(entry.itemCode());
-			}
-		}
-		return codes;
 	}
 
 	private void persistEvents(UUID sessionId, int roundNumber, List<CombatEvent> events, Instant now) {
@@ -667,33 +467,6 @@ public class CombatApplicationService {
 						event.getEventType(),
 						event.getMessage()))
 				.toList();
-	}
-
-	private CombatRewardsView loadRewards(CombatSessionEntity session) {
-		List<CombatRewardItemEntity> rows = combatRewardItemRepository.findBySessionId(session.getId());
-		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
-				rows.stream().map(CombatRewardItemEntity::getItemDefinitionId).toList());
-		List<CombatRewardItemView> items = rows.stream()
-				.map(row -> {
-					ItemDefinitionView item = requireItem(definitions, row.getItemDefinitionId());
-					return new CombatRewardItemView(item.code(), item.name(), row.getQuantity());
-				})
-				.toList();
-		return new CombatRewardsView(
-				session.getXpAwarded() == null ? 0 : session.getXpAwarded(),
-				session.getGoldAwarded() == null ? 0 : session.getGoldAwarded(),
-				session.getRewardPreviousLevel() == null ? 0 : session.getRewardPreviousLevel(),
-				session.getRewardNewLevel() == null ? 0 : session.getRewardNewLevel(),
-				attributePointsGained(session),
-				items);
-	}
-
-	private static ItemDefinitionView requireItem(Map<UUID, ItemDefinitionView> definitions, UUID itemDefinitionId) {
-		ItemDefinitionView item = definitions.get(itemDefinitionId);
-		if (item == null) {
-			throw new IllegalStateException("item definition missing: " + itemDefinitionId);
-		}
-		return item;
 	}
 
 	private MonsterDefinitionEntity requireMonster(UUID monsterDefinitionId) {
@@ -777,7 +550,7 @@ public class CombatApplicationService {
 				rewards,
 				enemyIntent,
 				actionPreviews,
-				lootPreview(monster.getId()));
+				combatRewardService.lootPreview(monster.getId()));
 	}
 
 	private void captureCombat2Snapshot(
@@ -872,24 +645,6 @@ public class CombatApplicationService {
 				.map(CombatTechniqueDefinition::effect)
 				.findFirst()
 				.orElse(null);
-	}
-
-	private List<CombatLootPreviewView> lootPreview(UUID monsterDefinitionId) {
-		List<MonsterLootEntryEntity> entries = monsterLootEntryRepository.findByMonsterDefinitionId(monsterDefinitionId);
-		if (entries.isEmpty()) {
-			return List.of();
-		}
-		Map<UUID, ItemDefinitionView> definitions = itemCatalogService.findByIds(
-				entries.stream().map(MonsterLootEntryEntity::getItemDefinitionId).toList());
-		List<CombatLootPreviewView> preview = new ArrayList<>();
-		for (MonsterLootEntryEntity entry : entries) {
-			ItemDefinitionView item = definitions.get(entry.getItemDefinitionId());
-			if (item == null) {
-				continue;
-			}
-			preview.add(new CombatLootPreviewView(item.name(), entry.getDropChancePercent()));
-		}
-		return List.copyOf(preview);
 	}
 
 	private List<CombatActionPreviewView> buildActionPreviews(
