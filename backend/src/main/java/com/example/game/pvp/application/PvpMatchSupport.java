@@ -45,6 +45,8 @@ import com.example.game.pvp.infrastructure.PvpMatchSnapshotEntity;
 import com.example.game.pvp.infrastructure.PvpMatchSnapshotRepository;
 import com.example.game.pvp.infrastructure.PvpMatchStatusEntity;
 import com.example.game.pvp.infrastructure.PvpMatchStatusRepository;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.ArenaWonFact;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
 import com.example.game.world.application.WorldApplicationService;
@@ -65,6 +67,7 @@ public class PvpMatchSupport {
 	private final CombatTechniqueCatalogService combatTechniqueCatalogService;
 	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final Clock clock;
+	private final QuestProgressSink questProgressSink;
 
 	public PvpMatchSupport(
 			WorldApplicationService worldApplicationService,
@@ -78,7 +81,8 @@ public class PvpMatchSupport {
 			ActivityApplicationService activityApplicationService,
 			CombatTechniqueCatalogService combatTechniqueCatalogService,
 			GameTelemetryRecorder gameTelemetryRecorder,
-			Clock clock) {
+			Clock clock,
+			QuestProgressSink questProgressSink) {
 		this.worldApplicationService = worldApplicationService;
 		this.snapshotCodec = snapshotCodec;
 		this.snapshotRepository = snapshotRepository;
@@ -91,6 +95,7 @@ public class PvpMatchSupport {
 		this.combatTechniqueCatalogService = combatTechniqueCatalogService;
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.clock = clock;
+		this.questProgressSink = questProgressSink;
 	}
 
 	void requireAtArena(UUID accountId) {
@@ -250,6 +255,16 @@ public class PvpMatchSupport {
 		}
 		match.markSettlementApplied(now);
 		recordPvpTelemetry(match, attackerWon, attackerDelta, defenderDelta, attackerMarks, defenderMarks);
+		if (match.getStatus() == PvpMatchStatus.ATTACKER_WON) {
+			questProgressSink.notify(
+					match.getAttackerId(),
+					new ArenaWonFact(match.getMatchKind().name(), match.getId()));
+		}
+		else if (match.getStatus() == PvpMatchStatus.DEFENDER_WON) {
+			questProgressSink.notify(
+					match.getDefenderId(),
+					new ArenaWonFact(match.getMatchKind().name(), match.getId()));
+		}
 	}
 
 	private void recordPvpTelemetry(

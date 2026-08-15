@@ -32,6 +32,9 @@ const ICON_BY_TYPE: Record<ActivityType, ActivityIconName> = {
   BUY_ORDER_CREATED: 'gold',
   BUY_ORDER_FILLED: 'gold',
   BUY_ORDER_CANCELLED: 'gold',
+  QUEST_ACCEPTED: 'scroll',
+  QUEST_OBJECTIVE: 'scroll',
+  QUEST_COMPLETED: 'scroll',
 }
 
 export function activityIconUrl(type: ActivityType | 'alert'): string {
@@ -63,11 +66,12 @@ function highlight(message: string, fragment: string, tone: ActivityTone): Activ
   if (start < 0) {
     return [{ text: message, tone: 'plain' }]
   }
-  return [
+  const parts: ActivityTextPart[] = [
     { text: message.slice(0, start), tone: 'plain' },
     { text: fragment, tone },
     { text: message.slice(start + fragment.length), tone: 'plain' },
-  ].filter((part) => part.text.length > 0)
+  ]
+  return parts.filter((part) => part.text.length > 0)
 }
 
 function captured(message: string, pattern: RegExp, tone: ActivityTone): ActivityTextPart[] | null {

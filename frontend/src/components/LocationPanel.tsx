@@ -23,6 +23,7 @@ import {
 } from '../ui/locationMedia'
 import type { LocationActionIconName } from '../ui/locationMedia'
 import { DungeonPanel } from './DungeonPanel'
+import { NpcDialogue } from './NpcDialogue'
 
 const ACTION_LABELS: Record<LocationAction, string> = {
   INSPECT: 'Inspect location',
@@ -44,6 +45,7 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   SALVAGE: 'Salvage equipment',
   CREATE_BUY_ORDER: 'Create buy order',
   FULFILL_BUY_ORDER: 'Fulfill buy order',
+  TALK_NPCS: 'Talk to people',
 }
 
 /** Actions already represented by dedicated UI sections on this screen. */
@@ -106,6 +108,7 @@ export function LocationPanel({
   const [moveError, setMoveError] = useState<string | null>(null)
   const [movingToId, setMovingToId] = useState<string | null>(null)
   const [inspected, setInspected] = useState<PublicCharacterResponse | null>(null)
+  const [talkOpen, setTalkOpen] = useState(false)
 
   const locationQuery = useQuery({
     queryKey: ['location'],
@@ -135,6 +138,8 @@ export function LocationPanel({
         queryClient.invalidateQueries({ queryKey: ['destinations'] }),
         queryClient.invalidateQueries({ queryKey: ['nearby-characters'] }),
         queryClient.invalidateQueries({ queryKey: ['character'] }),
+        queryClient.invalidateQueries({ queryKey: ['quests'] }),
+        queryClient.invalidateQueries({ queryKey: ['npcs'] }),
       ])
     } catch (error) {
       if (error instanceof ApiError) {
@@ -350,6 +355,10 @@ export function LocationPanel({
                       >
                         Open
                       </Button>
+                    ) : action === 'TALK_NPCS' ? (
+                      <Button type="button" data-testid="talk-npcs-action" onClick={() => setTalkOpen(true)}>
+                        Talk
+                      </Button>
                     ) : action === 'VIEW_CHAT' ? (
                       <Button
                         type="button"
@@ -421,6 +430,7 @@ export function LocationPanel({
               </Button>
             </aside>
           ) : null}
+          <NpcDialogue open={talkOpen} onClose={() => setTalkOpen(false)} onOpenMarket={onOpenMarket} />
         </>
       )}
     </div>

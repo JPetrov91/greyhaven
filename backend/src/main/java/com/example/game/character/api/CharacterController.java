@@ -85,7 +85,8 @@ public class CharacterController {
 				toDerivedStats(character.derivedStats()),
 				toProgression(character.progression()),
 				character.createdAt(),
-				character.updatedAt());
+				character.updatedAt(),
+				character.unlocks());
 	}
 
 	private static ProgressionResponse toProgression(ExperienceProgress progression) {

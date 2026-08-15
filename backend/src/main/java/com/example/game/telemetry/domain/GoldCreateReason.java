@@ -4,5 +4,6 @@ public enum GoldCreateReason {
 	STARTING,
 	PVE_COMBAT,
 	EXPEDITION,
-	MERCHANT_SELL
+	MERCHANT_SELL,
+	QUEST
 }

@@ -39,6 +39,7 @@ public class CharacterApplicationService {
 	private final MasteryApplicationService masteryApplicationService;
 	private final CraftingApplicationService craftingApplicationService;
 	private final GameTelemetryRecorder gameTelemetryRecorder;
+	private final CharacterUnlockQuery characterUnlockQuery;
 	private final Clock clock;
 
 	public CharacterApplicationService(
@@ -50,6 +51,7 @@ public class CharacterApplicationService {
 			MasteryApplicationService masteryApplicationService,
 			CraftingApplicationService craftingApplicationService,
 			GameTelemetryRecorder gameTelemetryRecorder,
+			CharacterUnlockQuery characterUnlockQuery,
 			Clock clock) {
 		this.characterRepository = characterRepository;
 		this.startingLocationProvider = startingLocationProvider;
@@ -59,6 +61,7 @@ public class CharacterApplicationService {
 		this.masteryApplicationService = masteryApplicationService;
 		this.craftingApplicationService = craftingApplicationService;
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
+		this.characterUnlockQuery = characterUnlockQuery;
 		this.clock = clock;
 	}
 
@@ -215,7 +218,8 @@ public class CharacterApplicationService {
 				character.getCurrentLocationId(),
 				derivedStats,
 				character.getCreatedAt(),
-				character.getUpdatedAt());
+				character.getUpdatedAt(),
+				characterUnlockQuery.unlockCodesOf(character.getId()));
 	}
 
 	private static ApiException characterAlreadyExists() {

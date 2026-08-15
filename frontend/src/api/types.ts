@@ -51,6 +51,7 @@ export type CharacterResponse = {
   progression: ProgressionResponse
   createdAt: string
   updatedAt: string
+  unlocks?: string[]
 }
 
 export type CombatAction =
@@ -289,6 +290,7 @@ export type LocationAction =
   | 'SALVAGE'
   | 'CREATE_BUY_ORDER'
   | 'FULFILL_BUY_ORDER'
+  | 'TALK_NPCS'
 
 export type LocationResponse = {
   id: string
@@ -379,6 +381,9 @@ export type ActivityType =
   | 'BUY_ORDER_CREATED'
   | 'BUY_ORDER_FILLED'
   | 'BUY_ORDER_CANCELLED'
+  | 'QUEST_ACCEPTED'
+  | 'QUEST_OBJECTIVE'
+  | 'QUEST_COMPLETED'
 
 export type MarketListingStatus = 'ACTIVE' | 'SOLD' | 'CANCELLED'
 
@@ -679,4 +684,75 @@ export type DungeonRunResponse = {
   rooms: DungeonRoomResponse[]
   choices: DungeonChoiceResponse[]
   encounter: EncounterSearchResponse | null
+}
+
+export type QuestObjectiveResponse = {
+  type: string
+  targetCode: string
+  requiredAmount: number
+  currentAmount: number
+  completed: boolean
+  displayText: string
+  consumeOnTurnIn: boolean
+}
+
+export type QuestRewardResponse = {
+  kind: string
+  amount: number
+  itemCode: string | null
+  unlockCode: string | null
+}
+
+export type QuestResponse = {
+  code: string
+  name: string
+  description: string
+  category: string
+  status: 'AVAILABLE' | 'ACTIVE' | 'READY_TO_TURN_IN' | 'COMPLETED'
+  recommendedLevel: number
+  startNpcCode: string | null
+  turnInNpcCode: string | null
+  nextQuestCode: string | null
+  tracked: boolean
+  objectives: QuestObjectiveResponse[]
+  rewards: QuestRewardResponse[]
+  unlocks: string[]
+}
+
+export type QuestListResponse = {
+  quests: QuestResponse[]
+}
+
+export type NpcResponse = {
+  code: string
+  name: string
+  title: string
+  description: string
+  greeting: string
+  portraitCode: string
+  locationCode: string
+  merchantCode: string | null
+  interactions: string[]
+  questBadges: string[]
+}
+
+export type NpcListResponse = {
+  npcs: NpcResponse[]
+}
+
+export type NpcTalkActionResponse = {
+  type: 'ACCEPT' | 'TURN_IN' | 'SHOP' | 'CLOSE' | string
+  questCode: string | null
+  merchantCode: string | null
+  label: string
+}
+
+export type NpcTalkResponse = {
+  code: string
+  name: string
+  title: string
+  portraitCode: string
+  text: string
+  merchantCode: string | null
+  actions: NpcTalkActionResponse[]
 }

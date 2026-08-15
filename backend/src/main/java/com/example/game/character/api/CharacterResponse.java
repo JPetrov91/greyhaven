@@ -1,6 +1,7 @@
 package com.example.game.character.api;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record CharacterResponse(
@@ -25,6 +26,7 @@ public record CharacterResponse(
 		DerivedStatsResponse derivedStats,
 		ProgressionResponse progression,
 		Instant createdAt,
-		Instant updatedAt
+		Instant updatedAt,
+		List<String> unlocks
 ) {
 }

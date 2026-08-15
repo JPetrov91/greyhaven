@@ -11,7 +11,8 @@ public final class LocationActions {
 	private static final List<LocationAction> CITY_SQUARE_ACTIONS = List.of(
 			LocationAction.INSPECT,
 			LocationAction.MOVE,
-			LocationAction.VIEW_NEARBY);
+			LocationAction.VIEW_NEARBY,
+			LocationAction.TALK_NPCS);
 
 	private static final List<LocationAction> TAVERN_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -19,7 +20,8 @@ public final class LocationActions {
 			LocationAction.VIEW_NEARBY,
 			LocationAction.VIEW_CHAT,
 			LocationAction.START_EXPEDITION,
-			LocationAction.INSPECT_EXPEDITIONS);
+			LocationAction.INSPECT_EXPEDITIONS,
+			LocationAction.TALK_NPCS);
 
 	private static final List<LocationAction> MARKET_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -30,7 +32,8 @@ public final class LocationActions {
 			LocationAction.BUY_ITEM,
 			LocationAction.CANCEL_LISTING,
 			LocationAction.CREATE_BUY_ORDER,
-			LocationAction.FULFILL_BUY_ORDER);
+			LocationAction.FULFILL_BUY_ORDER,
+			LocationAction.TALK_NPCS);
 
 	private static final List<LocationAction> OLD_TOWN_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -56,7 +59,8 @@ public final class LocationActions {
 			LocationAction.MOVE,
 			LocationAction.VIEW_NEARBY,
 			LocationAction.ENTER_ARENA,
-			LocationAction.CHALLENGE_DUEL);
+			LocationAction.CHALLENGE_DUEL,
+			LocationAction.TALK_NPCS);
 
 	private static final List<LocationAction> CRAFTSMEN_WARD_ACTIONS = List.of(
 			LocationAction.INSPECT,

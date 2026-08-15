@@ -53,6 +53,9 @@ class WorldApplicationServiceTest {
 	@Mock
 	private CharacterTravelGuard characterTravelGuard;
 
+	@Mock
+	private com.example.game.quest.application.QuestProgressSink questProgressSink;
+
 	private WorldApplicationService worldApplicationService;
 
 	@BeforeEach
@@ -61,7 +64,8 @@ class WorldApplicationServiceTest {
 				characterLocationService,
 				locationRepository,
 				locationConnectionRepository,
-				List.of(characterTravelGuard));
+				List.of(characterTravelGuard),
+				questProgressSink);
 	}
 
 	@Test

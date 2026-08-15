@@ -13,7 +13,8 @@ class LocationActionsTest {
 				.containsExactly(
 						LocationAction.INSPECT,
 						LocationAction.MOVE,
-						LocationAction.VIEW_NEARBY);
+						LocationAction.VIEW_NEARBY,
+						LocationAction.TALK_NPCS);
 	}
 
 	@Test
@@ -46,7 +47,8 @@ class LocationActionsTest {
 						LocationAction.BUY_ITEM,
 						LocationAction.CANCEL_LISTING,
 						LocationAction.CREATE_BUY_ORDER,
-						LocationAction.FULFILL_BUY_ORDER);
+						LocationAction.FULFILL_BUY_ORDER,
+						LocationAction.TALK_NPCS);
 	}
 
 	@Test
@@ -57,7 +59,8 @@ class LocationActionsTest {
 						LocationAction.MOVE,
 						LocationAction.VIEW_NEARBY,
 						LocationAction.ENTER_ARENA,
-						LocationAction.CHALLENGE_DUEL)
+						LocationAction.CHALLENGE_DUEL,
+						LocationAction.TALK_NPCS)
 				.doesNotContain(LocationAction.SEARCH_ENCOUNTER);
 		assertThat(LocationActions.forCode(LocationCodes.CRAFTSMEN_WARD))
 				.contains(LocationAction.CRAFT, LocationAction.CLAIM_CRAFT, LocationAction.SALVAGE);

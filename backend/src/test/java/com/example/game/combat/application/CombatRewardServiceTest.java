@@ -67,6 +67,9 @@ class CombatRewardServiceTest {
 	@Mock
 	private RandomProvider randomProvider;
 
+	@Mock
+	private com.example.game.quest.application.QuestProgressSink questProgressSink;
+
 	private CombatRewardService combatRewardService;
 
 	@BeforeEach
@@ -82,7 +85,8 @@ class CombatRewardServiceTest {
 				itemCatalogService,
 				masteryApplicationService,
 				gameTelemetryRecorder,
-				randomProvider);
+				randomProvider,
+				questProgressSink);
 	}
 
 	@Test

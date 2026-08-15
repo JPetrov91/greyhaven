@@ -5,5 +5,6 @@ public enum ItemCreateSource {
 	PVE_LOOT,
 	EXPEDITION,
 	CRAFTING,
-	MERCHANT
+	MERCHANT,
+	QUEST
 }

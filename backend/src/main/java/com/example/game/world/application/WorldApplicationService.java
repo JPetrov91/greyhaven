@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.game.character.application.CharacterAtLocationView;
 import com.example.game.character.application.CharacterLocationService;
 import com.example.game.character.application.CharacterLocationView;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.LocationVisitedFact;
 import com.example.game.shared.api.ApiException;
 import com.example.game.world.domain.LocationActions;
 import com.example.game.world.domain.LocationConnectivity;
@@ -30,16 +32,19 @@ public class WorldApplicationService {
 	private final LocationRepository locationRepository;
 	private final LocationConnectionRepository locationConnectionRepository;
 	private final List<CharacterTravelGuard> characterTravelGuards;
+	private final QuestProgressSink questProgressSink;
 
 	public WorldApplicationService(
 			CharacterLocationService characterLocationService,
 			LocationRepository locationRepository,
 			LocationConnectionRepository locationConnectionRepository,
-			List<CharacterTravelGuard> characterTravelGuards) {
+			List<CharacterTravelGuard> characterTravelGuards,
+			QuestProgressSink questProgressSink) {
 		this.characterLocationService = characterLocationService;
 		this.locationRepository = locationRepository;
 		this.locationConnectionRepository = locationConnectionRepository;
 		this.characterTravelGuards = List.copyOf(characterTravelGuards);
+		this.questProgressSink = questProgressSink;
 	}
 
 	@Transactional(readOnly = true)
@@ -94,6 +99,7 @@ public class WorldApplicationService {
 		}
 
 		characterLocationService.relocate(accountId, destination.getId());
+		questProgressSink.notify(character.characterId(), new LocationVisitedFact(destination.getCode()));
 		return toLocationView(destination);
 	}
 

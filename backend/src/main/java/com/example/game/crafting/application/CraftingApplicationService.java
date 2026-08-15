@@ -48,6 +48,8 @@ import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
 import com.example.game.item.domain.ItemRarity;
 import com.example.game.item.domain.RolledAffixCodec;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.CraftClaimedFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -81,6 +83,7 @@ public class CraftingApplicationService {
 	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
+	private final QuestProgressSink questProgressSink;
 
 	public CraftingApplicationService(
 			CharacterVitalsService characterVitalsService,
@@ -98,7 +101,8 @@ public class CraftingApplicationService {
 			SalvageOutputRepository salvageOutputRepository,
 			GameTelemetryRecorder gameTelemetryRecorder,
 			RandomProvider randomProvider,
-			Clock clock) {
+			Clock clock,
+			QuestProgressSink questProgressSink) {
 		this.characterVitalsService = characterVitalsService;
 		this.characterLocationService = characterLocationService;
 		this.characterCombatGuard = characterCombatGuard;
@@ -115,6 +119,7 @@ public class CraftingApplicationService {
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
+		this.questProgressSink = questProgressSink;
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
@@ -366,7 +371,9 @@ public class CraftingApplicationService {
 					job.getProfession().name(),
 					progress.rank());
 		}
-		return toJobView(job, recipe == null ? output.code() : recipe.getCode(), recipeName, output.name());
+		String recipeCode = recipe == null ? output.code() : recipe.getCode();
+		questProgressSink.notify(vitals.characterId(), new CraftClaimedFact(recipeCode, job.getId()));
+		return toJobView(job, recipeCode, recipeName, output.name());
 	}
 
 	@Transactional

@@ -14,6 +14,7 @@ import { classNames } from '../ui/classNames'
 const LIVE_NAV: { item: GameNavItem; label: string; icon: ChromeIconName; testId: string }[] = [
   { item: 'home', label: 'Home', icon: 'home', testId: 'nav-home' },
   { item: 'world', label: 'Locations', icon: 'locations', testId: 'nav-world' },
+  { item: 'quests', label: 'Quests', icon: 'quests', testId: 'nav-quests' },
   { item: 'character', label: 'Character', icon: 'character', testId: 'nav-character' },
   { item: 'inventory', label: 'Inventory', icon: 'pack', testId: 'nav-inventory' },
   { item: 'equipment', label: 'Equipment', icon: 'equipment', testId: 'nav-equipment' },

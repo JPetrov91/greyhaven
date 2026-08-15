@@ -20,6 +20,8 @@ import { GuildPlaceholder } from './GuildPlaceholder'
 import { EquipmentPanel } from './EquipmentPanel'
 import { InventoryPanel } from './InventoryPanel'
 import { LocationPanel } from './LocationPanel'
+import { QuestLogPanel } from './QuestLogPanel'
+import { QuestTracker } from './QuestTracker'
 import { MarketPanel } from './MarketPanel'
 import { MasteryPanel } from './MasteryPanel'
 import { ArenaPanel } from './ArenaPanel'
@@ -213,6 +215,8 @@ export function GameLayout() {
     mainContent = <CraftingPanel />
   } else if (view === 'world') {
     mainContent = <LocationPanel variant="full" {...locationHandlers} />
+  } else if (view === 'quests') {
+    mainContent = <QuestLogPanel />
   } else {
     mainContent = (
       <div className="home-dashboard">
@@ -220,6 +224,7 @@ export function GameLayout() {
         <div className="home-mid-row">
           <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
           <EquipmentOverviewCard />
+          <QuestTracker />
           <ExpeditionPanel variant="card" />
         </div>
         <div className="home-bottom-row">
@@ -256,6 +261,7 @@ export function GameLayout() {
               queryClient.setQueryData(['combat'], updated)
               void queryClient.invalidateQueries({ queryKey: ['activity'] })
               void queryClient.invalidateQueries({ queryKey: ['dungeon'] })
+              void queryClient.invalidateQueries({ queryKey: ['quests'] })
             }}
           />
         </div>

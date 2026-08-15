@@ -1,6 +1,7 @@
 package com.example.game.character.application;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import com.example.game.character.domain.DerivedCombatStats;
@@ -31,6 +32,7 @@ public record CharacterView(
 		UUID currentLocationId,
 		DerivedCombatStats derivedStats,
 		Instant createdAt,
-		Instant updatedAt
+		Instant updatedAt,
+		List<String> unlocks
 ) {
 }

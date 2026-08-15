@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,9 @@ import com.example.game.item.infrastructure.ItemInstanceAffixRepository;
 import com.example.game.item.infrastructure.ItemInstanceEntity;
 import com.example.game.item.infrastructure.ItemInstanceRepository;
 import com.example.game.market.domain.MerchantPriceCalculator;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.InventoryChangedFact;
+import com.example.game.quest.domain.ItemsGrantedFact;
 import com.example.game.shared.domain.RandomProvider;
 
 @Service
@@ -61,6 +65,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 	private final AffixCatalogService affixCatalogService;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
+	private final QuestProgressSink questProgressSink;
 
 	public InventoryApplicationService(
 			ItemCatalogService itemCatalogService,
@@ -72,7 +77,8 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			ItemInstanceAffixRepository itemInstanceAffixRepository,
 			AffixCatalogService affixCatalogService,
 			RandomProvider randomProvider,
-			Clock clock) {
+			Clock clock,
+			@Lazy QuestProgressSink questProgressSink) {
 		this.itemCatalogService = itemCatalogService;
 		this.itemInstanceRepository = itemInstanceRepository;
 		this.equipmentRepository = equipmentRepository;
@@ -83,6 +89,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		this.affixCatalogService = affixCatalogService;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
+		this.questProgressSink = questProgressSink;
 	}
 
 	@Transactional(readOnly = true)
@@ -139,6 +146,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		}
 
 		characterVitalsService.heal(accountId, definition.healAmount());
+		notifyInventoryChanged(vitals.characterId());
 		CharacterVitalsView updatedVitals = characterVitalsService.vitalsOf(accountId);
 		return buildInventoryView(updatedVitals);
 	}
@@ -258,6 +266,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		else {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
+		notifyInventoryChanged(characterId);
 		return new HealingPotionStock(consumed, healAmount);
 	}
 
@@ -285,6 +294,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		else {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
+		notifyInventoryChanged(characterId);
 		return potion.healAmount();
 	}
 
@@ -311,6 +321,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			if (existing != null) {
 				existing.increaseQuantity(quantity);
 				itemInstanceRepository.saveAndFlush(existing);
+				notifyItemsGranted(characterId, itemCode, quantity);
 				return;
 			}
 			ensureCapacity(characterId, 1);
@@ -320,6 +331,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 					quantity,
 					true,
 					Instant.now(clock)));
+			notifyItemsGranted(characterId, itemCode, quantity);
 			return;
 		}
 
@@ -329,6 +341,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		for (int i = 0; i < quantity; i++) {
 			persistOwnedInstance(characterId, definition, rollItem(definition, catalog), false, now);
 		}
+		notifyItemsGranted(characterId, itemCode, quantity);
 	}
 
 	/**
@@ -365,6 +378,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		}
 		ensureCapacity(characterId, 1);
 		persistOwnedInstance(characterId, definition, generated, false, Instant.now(clock));
+		notifyItemsGranted(characterId, itemCode, quantity);
 	}
 
 	/**
@@ -389,6 +403,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		for (int i = 0; i < quantity; i++) {
 			persistOwnedInstance(characterId, definition, generated, false, now);
 		}
+		notifyItemsGranted(characterId, itemCode, quantity);
 	}
 
 	/**
@@ -432,6 +447,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		else {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
+		notifyInventoryChanged(characterId);
 	}
 
 	@Transactional(propagation = Propagation.MANDATORY)
@@ -456,6 +472,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		else {
 			itemInstanceRepository.saveAndFlush(instance);
 		}
+		notifyInventoryChanged(characterId);
 	}
 
 	@Transactional(readOnly = true)
@@ -500,6 +517,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 				itemInstanceAffixRepository.findByItemInstanceIdIn(List.of(instance.getId())));
 		itemInstanceRepository.delete(instance);
 		itemInstanceRepository.flush();
+		notifyInventoryChanged(characterId);
 	}
 
 	@Transactional(readOnly = true)
@@ -581,6 +599,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		if (unreservedQuantity(instance) < quantity) {
 			throw InventoryErrors.itemListed();
 		}
+		String itemCode = requireDefinition(instance.getItemDefinitionId()).code();
 
 		if (instance.isStackable()) {
 			ItemInstanceEntity buyerStack = itemInstanceRepository
@@ -597,12 +616,14 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 				else {
 					itemInstanceRepository.saveAndFlush(instance);
 				}
+				notifyTransfer(fromCharacterId, toCharacterId, itemCode, quantity);
 				return;
 			}
 			if (instance.getQuantity() == quantity) {
 				ensureCapacity(toCharacterId, 1);
 				instance.transferTo(toCharacterId);
 				itemInstanceRepository.saveAndFlush(instance);
+				notifyTransfer(fromCharacterId, toCharacterId, itemCode, quantity);
 				return;
 			}
 			ensureCapacity(toCharacterId, 1);
@@ -619,6 +640,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 					instance.getRolledArmorValue(),
 					instance.isLegacy(),
 					Instant.now(clock)));
+			notifyTransfer(fromCharacterId, toCharacterId, itemCode, quantity);
 			return;
 		}
 
@@ -628,6 +650,7 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		ensureCapacity(toCharacterId, 1);
 		instance.transferTo(toCharacterId);
 		itemInstanceRepository.saveAndFlush(instance);
+		notifyTransfer(fromCharacterId, toCharacterId, itemCode, quantity);
 	}
 
 	/**
@@ -1113,6 +1136,22 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			ids.add(instance.getItemDefinitionId());
 		}
 		return itemCatalogService.findByIds(ids);
+	}
+
+	private void notifyItemsGranted(UUID characterId, String itemCode, int quantity) {
+		questProgressSink.notify(
+				characterId,
+				new ItemsGrantedFact(itemCode, quantity, "INV:" + UUID.randomUUID()));
+		notifyInventoryChanged(characterId);
+	}
+
+	private void notifyTransfer(UUID fromCharacterId, UUID toCharacterId, String itemCode, int quantity) {
+		notifyItemsGranted(toCharacterId, itemCode, quantity);
+		notifyInventoryChanged(fromCharacterId);
+	}
+
+	private void notifyInventoryChanged(UUID characterId) {
+		questProgressSink.notify(characterId, new InventoryChangedFact());
 	}
 
 	private ItemDefinitionView requireDefinition(UUID definitionId) {

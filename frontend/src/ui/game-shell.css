@@ -3522,6 +3522,34 @@ html[data-ui-mode='compact'] .game-shell-body-combat {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.quest-log-list,
+.quest-tracker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-log-list li,
+.quest-tracker-list li {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.quest-log-actions,
+.npc-talk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.npc-dialogue {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border, #3a3a3a);
+}
+
 @media (max-width: 1200px) {
   html[data-ui-mode='compact'] .game-shell-body {
     grid-template-columns: 11rem minmax(0, 1fr);

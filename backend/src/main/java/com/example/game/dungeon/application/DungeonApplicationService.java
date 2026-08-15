@@ -27,6 +27,8 @@ import com.example.game.combat.infrastructure.EncounterEntity;
 import com.example.game.combat.infrastructure.EncounterRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.DungeonCompletedFact;
 import com.example.game.dungeon.domain.DungeonCodes;
 import com.example.game.dungeon.domain.DungeonConnectivity;
 import com.example.game.dungeon.domain.DungeonConnectivity.DungeonEdge;
@@ -62,6 +64,7 @@ public class DungeonApplicationService {
 	private final MonsterDefinitionRepository monsterDefinitionRepository;
 	private final EncounterApplicationService encounterApplicationService;
 	private final Clock clock;
+	private final QuestProgressSink questProgressSink;
 
 	public DungeonApplicationService(
 			CharacterLocationService characterLocationService,
@@ -74,7 +77,8 @@ public class DungeonApplicationService {
 			EncounterRepository encounterRepository,
 			MonsterDefinitionRepository monsterDefinitionRepository,
 			EncounterApplicationService encounterApplicationService,
-			Clock clock) {
+			Clock clock,
+			QuestProgressSink questProgressSink) {
 		this.characterLocationService = characterLocationService;
 		this.characterVitalsService = characterVitalsService;
 		this.dungeonDefinitionRepository = dungeonDefinitionRepository;
@@ -86,6 +90,7 @@ public class DungeonApplicationService {
 		this.monsterDefinitionRepository = monsterDefinitionRepository;
 		this.encounterApplicationService = encounterApplicationService;
 		this.clock = clock;
+		this.questProgressSink = questProgressSink;
 	}
 
 	@Transactional
@@ -281,6 +286,9 @@ public class DungeonApplicationService {
 				}
 				run.complete(now);
 				dungeonRunRepository.saveAndFlush(run);
+				questProgressSink.notify(
+						run.getCharacterId(),
+						new DungeonCompletedFact(dungeon.getCode(), run.getId()));
 				return;
 			}
 			unlockOutgoing(run, rooms, room, now, false);

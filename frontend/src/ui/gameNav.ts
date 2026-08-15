@@ -1,6 +1,7 @@
 export type GameNavItem =
   | 'home'
   | 'world'
+  | 'quests'
   | 'character'
   | 'inventory'
   | 'equipment'
@@ -26,6 +27,7 @@ export function gameViewFromLocation(location: GameLocation): GameNavItem {
     hash === 'equipment' ||
     hash === 'mastery' ||
     hash === 'world' ||
+    hash === 'quests' ||
     hash === 'expeditions' ||
     hash === 'crafting' ||
     hash === 'pvp'

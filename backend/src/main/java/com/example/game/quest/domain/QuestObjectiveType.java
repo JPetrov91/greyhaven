@@ -1,0 +1,14 @@
+package com.example.game.quest.domain;
+
+public enum QuestObjectiveType {
+	KILL,
+	COLLECT,
+	VISIT_LOCATION,
+	DEFEAT_ENEMY,
+	COMPLETE_DUNGEON,
+	CRAFT_ITEM,
+	ACQUIRE_ITEM,
+	TALK_TO_NPC,
+	COMPLETE_EXPEDITION,
+	WIN_ARENA_MATCH
+}

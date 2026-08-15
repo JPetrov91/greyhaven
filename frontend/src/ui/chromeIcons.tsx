@@ -8,6 +8,7 @@ export type ChromeIconName =
   | 'menu'
   | 'home'
   | 'locations'
+  | 'quests'
   | 'character'
   | 'equipment'
   | 'market'
@@ -111,6 +112,8 @@ function glyph(name: ChromeIconName) {
       )
     case 'home':
       return <path d="M4.5 11 12 4.5 19.5 11v8.5H14v-5H10v5H4.5Z" {...STROKE} />
+    case 'quests':
+      return <path d="M7 5h10v14H7Zm2 3h6M9 12h6M9 15h4" {...STROKE} />
     case 'locations':
       return (
         <>

@@ -32,6 +32,8 @@ import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
 import com.example.game.mastery.application.MasteryApplicationService;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.CombatVictoryFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -55,6 +57,7 @@ public class CombatRewardService {
 	private final MasteryApplicationService masteryApplicationService;
 	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
+	private final QuestProgressSink questProgressSink;
 
 	public CombatRewardService(
 			CharacterVitalsService characterVitalsService,
@@ -67,7 +70,8 @@ public class CombatRewardService {
 			ItemCatalogService itemCatalogService,
 			MasteryApplicationService masteryApplicationService,
 			GameTelemetryRecorder gameTelemetryRecorder,
-			RandomProvider randomProvider) {
+			RandomProvider randomProvider,
+			QuestProgressSink questProgressSink) {
 		this.characterVitalsService = characterVitalsService;
 		this.inventoryApplicationService = inventoryApplicationService;
 		this.activityApplicationService = activityApplicationService;
@@ -79,6 +83,7 @@ public class CombatRewardService {
 		this.masteryApplicationService = masteryApplicationService;
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
+		this.questProgressSink = questProgressSink;
 	}
 
 	void createRewardPlan(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
@@ -201,6 +206,7 @@ public class CombatRewardService {
 
 		session.markRewards(xp, gold, previousLevel, after.level(), now);
 		combatSessionRepository.saveAndFlush(session);
+		questProgressSink.notify(session.getCharacterId(), new CombatVictoryFact(monster.getCode(), session.getId()));
 	}
 
 	CombatRewardsView loadRewards(CombatSessionEntity session) {

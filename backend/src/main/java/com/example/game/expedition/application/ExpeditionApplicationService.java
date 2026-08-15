@@ -32,6 +32,8 @@ import com.example.game.inventory.application.InventoryFullException;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.item.domain.GeneratedItem;
+import com.example.game.quest.application.QuestProgressSink;
+import com.example.game.quest.domain.ExpeditionCompletedFact;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
@@ -58,6 +60,7 @@ public class ExpeditionApplicationService {
 	private final GameTelemetryRecorder gameTelemetryRecorder;
 	private final RandomProvider randomProvider;
 	private final Clock clock;
+	private final QuestProgressSink questProgressSink;
 
 	public ExpeditionApplicationService(
 			CharacterVitalsService characterVitalsService,
@@ -71,7 +74,8 @@ public class ExpeditionApplicationService {
 			ExpeditionRewardItemRepository expeditionRewardItemRepository,
 			GameTelemetryRecorder gameTelemetryRecorder,
 			RandomProvider randomProvider,
-			Clock clock) {
+			Clock clock,
+			QuestProgressSink questProgressSink) {
 		this.characterVitalsService = characterVitalsService;
 		this.characterLocationService = characterLocationService;
 		this.characterExpeditionStartGuard = characterExpeditionStartGuard;
@@ -84,6 +88,7 @@ public class ExpeditionApplicationService {
 		this.gameTelemetryRecorder = gameTelemetryRecorder;
 		this.randomProvider = randomProvider;
 		this.clock = clock;
+		this.questProgressSink = questProgressSink;
 	}
 
 	@Transactional
@@ -182,6 +187,9 @@ public class ExpeditionApplicationService {
 		activityApplicationService.recordExpeditionCompleted(
 				expedition.getCharacterId(),
 				expedition.getExpeditionType().displayName());
+		questProgressSink.notify(
+				expedition.getCharacterId(),
+				new ExpeditionCompletedFact(expedition.getExpeditionType().name(), expedition.getId()));
 	}
 
 	/**
