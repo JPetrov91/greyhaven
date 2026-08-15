@@ -26,6 +26,15 @@ class CharacterProgressionTest {
 	}
 
 	@Test
+	void overflowFromMidLevelStillAwardsEveryCrossedThreshold() {
+		CharacterProgression.ProgressionResult result = CharacterProgression.applyExperience(2, 150, 650);
+
+		assertThat(result.level()).isEqualTo(4);
+		assertThat(result.experience()).isEqualTo(800);
+		assertThat(result.unspentAttributePointsGained()).isEqualTo(4);
+	}
+
+	@Test
 	void maxLevelCapsExperienceAndStopsAwardingPoints() {
 		CharacterProgression.ProgressionResult result = CharacterProgression.applyExperience(
 				CharacterBalance.MAX_LEVEL,

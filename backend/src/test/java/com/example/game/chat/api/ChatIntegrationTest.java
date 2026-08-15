@@ -70,16 +70,12 @@ class ChatIntegrationTest {
 
 	@Test
 	void flywayCreatedChatMessages() {
-		Integer flywayV17 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '17' and success = true",
-				Integer.class);
 		Integer table = jdbcTemplate.queryForObject(
 				"""
 						select count(*) from information_schema.tables
 						where table_schema = 'public' and table_name = 'chat_messages'
 						""",
 				Integer.class);
-		assertThat(flywayV17).isEqualTo(1);
 		assertThat(table).isEqualTo(1);
 	}
 

@@ -10,7 +10,7 @@ import {
   submitDuelAction,
   type PvpMatchResponse,
 } from '../api/pvp'
-import type { CombatAction, CombatStatusResponse } from '../api/types'
+import type { CombatAction, CombatActionPreviewResponse, CombatStatusResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { ErrorState } from '../ui/ErrorState'
 import { Panel } from '../ui/Panel'
@@ -20,8 +20,6 @@ type Props = {
   match: PvpMatchResponse
   onUpdate: (match: PvpMatchResponse | null) => void
 }
-
-const ACTIONS: CombatAction[] = ['QUICK_ATTACK', 'HEAVY_ATTACK', 'PRECISE_ATTACK', 'DEFEND', 'USE_POTION']
 
 export function PvpCombatPanel({ match, onUpdate }: Props) {
   const queryClient = useQueryClient()
@@ -103,20 +101,16 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
       {match.waitingForOpponent ? <p data-testid="pvp-waiting">Waiting for the other player…</p> : null}
       {error ? <ErrorState>{error}</ErrorState> : null}
       {!terminal && match.status === 'ACTIVE' && !match.waitingForOpponent ? (
-        <div>
-          {ACTIONS.map((action) => (
-            <Button key={action} type="button" onClick={() => void act(action)}>
-              {action}
-            </Button>
-          ))}
-          {match.techniques.map((technique) => (
+        <div data-testid="pvp-actions">
+          {match.actionPreviews.map((preview) => (
             <Button
-              key={technique.code}
+              key={`${preview.action}-${preview.techniqueCode ?? ''}`}
               type="button"
-              disabled={!!technique.disabledReason}
-              onClick={() => void act('USE_TECHNIQUE', technique.code)}
+              disabled={!!preview.disabledReason}
+              data-testid={`pvp-action-${preview.techniqueCode ?? preview.action}`}
+              onClick={() => void act(preview.action, preview.techniqueCode ?? undefined)}
             >
-              {technique.name}
+              {previewLabel(preview)}
             </Button>
           ))}
         </div>
@@ -141,6 +135,13 @@ export function PvpCombatPanel({ match, onUpdate }: Props) {
       </ol>
     </Panel>
   )
+}
+
+function previewLabel(preview: CombatActionPreviewResponse): string {
+  const cost = preview.staminaCost > 0 ? ` (${preview.staminaCost})` : ''
+  const hit = preview.hitChancePercent != null ? ` ${preview.hitChancePercent}%` : ''
+  const blocked = preview.disabledReason ? ` — ${preview.disabledReason}` : ''
+  return `${preview.name}${cost}${hit}${blocked}`
 }
 
 function StatusList({

@@ -67,13 +67,8 @@ class WorldLocationIntegrationTest {
 		Integer connectionCount = jdbcTemplate.queryForObject(
 				"select count(*) from location_connections",
 				Integer.class);
-		Integer flywayCount = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '4' and success = true",
-				Integer.class);
-
 		assertThat(locationCount).isEqualTo(13);
 		assertThat(connectionCount).isEqualTo(26);
-		assertThat(flywayCount).isEqualTo(1);
 		assertThat(jdbcTemplate.queryForObject(
 				"""
 						select count(*) from location_connections c

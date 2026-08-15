@@ -65,21 +65,11 @@ class InventoryIntegrationTest {
 		Integer definitionCount = jdbcTemplate.queryForObject(
 				"select count(*) from item_definitions",
 				Integer.class);
-		Integer flywayV6 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '6' and success = true",
+		Integer mainHandCount = jdbcTemplate.queryForObject(
+				"select count(*) from item_definitions where equipment_slot = 'MAIN_HAND'",
 				Integer.class);
-		Integer flywayV8 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '8' and success = true",
-				Integer.class);
-		Integer flywayV18 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '18' and success = true",
-				Integer.class);
-
-		Integer flywayV20 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '20' and success = true",
-				Integer.class);
-		Integer flywayV27 = jdbcTemplate.queryForObject(
-				"select count(*) from flyway_schema_history where version = '27' and success = true",
+		Integer chestCount = jdbcTemplate.queryForObject(
+				"select count(*) from item_definitions where equipment_slot = 'CHEST'",
 				Integer.class);
 		Integer modifierCount = jdbcTemplate.queryForObject(
 				"select count(*) from item_definition_modifiers",
@@ -100,11 +90,8 @@ class InventoryIntegrationTest {
 				Integer.class);
 
 		assertThat(definitionCount).isEqualTo(38);
-		assertThat(flywayV6).isEqualTo(1);
-		assertThat(flywayV8).isEqualTo(1);
-		assertThat(flywayV18).isEqualTo(1);
-		assertThat(flywayV20).isEqualTo(1);
-		assertThat(flywayV27).isEqualTo(1);
+		assertThat(mainHandCount).isGreaterThanOrEqualTo(3);
+		assertThat(chestCount).isGreaterThanOrEqualTo(2);
 		assertThat(modifierCount).isEqualTo(29);
 		assertThat(rustyAccuracy).isEqualTo(4);
 		assertThat(chestModifiers).isZero();

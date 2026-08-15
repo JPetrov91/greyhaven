@@ -1,8 +1,10 @@
 # Phase 2 foundation — legacy data mapping
 
-Operational notes for Flyway `V18__phase2_foundation.sql`. Product rules live in `docs/PHASE_2_SPEC.md` §7–§9. This file does not change Phase 1 gameplay by itself.
+**Historical.** Phase 3 Task 01 squashed Flyway `V1`–`V35` into `V1__phase3_baseline.sql`. The incremental scripts, including `V18__phase2_foundation.sql`, are archived at `backend/src/main/resources/db/archive/phase1-phase2` and are not on the active Flyway path.
 
-Do not edit already-applied Phase 1 migrations (`V1`–`V17`).
+Product rules live in `docs/PHASE_2_SPEC.md` §7–§9. This file records how Phase 1 rows were mapped during Phase 2; it is not a live upgrade procedure.
+
+Do not edit archived Phase 1–2 migrations. New schema changes belong in new Flyway versions after the Phase 3 baseline.
 
 ## Equipment slots
 
