@@ -137,5 +137,19 @@ describe('shouldShowItemComparison', () => {
         },
       }),
     ).toBe(true)
+    expect(
+      shouldShowItemComparison({
+        ...potion(),
+        type: 'WEAPON',
+        equipmentSlot: 'MAIN_HAND',
+        equipped: false,
+        comparison: {
+          slot: 'RING',
+          equippedItemId: 'other',
+          verdict: 'UPGRADE',
+          deltas: [],
+        },
+      }),
+    ).toBe(false)
   })
 })

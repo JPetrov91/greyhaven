@@ -167,5 +167,8 @@ describe('GameLayout', () => {
     renderGame('/game#equipment')
     expect(await screen.findByText('equipment')).toBeTruthy()
     expect(screen.queryByText('inventory')).toBeNull()
+    expect(screen.getByTestId('chat-panel')).toBeTruthy()
+    expect(screen.getByText('activity')).toBeTruthy()
+    expect(screen.getByText('nav')).toBeTruthy()
   })
 })

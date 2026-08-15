@@ -76,9 +76,22 @@ export function EquipmentLayout({
         dollFull && 'equipment-layout-doll-full',
         !compact && !includeFutureSlots && 'equipment-layout-doll-simple',
       )}
+      data-selected={dollFull ? selectedSlot ?? undefined : undefined}
       data-testid={testId}
     >
-      {showStage && !compact ? <CharacterStage gender={figureGender} /> : null}
+      {dollFull ? (
+        <>
+          <p className="equipment-doll-group-label equipment-doll-group-weapon">── Weapons ──</p>
+          <p className="equipment-doll-group-label equipment-doll-group-jewelry">── Jewelry ──</p>
+          <p className="equipment-doll-group-label equipment-doll-group-rings">── Rings ──</p>
+          <svg className="equipment-doll-connectors" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <path d="M22 20 h7 M22 32 h7 M22 58 h6 M22 70 h6" />
+            <path d="M78 20 h-7 M78 32 h-7 M78 44 h-6 M78 58 h-6 M78 70 h-6 M78 82 h-6" />
+            <path d="M50 8 v5 M50 60 v4 M50 72 v4 M50 84 v4" />
+          </svg>
+        </>
+      ) : null}
+      {showStage && !compact ? <CharacterStage gender={figureGender} selectedSlot={selectedSlot} /> : null}
       {slots.map(renderSlot)}
     </div>
   )
@@ -120,6 +133,13 @@ function EquipmentSlotControl({
       <span className="equipment-slot-value">
         {equippedItem ? (
           <ItemIcon item={equippedItem} className="item-icon item-icon-slot" />
+        ) : !live ? (
+          <span className="equipment-slot-lock" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="6" y="11" width="12" height="9" rx="1.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <path d="M8.4 11V8.4a3.6 3.6 0 0 1 7.2 0V11" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          </span>
         ) : (
           <span className="equipment-slot-placeholder" aria-hidden="true">
             <img className="equipment-slot-empty-art" src={emptySlotArtUrl(slot)} alt="" />
@@ -157,7 +177,7 @@ function EquipmentSlotControl({
       type="button"
       className={classNames(className, 'coming-later')}
       aria-label={`${ariaLabel}. Coming later`}
-      title="Coming later"
+      title="Coming later. This equipment slot is not available yet."
       aria-pressed={selected}
       data-testid={`equipment-slot-${slot}`}
       onClick={() => onFutureClick?.(slot as FutureEquipmentSlot)}
@@ -198,7 +218,7 @@ function EquipmentSlotControl({
       }}
     >
       {equippedItem ? (
-        <Tooltip content={<ItemPeek item={equippedItem} />} open={peekOpen}>
+        <Tooltip content={<ItemPeek compact item={equippedItem} />} open={peekOpen}>
           {trigger}
         </Tooltip>
       ) : (
@@ -208,9 +228,18 @@ function EquipmentSlotControl({
   )
 }
 
-function CharacterStage({ gender }: { gender?: CharacterGender | null }) {
+function CharacterStage({
+  gender,
+  selectedSlot = null,
+}: {
+  gender?: CharacterGender | null
+  selectedSlot?: DesignEquipmentSlot | null
+}) {
   return (
-    <div className="equipment-stage" data-testid="equipment-character-stage">
+    <div
+      className={classNames('equipment-stage', selectedSlot && `equipment-stage-focus-${selectedSlot.toLowerCase()}`)}
+      data-testid="equipment-character-stage"
+    >
       <svg className="equipment-stage-halo" viewBox="0 0 200 280" aria-hidden="true" focusable="false">
         <circle cx="100" cy="148" r="86" fill="none" stroke="currentColor" strokeWidth="0.7" />
         <circle cx="100" cy="148" r="64" fill="none" stroke="currentColor" strokeWidth="0.55" />

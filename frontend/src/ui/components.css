@@ -357,7 +357,7 @@ a.btn {
   position: absolute;
   z-index: 20;
   left: 0;
-  top: calc(100% + 0.35rem);
+  top: calc(100% + 0.65rem);
   width: min(22rem, 70vw);
   max-height: min(24rem, 70vh);
   overflow: auto;
@@ -370,12 +370,23 @@ a.btn {
 
 .tooltip-panel.tooltip-top {
   top: auto;
-  bottom: calc(100% + 0.35rem);
+  bottom: calc(100% + 0.65rem);
 }
 
-.tooltip-panel.tooltip-end {
+.tooltip-panel.tooltip-right {
+  top: 0;
+  left: calc(100% + 0.65rem);
+}
+
+.tooltip-panel.tooltip-left {
+  top: 0;
   left: auto;
-  right: 0;
+  right: calc(100% + 0.65rem);
+}
+
+.tooltip-panel.tooltip-bottom {
+  top: calc(100% + 0.65rem);
+  left: 0;
 }
 
 .item-comparison {
@@ -508,6 +519,10 @@ a.btn {
   grid-template-columns: 1fr 1fr;
 }
 
+.equipment-layout-doll {
+  --slot-size: 3.75rem;
+}
+
 .equipment-layout-doll-simple {
   grid-template-columns: 4.6rem minmax(5.5rem, 1fr) 4.6rem;
   grid-template-areas:
@@ -519,140 +534,298 @@ a.btn {
 }
 
 .equipment-layout-doll-full {
+  --slot-size: 3.75rem;
+  --doll-left: 22%;
+  --doll-right: 22%;
+  --doll-center: 50%;
+  --doll-lower: 37%;
+  display: block;
   position: relative;
   isolation: isolate;
-  width: max-content;
-  max-width: 100%;
-  margin-inline: auto;
-  grid-template-columns: 4.35rem 4.35rem 7.6rem 4.35rem 4.35rem;
-  grid-template-areas:
-    'main_hand head stage shoulders ring'
-    'off_hand amulet stage chest ring_ii'
-    'earrings hands stage legs ring_iii'
-    '. belt stage feet .';
-  align-items: center;
-  justify-items: center;
-  gap: 0.28rem;
+  width: 100%;
+  height: 100%;
+  min-height: 22rem;
+  margin: 0;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(150, 115, 65, 0.1), rgba(80, 60, 40, 0.04) 35%, transparent 68%);
+}
+
+.equipment-layout-doll-full::before,
+.equipment-layout-doll-full::after {
+  content: '';
+  position: absolute;
+  left: var(--doll-center);
+  top: 42%;
+  z-index: 2;
+  width: min(22.5rem, 58%);
+  height: min(22.5rem, 72%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
 .equipment-layout-doll-full::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 0;
-  width: 23.5rem;
-  height: 23.5rem;
-  transform: translate(-50%, -48%);
   background: url('/equipment/arcane-compass.webp') center / contain no-repeat;
-  opacity: 0.7;
-  pointer-events: none;
-  filter: drop-shadow(0 0 22px rgba(197, 160, 89, 0.2));
+  opacity: 0.15;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-head,
-.equipment-layout-doll-full > .equipment-slot-head {
+.equipment-layout-doll-full::after {
+  opacity: 0;
+  background: radial-gradient(circle at 50% 42%, rgba(197, 160, 89, 0.16), transparent 32%);
+}
+
+.equipment-layout-doll-full[data-selected='MAIN_HAND']::after,
+.equipment-layout-doll-full[data-selected='OFF_HAND']::after {
+  opacity: 1;
+  background: radial-gradient(circle at 28% 34%, rgba(197, 160, 89, 0.18), transparent 26%);
+}
+
+.equipment-layout-doll-full[data-selected='EARRINGS']::after,
+.equipment-layout-doll-full[data-selected='AMULET']::after {
+  opacity: 1;
+  background: radial-gradient(circle at 28% 68%, rgba(197, 160, 89, 0.18), transparent 26%);
+}
+
+.equipment-layout-doll-full[data-selected='SHOULDERS']::after,
+.equipment-layout-doll-full[data-selected='CHEST']::after,
+.equipment-layout-doll-full[data-selected='HANDS']::after {
+  opacity: 1;
+  background: radial-gradient(circle at 72% 36%, rgba(197, 160, 89, 0.18), transparent 26%);
+}
+
+.equipment-layout-doll-full[data-selected='RING']::after,
+.equipment-layout-doll-full[data-selected='RING_II']::after,
+.equipment-layout-doll-full[data-selected='RING_III']::after {
+  opacity: 1;
+  background: radial-gradient(circle at 72% 70%, rgba(197, 160, 89, 0.18), transparent 26%);
+}
+
+.equipment-layout-doll-full[data-selected='HEAD']::after,
+.equipment-layout-doll-full[data-selected='BELT']::after,
+.equipment-layout-doll-full[data-selected='LEGS']::after,
+.equipment-layout-doll-full[data-selected='FEET']::after {
+  opacity: 1;
+  background: radial-gradient(circle at 50% 44%, rgba(197, 160, 89, 0.14), transparent 28%);
+}
+
+.equipment-doll-group-label {
+  position: absolute;
+  z-index: 4;
+  margin: 0;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(196, 180, 154, 0.82);
+  white-space: nowrap;
+}
+
+.equipment-doll-group-weapon {
+  left: var(--doll-left);
+  top: 8%;
+}
+
+.equipment-doll-group-jewelry {
+  left: var(--doll-left);
+  top: 50%;
+}
+
+.equipment-doll-connectors {
+  position: absolute;
+  inset: 6% 18% 4%;
+  z-index: 2;
+  width: auto;
+  height: auto;
+  pointer-events: none;
+  opacity: 0.14;
+  stroke: #c4b49a;
+  fill: none;
+  stroke-width: 0.4;
+}
+
+.equipment-doll-group-rings {
+  right: var(--doll-right);
+  top: 50%;
+}
+
+.equipment-layout-doll-simple > .equipment-slot-head {
   grid-area: head;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-amulet,
-.equipment-layout-doll-full > .equipment-slot-amulet {
+.equipment-layout-doll-simple > .equipment-slot-amulet {
   grid-area: amulet;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-chest,
-.equipment-layout-doll-full > .equipment-slot-chest {
+.equipment-layout-doll-simple > .equipment-slot-chest {
   grid-area: chest;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-hands,
-.equipment-layout-doll-full > .equipment-slot-hands {
+.equipment-layout-doll-simple > .equipment-slot-hands {
   grid-area: hands;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-main_hand,
-.equipment-layout-doll-full > .equipment-slot-main_hand {
+.equipment-layout-doll-simple > .equipment-slot-main_hand {
   grid-area: main_hand;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-off_hand,
-.equipment-layout-doll-full > .equipment-slot-off_hand {
+.equipment-layout-doll-simple > .equipment-slot-off_hand {
   grid-area: off_hand;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-ring,
-.equipment-layout-doll-full > .equipment-slot-ring {
+.equipment-layout-doll-simple > .equipment-slot-ring {
   grid-area: ring;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-legs,
-.equipment-layout-doll-full > .equipment-slot-legs {
+.equipment-layout-doll-simple > .equipment-slot-legs {
   grid-area: legs;
 }
 
-.equipment-layout-doll-simple > .equipment-slot-feet,
-.equipment-layout-doll-full > .equipment-slot-feet {
+.equipment-layout-doll-simple > .equipment-slot-feet {
   grid-area: feet;
 }
 
-.equipment-layout-doll-full > .equipment-slot-shoulders {
-  grid-area: shoulders;
+.equipment-layout-doll-full > .equipment-stage {
+  position: absolute;
+  left: var(--doll-center);
+  bottom: 0;
+  z-index: 3;
+  width: min(25rem, 58%);
+  height: 88%;
+  transform: translateX(-50%);
+  overflow: visible;
+  border: none;
+  background: transparent;
+  opacity: 1;
+  mix-blend-mode: normal;
 }
 
-.equipment-layout-doll-full > .equipment-slot-belt {
-  grid-area: belt;
+.equipment-layout-doll-full > .equipment-slot-anchor {
+  position: absolute;
+  z-index: 4;
+  width: var(--slot-size);
+}
+
+.equipment-layout-doll-full > .equipment-slot-head {
+  left: var(--doll-center);
+  top: 12%;
+  transform: translateX(-50%);
+}
+
+.equipment-layout-doll-full > .equipment-slot-main_hand {
+  left: var(--doll-left);
+  top: 16%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-off_hand {
+  left: var(--doll-left);
+  top: 30%;
 }
 
 .equipment-layout-doll-full > .equipment-slot-earrings {
-  grid-area: earrings;
+  left: var(--doll-left);
+  top: 58%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-amulet {
+  left: var(--doll-left);
+  top: 72%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-shoulders {
+  right: var(--doll-right);
+  top: 18%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-chest {
+  right: var(--doll-right);
+  top: 32%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-hands {
+  right: var(--doll-right);
+  top: 45%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-ring {
+  right: var(--doll-right);
+  top: 58%;
 }
 
 .equipment-layout-doll-full > .equipment-slot-ring_ii {
-  grid-area: ring_ii;
+  right: var(--doll-right);
+  top: 72%;
 }
 
 .equipment-layout-doll-full > .equipment-slot-ring_iii {
-  grid-area: ring_iii;
+  right: var(--doll-right);
+  top: 86%;
 }
 
-.equipment-layout-doll-full > .equipment-stage {
-  grid-area: stage;
-  align-self: stretch;
-  width: 7.6rem;
-  overflow: visible;
-  border: none;
-  background: none;
+.equipment-layout-doll-full > .equipment-slot-belt {
+  left: var(--doll-lower);
+  top: 64%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-legs {
+  left: var(--doll-lower);
+  top: 76%;
+}
+
+.equipment-layout-doll-full > .equipment-slot-feet {
+  left: var(--doll-lower);
+  top: 88%;
 }
 
 .equipment-stage {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   border: none;
-  background: none;
+  background: transparent;
+  opacity: 1;
+  mix-blend-mode: normal;
 }
 
 .equipment-stage-halo {
   display: none;
 }
 
+.equipment-layout-doll-full > .equipment-stage::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3%;
+  z-index: 0;
+  width: 46%;
+  height: 0.85rem;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.55), transparent 72%);
+  pointer-events: none;
+}
+
 .equipment-stage-figure {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: block;
-  width: 100%;
+  width: auto;
   height: 100%;
-  object-fit: cover;
-  object-position: center 10%;
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent),
-    linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 90%, transparent),
-    linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+  max-width: 100%;
+  opacity: 1;
+  mix-blend-mode: normal;
+  background: transparent;
+  object-fit: contain;
+  object-position: center bottom;
+  filter:
+    contrast(1.12)
+    brightness(1.04)
+    saturate(1.07)
+    drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6));
+}
+
+.equipment-layout-doll-full .equipment-stage-figure {
+  object-fit: contain;
 }
 
 .equipment-slot-anchor {
@@ -663,24 +836,50 @@ a.btn {
 }
 
 .equipment-layout-doll .equipment-slot-anchor {
-  width: 4.35rem;
+  width: var(--slot-size, 3.65rem);
 }
 
 .equipment-layout-doll .equipment-slot {
-  min-height: 4.35rem;
-  width: 4.35rem;
+  min-height: var(--slot-size, 3.5rem);
+  width: var(--slot-size, 3.5rem);
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 0.12rem;
-  padding: 0.22rem 0.16rem 0.28rem;
+  gap: 0.06rem;
+  padding: 0.12rem 0.1rem 0.16rem;
+  border-width: 1px;
+  background:
+    linear-gradient(180deg, rgba(36, 30, 24, 0.55), rgba(8, 7, 6, 0.88));
+  box-shadow: inset 0 1px 0 rgba(232, 214, 180, 0.08);
+  transition:
+    background-color 130ms ease,
+    border-color 130ms ease,
+    box-shadow 130ms ease,
+    filter 130ms ease;
+}
+
+.equipment-layout-doll .equipment-slot:hover {
+  background:
+    linear-gradient(180deg, rgba(48, 40, 32, 0.62), rgba(14, 12, 10, 0.9));
+  border-color: rgba(196, 180, 154, 0.42);
+}
+
+.equipment-layout-doll .equipment-slot:hover .equipment-slot-empty-art,
+.equipment-layout-doll .equipment-slot:hover .item-icon-slot {
+  filter: brightness(1.08);
+}
+
+.equipment-layout-doll .equipment-slot-selected {
+  width: 4rem;
+  min-height: 4rem;
 }
 
 .equipment-layout-doll .equipment-slot-label {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: center;
+  color: #c4b8a6;
 }
 
 .equipment-slot-placeholder {
@@ -702,15 +901,52 @@ a.btn {
 .equipment-layout-doll .equipment-slot-empty-art,
 .equipment-layout-doll .equipment-slot-icon,
 .equipment-layout-doll .item-icon-slot {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 3.05rem;
+  height: 3.05rem;
+}
+
+.equipment-slot-lock {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  color: #8a8074;
+}
+
+.equipment-slot-lock svg {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 .equipment-layout-doll .equipment-slot-empty-art {
-  filter: brightness(1.4) contrast(1.12);
+  opacity: 0.52;
+  filter: brightness(1.4) contrast(1.08);
 }
 
-.equipment-layout-doll-full .equipment-slot-empty .equipment-slot-name {
+.equipment-layout-doll .tooltip-panel {
+  width: min(11.5rem, 36vw);
+  max-height: none;
+  overflow: visible;
+  padding: 0.4rem 0.5rem;
+}
+
+.item-peek-compact {
+  gap: 0.08rem;
+}
+
+.item-peek-compact .item-name {
+  font-size: 0.82rem;
+}
+
+.item-peek-meta,
+.item-peek-row {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+.equipment-layout-doll-full .equipment-slot-name {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -730,9 +966,13 @@ a.btn {
   height: 1.35rem;
 }
 
+.equipment-layout-doll .equipment-slot-empty {
+  border-color: rgba(90, 80, 68, 0.95);
+}
+
 .equipment-slot-empty .equipment-slot-name,
 .equipment-slot-empty .equipment-slot-value {
-  color: var(--ink-soft);
+  color: #b8aea0;
   font-weight: 500;
 }
 
@@ -775,28 +1015,67 @@ a.btn {
   font: inherit;
   text-align: left;
   width: 100%;
-  border: 2px solid #6b6358;
+  border: 1px solid #3d372f;
   background: rgba(12, 10, 8, 0.55);
-  border-radius: var(--radius-sm);
+  border-radius: 0.2rem;
   padding: 0.35rem 0.5rem;
   color: inherit;
   cursor: pointer;
 }
 
+.equipment-slot-uncommon,
+.equipment-slot-rare,
+.equipment-slot-epic {
+  box-shadow: inset 0 0 10px rgba(197, 160, 89, 0.08);
+}
+
 .equipment-slot-uncommon {
   border-color: var(--rarity-uncommon);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--rarity-uncommon) 22%, transparent);
 }
 
 .equipment-slot-rare {
   border-color: var(--rarity-rare);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--rarity-rare) 22%, transparent);
 }
 
 .equipment-slot-epic {
   border-color: var(--rarity-epic);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--rarity-epic) 22%, transparent);
+}
+
+.equipment-slot-uncommon::after,
+.equipment-slot-rare::after,
+.equipment-slot-epic::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.equipment-slot-uncommon::after {
+  color: var(--rarity-uncommon);
+}
+
+.equipment-slot-rare::after {
+  color: var(--rarity-rare);
+}
+
+.equipment-slot-epic::after {
+  color: var(--rarity-epic);
 }
 
 .equipment-slot-selected {
-  box-shadow: 0 0 0 2px var(--accent-strong);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(197, 160, 89, 0.28),
+    0 0 10px rgba(197, 160, 89, 0.2);
 }
 
 .equipment-slot-locked {

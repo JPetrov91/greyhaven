@@ -141,12 +141,27 @@ function InspectItemDetail({
             <strong className={`item-name ${rarityInk}`}>{item.displayName}</strong>
             <RarityBadge rarity={item.rarity} />
           </div>
-          <p className={`item-detail-kicker ${rarityInk}`}>{meta.kicker}</p>
-          {meta.slotLine ? <p className="item-detail-slot">{meta.slotLine}</p> : null}
-          <p className="item-detail-level">{meta.itemLevel}</p>
-          {item.equipped ? <p className="item-detail-equipped">Equipped</p> : null}
+          <p className={`item-detail-kicker ${rarityInk}`}>
+            {stacked
+              ? [meta.kicker, meta.slotLine].filter(Boolean).join(' • ')
+              : meta.kicker}
+          </p>
+          {stacked ? <p className="item-detail-level">{meta.itemLevel}</p> : null}
+          {!stacked && meta.slotLine ? <p className="item-detail-slot">{meta.slotLine}</p> : null}
+          {!stacked ? <p className="item-detail-level">{meta.itemLevel}</p> : null}
+          {item.equipped && !stacked ? <p className="item-detail-equipped">Equipped</p> : null}
         </div>
       </header>
+      {stacked ? (
+        <div className="item-durability" aria-hidden="true">
+          <p>
+            Durability <span>85 / 100</span>
+          </p>
+          <div className="item-durability-track">
+            <span className="item-durability-fill" />
+          </div>
+        </div>
+      ) : null}
       {item.description ? <p className="item-tooltip-desc">{item.description}</p> : null}
       {primary.length > 0 ? (
         <div className="item-primary-stats">

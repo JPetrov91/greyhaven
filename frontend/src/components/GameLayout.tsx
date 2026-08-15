@@ -195,7 +195,14 @@ export function GameLayout() {
       />
     )
   } else if (view === 'equipment') {
-    mainContent = <EquipmentPanel mutationsDisabled={occupied} />
+    mainContent = (
+      <div className="equipment-page">
+        <EquipmentPanel mutationsDisabled={occupied} />
+        <div id="global-chat" className="equipment-page-chat">
+          <ChatPanel />
+        </div>
+      </div>
+    )
   } else if (view === 'mastery') {
     mainContent = <MasteryPanel mutationsDisabled={occupied} />
   } else if (view === 'pvp') {

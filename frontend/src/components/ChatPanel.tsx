@@ -26,10 +26,10 @@ function formatWhen(iso: string): string {
 }
 
 const CHANNELS = [
-  { id: 'global', label: 'GLOBAL', art: '/icons/chat/global.webp', later: false },
-  { id: 'trade', label: 'TRADE', art: '/icons/chat/trade.webp', later: true, testId: 'chat-tab-trade' },
-  { id: 'guild', label: 'GUILD', art: '/icons/chat/guild.webp', later: true, testId: 'chat-tab-guild' },
-  { id: 'party', label: 'PARTY', art: '/icons/chat/party.webp', later: true, testId: 'chat-tab-party' },
+  { id: 'global', label: 'GLOBAL', art: '/icons/chat/global.webp', later: false, unread: 12 },
+  { id: 'trade', label: 'TRADE', art: '/icons/chat/trade.webp', later: true, testId: 'chat-tab-trade', unread: 3 },
+  { id: 'guild', label: 'GUILD', art: '/icons/chat/guild.webp', later: true, testId: 'chat-tab-guild', unread: 5 },
+  { id: 'party', label: 'PARTY', art: '/icons/chat/party.webp', later: true, testId: 'chat-tab-party', unread: 1 },
 ] as const
 
 function nameTone(name: string): 'gold' | 'green' | 'teal' {
@@ -190,6 +190,9 @@ export function ChatPanel() {
                 <>
                   <img className="chat-channel-icon" src={channel.art} alt="" aria-hidden="true" />
                   <span className="chat-channel-label">{channel.label}</span>
+                  <span className="chat-unread" aria-hidden="true">
+                    {channel.unread}
+                  </span>
                 </>
               )
               if (channel.later) {

@@ -1,7 +1,7 @@
 import { cloneElement, isValidElement, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { classNames } from './classNames'
 
-type Placement = 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end'
+type Placement = 'right' | 'left' | 'top' | 'bottom'
 
 type TriggerProps = {
   'aria-describedby'?: string
@@ -18,21 +18,36 @@ type Props = {
 export function Tooltip({ content, children, open, pinned = false }: Props) {
   const tooltipId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
-  const [placement, setPlacement] = useState<Placement>('bottom-start')
+  const [placement, setPlacement] = useState<Placement>('right')
 
   useLayoutEffect(() => {
     if (!open) {
-      setPlacement('bottom-start')
+      setPlacement('right')
       return
     }
     const panel = panelRef.current
-    if (!panel) {
+    const trigger = panel?.previousElementSibling as HTMLElement | null
+    if (!panel || !trigger) {
       return
     }
-    const rect = panel.getBoundingClientRect()
-    const flipUp = rect.bottom > window.innerHeight - 8 && rect.top > rect.height
-    const flipLeft = rect.right > window.innerWidth - 8
-    setPlacement(`${flipUp ? 'top' : 'bottom'}-${flipLeft ? 'end' : 'start'}`)
+    const t = trigger.getBoundingClientRect()
+    const p = panel.getBoundingClientRect()
+    const gap = 12
+    const right = window.innerWidth - t.right
+    const left = t.left
+    const bottom = window.innerHeight - t.bottom
+    const top = t.top
+    if (right >= p.width + gap) {
+      setPlacement('right')
+    } else if (left >= p.width + gap) {
+      setPlacement('left')
+    } else if (top >= p.height + gap) {
+      setPlacement('top')
+    } else if (bottom >= p.height + gap) {
+      setPlacement('bottom')
+    } else {
+      setPlacement(right >= left ? 'right' : 'left')
+    }
   }, [open])
 
   const trigger = isValidElement<TriggerProps>(children)
@@ -49,11 +64,7 @@ export function Tooltip({ content, children, open, pinned = false }: Props) {
         <div
           ref={panelRef}
           id={tooltipId}
-          className={classNames(
-            'tooltip-panel',
-            placement.startsWith('top') && 'tooltip-top',
-            placement.endsWith('end') && 'tooltip-end',
-          )}
+          className={classNames('tooltip-panel', `tooltip-${placement}`)}
           role="tooltip"
         >
           {content}

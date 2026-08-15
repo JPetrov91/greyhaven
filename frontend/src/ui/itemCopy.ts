@@ -185,5 +185,8 @@ export function shouldShowItemComparison(item: InventoryItemResponse): boolean {
   if (item.comparison == null || item.equipped) {
     return false
   }
+  if (item.equipmentSlot != null && item.comparison.slot !== item.equipmentSlot) {
+    return false
+  }
   return item.comparison.equippedItemId !== item.id
 }
