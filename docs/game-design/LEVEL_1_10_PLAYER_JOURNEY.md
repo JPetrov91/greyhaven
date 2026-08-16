@@ -22,6 +22,8 @@ Character Creation → Level 1 → … → Level 10 → first major milestone.
 
 **Change control:** if Tasks 05–11 need a different unlock, climax, or path, update this file first. Do not silently invent a second journey in content or economy work.
 
+**Weapon kit / first quest:** `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md` supersedes spawn Rusty Sword, Edric-as-first-family-choice, and single-integer weapon damage for the rusty starter set.
+
 ---
 
 ## 2. Design principles
@@ -47,7 +49,8 @@ This section records what the live game already assumes. Task 04 does not change
 - Start: Level 1, 0 XP, **100 gold**, STR/AGI/END/PER **5/5/5/5**, 0 unspent points.
 - Vitals at start: max health **165**, max stamina **85**.
 - Location: **City Square**.
-- Loadout: **Rusty Sword** (MAIN_HAND), **Worn Leather Armor** (CHEST), **2× Healing Potion**.
+- Loadout (live today): **Rusty Sword** (MAIN_HAND), **Worn Leather Armor** (CHEST), **2× Healing Potion**.  
+  **Journey decision:** see `WEAPON_FAMILIES_AND_STARTER_QUEST.md` — spawn without a proper weapon; first family is the first-quest rusty reward.
 - Mastery: five families at 0; four empty technique slots.
 - Professions: Blacksmith, Alchemist, Hunter at rank 1.
 - Arena rating 1000; marks 0.
@@ -92,7 +95,7 @@ Each conflict states the live state and the **journey decision**. Implementation
 | Feature dump at Level 1 | Nav exposes Market, Crafting, Expeditions, Arena, Mastery immediately | **Guide + UI emphasis.** Recommended path and quests point at one next beat. Do not hard-lock travel. Soft-hide or de-emphasize Ranked Arena, Crafting station depth, and dungeon entry until their unlock. Optional systems remain reachable for explorers. |
 | No spine | No quests or next-action | **Task 06/07** add a militia / missing-caravan chapter. This doc defines beats only. |
 | No Level 10 climax | Only Ruined Keep (L18–24) | **New early dungeon** using existing dungeon infrastructure. Ruined Keep stays post-10 / endgame. |
-| Everyone starts Sword | Rusty Sword equipped; other families cheap at Market | **Keep name-only creation.** First weapon-family choice is an in-world merchant beat at Level 2. |
+| Everyone starts Sword | Rusty Sword equipped; other families cheap at Market | **Keep name-only creation.** First weapon-family choice is the **first-quest rusty kit** (sword / axe / mace / daggers). Edric is the first **upgrade**, not the first identity. Bow is not a first-quest option. See `WEAPON_FAMILIES_AND_STARTER_QUEST.md`. |
 | Techniques vs teaching | All core combat actions visible in fight 1; techniques after ~17 PvE wins | **First fight uses a reduced action set in presentation** (Task 08). First technique is a Level 4 beat, aligned with mastery 2 on one family. |
 | Statuses too early | Wolf BLEED as soon as Forest is entered | **Forest is the first status teacher, at Level 3**, after Defend is known. |
 | Merchants replace loot | 100g buys every starter family | **NPC Merchant is the intended first upgrade.** Loot/craft supply rolled / higher-tier pieces. Task 05 prices the second upgrade so merchants do not also replace Iron-tier loot. |
@@ -109,12 +112,12 @@ Each conflict states the live state and the **journey decision**. Implementation
 
 ## 5. Answers to the required design questions
 
-1. **First meaningful build choice:** Level 2 — choose a weapon family at Edric Varn (Sword / Axe / Mace / Dagger / Bow). Not a class. Free to change through Level 10.
+1. **First meaningful build choice:** first quest — choose a rusty melee family (Sword / Axe / Mace / Daggers). Not a class. Free to change through Level 10. Edric Varn is the first **upgrade** (and still the place to switch families if the player skipped or wants another rusty-tier replacement). Bow remains a later / merchant option, not the first-quest kit.
 2. **When mastery begins to matter:** Level 4 — first technique unlocks (mastery 2 on the chosen family). Until then mastery is a quiet bar, not a lesson.
 3. **First technique:** Level 4. It must change a decision (counter window, status, accuracy), not be a slightly stronger Quick Attack.
 4. **When statuses become relevant:** Level 3 — Forest Wolf BLEED. Defend/potion matter. Further statuses (OFF_BALANCE, POISON, ARMOR_BREAK) land at Levels 5–7.
 5. **First Player Market visit:** Level 5, optional. Browse after the player understands NPC prices and loot.
-6. **First NPC Merchant:** Level 2 (weapons). Armor/potion restock may happen the same visit or at Level 3.
+6. **First NPC Merchant:** Level 2 (weapon **upgrade**). Armor/potion restock may happen the same visit or at Level 3. First family is already chosen via the rusty quest kit.
 7. **Expeditions:** Level 4 — first Forest Patrol from Tavern or Forest after the player understands leaving the city.
 8. **Crafting:** Level 6 — first *guided* craft (Hunter leather or Alchemist potion). Not required at Level 1. Blacksmith is optional until ore exists in-band.
 9. **Training Grounds:** Level 8 — practice Combat 2.0 against generated bots. Not the best XP/gold source.
@@ -150,7 +153,7 @@ Target times are **active play**, office-first. They assume Task 05 adds quest X
 
 | Level | Target time (cumulative) | Main goal | New system | Location | Enemy lesson | Gear state | Quest beat | Unlock |
 | ---: | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 10–20 min | Survive first street fight and return to the Square | World + basic combat | City Square, Old Town | Aggressive thug: hit, heal, leave | Rusty Sword, Worn Leather, 2 potions | Militia notice: trouble in Old Town | Search, fight, inventory |
+| 1 | 10–20 min | Survive first street fight and return to the Square | World + basic combat | City Square, Old Town | Aggressive thug: hit, heal, leave | Chosen rusty melee (+ rusty shield except daggers), Worn Leather, 2 potions | Militia: issue steel, trouble in Old Town | Search, fight, inventory |
 | 2 | 25–40 min | Buy a real weapon and wear it | NPC Merchant + equipment | Market | Same enemies, better tool | Chosen family COMMON, starter chest | Arm the watch: visit Edric | Merchants, equip |
 | 3 | 45–70 min | Hunt the Forest edge; spend first attributes | Attributes + Defend | Forest | Wolf BLEED: Defend / potion | Light set start or buckler | Wolves on the timber road | Attribute panel |
 | 4 | 1–1.5 h | Use first technique; send a patrol | Technique + Expedition | Forest / Tavern | Bandit DEFENSIVE: don’t face-tank | Family weapon + light pieces | Caravan overdue — patrol the woods | Mastery loadout, expeditions |
@@ -173,19 +176,19 @@ Do **not** require: techniques, mastery, affixes, armor penetration, five status
 
 Enemy: **Street Thug** (AGGRESSIVE) preferred. Giant Rat is acceptable as a second fight (faster, ASSASSIN — keep it simple).
 
-### 8.2 First Meaningful Equipment Choice (Level 2, Market)
+### 8.2 First merchant upgrade (Level 2, Market)
 
-Edric Varn stocks one COMMON starter per family. The player spends gold and equips. The lesson is **weapon identity**, not DPS spreadsheets.
+Family identity is taught at the **first-quest rusty choice** (`WEAPON_FAMILIES_AND_STARTER_QUEST.md`). Edric Varn stocks one COMMON **upgrade** per family. The player spends gold and equips. The lesson is **shop as a person and a better tool**, not the first identity.
 
-| Family | Identity to teach later |
+| Family | Identity |
 | --- | --- |
 | Sword | Control / counter (Riposte) |
-| Axe | Pressure / bleed |
-| Mace | Armor and stun |
-| Dagger | Tempo / poison / off-balance |
-| Bow | Accuracy, two-handed (no shield) |
+| Axe | Pressure / bleed / highest white damage (widest rusty range) |
+| Mace | Armor and stun (high floor, modest ceiling) |
+| Dagger | Tempo / poison / off-balance; no rusty shield |
+| Bow | Accuracy, two-handed (no shield) — **not** in the first-quest kit |
 
-Mara Helden may sell a buckler or a piece of light armor on the same visit. That is support, not the main choice.
+Mara Helden may sell a buckler (upgrade over rusty shield) or a piece of light armor on the same visit. That is support, not the main choice.
 
 ### 8.3 First Attributes (Level 3)
 
@@ -245,8 +248,8 @@ Gold and attribute numbers below are **expected bands**, not Task 05 formulas. L
 **Player state**
 
 - Playtime: 10–20 minutes.
-- Gear: Rusty Sword, Worn Leather, 2 potions.
-- Weapon: Sword by default; no choice yet.
+- Gear: Worn Leather, 2 potions; rusty family kit from the first quest (shield except daggers).
+- Weapon: chosen at quest issue (sword / axe / mace / daggers). No default Sword.
 - Attributes: 5/5/5/5, 0 unspent.
 - Mastery: 0, no techniques.
 - Gold: ~100 plus a few coins from thugs (live 4–10).
@@ -262,7 +265,7 @@ Gold and attribute numbers below are **expected bands**, not Task 05 formulas. L
 
 **Equipment:** Starter only. Do not send the player to Market before the first fight.
 
-**Quest beat:** “Old Town is restless. The watch needs eyes.” Talk/visit beat in Task 06.
+**Quest beat:** First quest **Issued Steel** — BR and microscript in `docs/game-design/FIRST_QUEST_BUSINESS_REQUIREMENTS.md`.
 
 **Stop point:** Back in City Square after a fight outcome. Recovery can tick while the tab is closed.
 
@@ -279,9 +282,9 @@ Gold and attribute numbers below are **expected bands**, not Task 05 formulas. L
 - Gold: leftover after one weapon (live merchant prices are low vs 100g).
 - Consumables: 1–4 potions.
 
-**Goal:** Buy and equip a weapon that is *yours*.
+**Goal:** Buy and equip an **upgrade** over rusty (or switch family at the shop).
 
-**New concept:** Equipment slots, weapon families, NPC shop.
+**New concept:** NPC shop as gold sink; equipment as a *better* tool. Families were chosen at Level 1.
 
 **Locations:** Market (Edric; optional Mara / Calia). Return to Old Town to try the weapon.
 
@@ -289,11 +292,11 @@ Gold and attribute numbers below are **expected bands**, not Task 05 formulas. L
 
 **Equipment:** Militia Shortsword / Arming Sword / Woodsman Axe / Knobbed Club / Old Dagger / Hunting Bow. Bow teaches two-handed (no buckler).
 
-**Quest beat:** “Arm yourself before you leave the walls.”
+**Quest beat:** “Better steel before you leave the walls.” Optional if rusty is enough; intended upgrade at Edric.
 
 **Unlock:** NPC Merchants, Equipment panel as a *decision* screen.
 
-**Optional:** ignore Market and keep Rusty Sword — allowed, slower.
+**Optional:** ignore Market and keep rusty — allowed, slower.
 
 **Stop point:** Equipped, in City Square or Market.
 
@@ -611,8 +614,8 @@ The hideout is a handful of rooms, not the ancient keep. You use the chapter: De
 
 | Beat | Level | Intent |
 | --- | ---: | --- |
-| Notice posted in the Square | 1 | Why leave the hub |
-| Arm yourself | 2 | Merchant as a person (Edric) |
+| Notice posted in the Square | 1 | Why leave the hub; issue rusty kit |
+| Better steel | 2 | Merchant as a person (Edric) — upgrade, not first family |
 | Timber road / wolves | 3 | Forest as the wagon path |
 | Overdue / send a patrol | 4 | Expedition belongs to the story |
 | Tracks north; Veteran | 5 | Elite is a named threat, not a rare spawn only |
@@ -701,7 +704,7 @@ Exact quest text is Task 06/07.
 
 - Size quest XP/gold so target times in §7 are plausible on the live 5,580 curve.
 - Keep start **100g** unless a documented change is required; if changed, update this file.
-- Price merchant vs loot vs craft: Edric sells the *first* weapon; Iron-tier is not cheaper than fighting.
+- Price merchant vs loot vs craft: Edric sells the first **upgrade** over rusty; Iron-tier is not cheaper than fighting. First family is the quest kit (`WEAPON_FAMILIES_AND_STARTER_QUEST.md`).
 - Expected gold bands per level; potion sink; craft costs.
 - Level 10 unique reward budget (not Warden’s Signet).
 - Player Market must not outclass the recommended path before Level 5+.
@@ -726,7 +729,7 @@ Exact-once rewards; server authority.
 ### Task 08 — Combat refinement
 
 - First-fight presentation: emphasize Quick, Potion, Retreat; introduce Defend by Level 3, Precise/Heavy as soon as they help a taught lesson.
-- Make the five Level-2 techniques feel like the identities in §8.2.
+- Make the five Level-2 techniques feel like the identities in §8.2 and `WEAPON_FAMILIES_AND_STARTER_QUEST.md` (bow still later). Per-hit weapon ranges and rusty shield soak are specified there; do not invent Combat 3.0.
 - Elite and boss readability (Veteran, L10 boss).
 - Do not build Combat 3.0.
 
@@ -757,7 +760,7 @@ Resolved by this document unless a human overrides:
 - Climax = **new early dungeon**, not Ruined Keep.
 - Gating = **guide + UI / soft-gate ranked PvP**, not hard travel locks.
 - Time = **several office days, ~6.5–8 hours active**.
-- Creation = **name only**; weapon choice in Market at Level 2.
+- Creation = **name only**; first weapon family = first-quest rusty kit; Market at Level 2 is the upgrade.
 - Crafting = **yes, Level 6 Hunter or Alchemist**; Blacksmith optional pending ore.
 - PvP = **TG at 8, ranked after 10**.
 - Premise = **militia / Lost Caravan**.
