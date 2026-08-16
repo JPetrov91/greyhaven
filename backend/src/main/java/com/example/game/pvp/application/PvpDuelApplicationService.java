@@ -27,6 +27,7 @@ import com.example.game.pvp.domain.PvpMatchSnapshot;
 import com.example.game.pvp.domain.PvpMatchStatus;
 import com.example.game.pvp.domain.PvpRoundResult;
 import com.example.game.pvp.domain.PvPBalance;
+import com.example.game.sparring.domain.SparringBots;
 import com.example.game.pvp.infrastructure.ArenaDefenseProfileEntity;
 import com.example.game.pvp.infrastructure.ArenaDefenseProfileRepository;
 import com.example.game.pvp.infrastructure.PvpMatchEntity;
@@ -72,13 +73,20 @@ public class PvpDuelApplicationService {
 
 	@Transactional
 	public PvpMatchView challenge(UUID accountId, UUID defenderId) {
-		matchSupport.requireAtArena(accountId);
+		matchSupport.requireAtSparringYard(accountId);
 		CharacterVitalsView attacker = characterVitalsService.lockVitalsOf(accountId);
 		if (attacker.characterId().equals(defenderId)) {
 			throw PvpErrors.selfChallenge();
 		}
+		if (attacker.level() > SparringBots.MAX_PLAYER_LEVEL) {
+			throw PvpErrors.sparringLevelRequired();
+		}
 		characterCombatGuard.assertNotInActiveCombat(attacker.characterId());
-		characterApplicationService.requirePublic(defenderId);
+		CharacterPublicCore defender = characterApplicationService.requirePublic(defenderId);
+		if (defender.level() > SparringBots.MAX_PLAYER_LEVEL) {
+			throw PvpErrors.sparringLevelRequired();
+		}
+		matchSupport.requireCharacterAtSparringYard(defenderId);
 		characterCombatGuard.assertNotInActiveCombat(defenderId);
 		if (matchRepository.findOpenDuelFor(attacker.characterId()).isPresent()
 				|| matchRepository.findOpenDuelFor(defenderId).isPresent()) {
@@ -159,8 +167,11 @@ public class PvpDuelApplicationService {
 	}
 
 	private PvpMatchView acceptInternal(UUID accountId, UUID matchId) {
-		matchSupport.requireAtArena(accountId);
+		matchSupport.requireAtSparringYard(accountId);
 		CharacterVitalsView defender = characterVitalsService.lockVitalsOf(accountId);
+		if (defender.level() > SparringBots.MAX_PLAYER_LEVEL) {
+			throw PvpErrors.sparringLevelRequired();
+		}
 		characterCombatGuard.assertNotInActiveCombat(defender.characterId());
 		PvpMatchEntity match = matchRepository.findWithLockById(matchId).orElseThrow(PvpErrors::matchNotFound);
 		expireIfNeeded(match);

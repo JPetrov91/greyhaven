@@ -59,9 +59,15 @@ class LocationActionsTest {
 						LocationAction.MOVE,
 						LocationAction.VIEW_NEARBY,
 						LocationAction.ENTER_ARENA,
-						LocationAction.CHALLENGE_DUEL,
 						LocationAction.TALK_NPCS)
-				.doesNotContain(LocationAction.SEARCH_ENCOUNTER);
+				.doesNotContain(LocationAction.SEARCH_ENCOUNTER, LocationAction.CHALLENGE_DUEL);
+		assertThat(LocationActions.forCode(LocationCodes.SPARRING_YARD))
+				.containsExactly(
+						LocationAction.INSPECT,
+						LocationAction.MOVE,
+						LocationAction.VIEW_NEARBY,
+						LocationAction.CHALLENGE_DUEL,
+						LocationAction.START_SPARRING_DRILL);
 		assertThat(LocationActions.forCode(LocationCodes.CRAFTSMEN_WARD))
 				.contains(LocationAction.CRAFT, LocationAction.CLAIM_CRAFT, LocationAction.SALVAGE);
 		assertThat(LocationActions.forCode(LocationCodes.ANCIENT_RUINS))

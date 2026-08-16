@@ -51,5 +51,7 @@ describe('gameLink', () => {
     expect(gameLink('world')).toEqual({ pathname: '/game', search: '', hash: 'world' })
     expect(gameLink('equipment')).toEqual({ pathname: '/game', search: '', hash: 'equipment' })
     expect(gameLink('home')).toEqual({ pathname: '/game', search: '', hash: '' })
+    expect(gameLink('sparring')).toEqual({ pathname: '/game', search: '', hash: 'sparring' })
+    expect(gameViewFromLocation({ pathname: '/game', search: '', hash: '#sparring' })).toBe('home')
   })
 })

@@ -41,6 +41,13 @@ public class CharacterLocationService {
 		return toView(activeCharacterResolver.requireActive(accountId));
 	}
 
+	@Transactional(readOnly = true)
+	public CharacterLocationView locationOfCharacter(UUID characterId) {
+		CharacterEntity character = characterRepository.findById(characterId)
+				.orElseThrow(() -> new IllegalArgumentException("character missing: " + characterId));
+		return toView(character);
+	}
+
 	/**
 	 * Reads the location under a row lock so the caller can validate a move and persist the result
 	 * without a concurrent request interleaving. {@code MANDATORY} propagation guarantees the lock

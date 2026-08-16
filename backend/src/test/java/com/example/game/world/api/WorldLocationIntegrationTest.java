@@ -67,8 +67,8 @@ class WorldLocationIntegrationTest {
 		Integer connectionCount = jdbcTemplate.queryForObject(
 				"select count(*) from location_connections",
 				Integer.class);
-		assertThat(locationCount).isEqualTo(13);
-		assertThat(connectionCount).isEqualTo(26);
+		assertThat(locationCount).isEqualTo(14);
+		assertThat(connectionCount).isEqualTo(28);
 		assertThat(jdbcTemplate.queryForObject(
 				"""
 						select count(*) from location_connections c
@@ -150,12 +150,13 @@ class WorldLocationIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/world/destinations").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.destinations.length()").value(7))
+				.andExpect(jsonPath("$.destinations.length()").value(8))
 				.andExpect(jsonPath("$.destinations[?(@.code=='FOREST')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='OLD_TOWN')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='MARKET')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='NORTH_ROAD')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='ARENA')]").exists())
+				.andExpect(jsonPath("$.destinations[?(@.code=='SPARRING_YARD')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='CRAFTSMEN_WARD')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='HARBOUR')]").exists())
 				.andExpect(jsonPath("$.destinations[?(@.code=='TAVERN')]").isEmpty());

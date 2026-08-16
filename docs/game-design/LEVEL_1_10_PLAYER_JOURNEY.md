@@ -458,7 +458,7 @@ Gold and attribute numbers below are **expected bands**, not Task 05 formulas. L
 
 **New concept:** Arena as a *place*; practice vs people; defense profile can wait.
 
-**Locations:** Arena (Training Grounds). City Square home.
+**Locations:** Sparring Yard (Training Grounds as shipped). City Square home. Ranked Arena stays a later building. See `docs/tasks/phase-3/sparring-yard.md`.
 
 **Enemies:** Generated bots (Task 09). Must not pretend to be players.
 

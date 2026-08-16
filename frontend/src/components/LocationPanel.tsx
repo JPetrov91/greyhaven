@@ -24,6 +24,7 @@ import {
 import type { LocationActionIconName } from '../ui/locationMedia'
 import { DungeonPanel } from './DungeonPanel'
 import { NpcDialogue } from './NpcDialogue'
+import { SparringYardPanel } from './SparringYardPanel'
 
 const ACTION_LABELS: Record<LocationAction, string> = {
   INSPECT: 'Inspect location',
@@ -40,6 +41,7 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   ENTER_DUNGEON: 'Enter dungeon',
   ENTER_ARENA: 'Enter Arena',
   CHALLENGE_DUEL: 'Challenge to a duel',
+  START_SPARRING_DRILL: 'Start a yard drill',
   CRAFT: 'Craft',
   CLAIM_CRAFT: 'Claim finished craft',
   SALVAGE: 'Salvage equipment',
@@ -56,6 +58,7 @@ const IMPLIED_ACTIONS = new Set<LocationAction>([
   'ENTER_DUNGEON',
   'ENTER_ARENA',
   'CHALLENGE_DUEL',
+  'START_SPARRING_DRILL',
   'CREATE_BUY_ORDER',
   'FULFILL_BUY_ORDER',
 ])
@@ -69,7 +72,9 @@ type Props = {
   onOpenChat?: () => void
   onOpenWorld?: () => void
   onOpenArena?: () => void
+  onOpenSparring?: () => void
   onOpenCrafting?: () => void
+  showYard?: boolean
   variant?: 'full' | 'hero'
 }
 
@@ -101,7 +106,9 @@ export function LocationPanel({
   onOpenChat,
   onOpenWorld,
   onOpenArena,
+  onOpenSparring,
   onOpenCrafting,
+  showYard = false,
   variant = 'full',
 }: Props) {
   const queryClient = useQueryClient()
@@ -189,29 +196,39 @@ export function LocationPanel({
   }
 
   const hero = variant === 'hero'
-  const wrapperClass = hero ? 'game-column location-hero' : 'game-column game-column-center'
+  const atYard = location.actions.includes('CHALLENGE_DUEL') || location.actions.includes('START_SPARRING_DRILL')
+  const yard = showYard && atYard ? <SparringYardPanel /> : null
+
+  if (hero) {
+    return (
+      <>
+        <div className="game-column location-hero" data-testid="location-panel">
+          <LocationHero
+            location={location}
+            destinations={destinations}
+            movingToId={movingToId}
+            moveError={moveError}
+            searchBusy={searchBusy}
+            searchError={searchError}
+            onSearchEncounter={onSearchEncounter}
+            onOpenWorld={onOpenWorld}
+            onOpenMarket={onOpenMarket}
+            onOpenChat={onOpenChat}
+            onOpenExpedition={onOpenExpedition}
+            onOpenArena={onOpenArena}
+            onOpenSparring={onOpenSparring}
+            showYard={showYard}
+            onOpenCrafting={onOpenCrafting}
+            onMove={(id) => void handleMove(id)}
+          />
+        </div>
+        {yard}
+      </>
+    )
+  }
 
   return (
-    <div className={wrapperClass} data-testid="location-panel" id={hero ? undefined : 'world'}>
-      {hero ? (
-        <LocationHero
-          location={location}
-          destinations={destinations}
-          movingToId={movingToId}
-          moveError={moveError}
-          searchBusy={searchBusy}
-          searchError={searchError}
-          onSearchEncounter={onSearchEncounter}
-          onOpenWorld={onOpenWorld}
-          onOpenMarket={onOpenMarket}
-          onOpenChat={onOpenChat}
-          onOpenExpedition={onOpenExpedition}
-          onOpenArena={onOpenArena}
-          onOpenCrafting={onOpenCrafting}
-          onMove={(id) => void handleMove(id)}
-        />
-      ) : (
-        <>
+    <div className="game-column game-column-center" data-testid="location-panel" id="world">
           <div className="location-hero location-page-banner">
             <div
               className="location-hero-art"
@@ -265,6 +282,12 @@ export function LocationPanel({
               Open Arena
             </Button>
           ) : null}
+          {atYard ? (
+            <Button type="button" data-testid="enter-sparring-action" onClick={() => onOpenSparring?.()}>
+              {showYard ? 'Back to location' : 'Open duels'}
+            </Button>
+          ) : null}
+          {yard}
 
           <section className="location-section" aria-labelledby="destinations-heading">
             <h3 id="destinations-heading">Travel</h3>
@@ -431,8 +454,6 @@ export function LocationPanel({
             </aside>
           ) : null}
           <NpcDialogue open={talkOpen} onClose={() => setTalkOpen(false)} onOpenMarket={onOpenMarket} />
-        </>
-      )}
     </div>
   )
 }
@@ -452,6 +473,8 @@ export type LocationHeroProps = {
   onOpenChat?: () => void
   onOpenExpedition?: () => void
   onOpenArena?: () => void
+  onOpenSparring?: () => void
+  showYard?: boolean
   onOpenCrafting?: () => void
   onMove: (destinationLocationId: string) => void
 }
@@ -464,6 +487,7 @@ type HeroTileModel = {
   onClick?: () => void
   disabled?: boolean
   comingLater?: boolean
+  selected?: boolean
 }
 
 function heroActionTiles({
@@ -477,6 +501,8 @@ function heroActionTiles({
   onOpenChat,
   onOpenExpedition,
   onOpenArena,
+  onOpenSparring,
+  showYard = false,
   onOpenCrafting,
   onMove,
 }: Pick<
@@ -491,6 +517,8 @@ function heroActionTiles({
   | 'onOpenChat'
   | 'onOpenExpedition'
   | 'onOpenArena'
+  | 'onOpenSparring'
+  | 'showYard'
   | 'onOpenCrafting'
   | 'onMove'
 >): HeroTileModel[] {
@@ -506,6 +534,17 @@ function heroActionTiles({
       onClick: () => onOpenWorld?.(),
     },
   ]
+
+  if (actions.has('CHALLENGE_DUEL') || actions.has('START_SPARRING_DRILL')) {
+    tiles.push({
+      testId: 'enter-sparring-action',
+      icon: 'arena',
+      title: 'Duels',
+      subtitle: 'Live spars & drills',
+      selected: showYard,
+      onClick: () => onOpenSparring?.(),
+    })
+  }
 
   if (actions.has('SEARCH_ENCOUNTER')) {
     tiles.push({
@@ -639,6 +678,8 @@ export function LocationHero({
   onOpenChat,
   onOpenExpedition,
   onOpenArena,
+  onOpenSparring,
+  showYard = false,
   onOpenCrafting,
   onMove,
 }: LocationHeroProps) {
@@ -657,6 +698,8 @@ export function LocationHero({
     onOpenChat,
     onOpenExpedition,
     onOpenArena,
+    onOpenSparring,
+    showYard,
     onOpenCrafting,
     onMove,
   })
@@ -764,9 +807,10 @@ type TileProps = {
   onClick?: () => void
   disabled?: boolean
   comingLater?: boolean
+  selected?: boolean
 }
 
-function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLater }: TileProps) {
+function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLater, selected }: TileProps) {
   const content: ReactNode = (
     <>
       <span className="location-hero-tile-icon">
@@ -792,7 +836,14 @@ function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLate
   }
 
   return (
-    <button type="button" className="location-hero-tile" data-testid={testId} disabled={disabled} onClick={onClick}>
+    <button
+      type="button"
+      className={selected ? 'location-hero-tile is-selected' : 'location-hero-tile'}
+      data-testid={testId}
+      aria-current={selected ? 'true' : undefined}
+      disabled={disabled}
+      onClick={onClick}
+    >
       {content}
     </button>
   )

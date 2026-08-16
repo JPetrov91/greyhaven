@@ -10,6 +10,7 @@ export type GameNavItem =
   | 'expeditions'
   | 'crafting'
   | 'pvp'
+  | 'sparring'
 
 export type GameLocation = { pathname: string; search: string; hash: string }
 

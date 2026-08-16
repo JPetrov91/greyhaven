@@ -11,6 +11,7 @@ describe('locationArtUrl', () => {
     expect(locationArtUrl('HARBOUR')).toBe('/locations/harbour.webp')
     expect(locationArtUrl('ANCIENT_RUINS')).toBe('/locations/ancient_ruins.webp')
     expect(locationArtUrl('ARENA')).toBe('/locations/arena.webp')
+    expect(locationArtUrl('SPARRING_YARD')).toBe('/locations/sparring_yard.webp')
     expect(locationArtUrl('CRAFTSMEN_WARD')).toBe('/locations/craftsmen_ward.webp')
   })
 })
@@ -24,6 +25,11 @@ describe('locationWeather', () => {
     })
     expect(locationWeather('FOREST').label).toBe('Damp')
     expect(locationWeather('ARENA').label).toBe('Dusty')
+    expect(locationWeather('SPARRING_YARD')).toEqual({
+      label: 'Overcast',
+      temperature: '12°C',
+      icon: 'weather-cloud',
+    })
     expect(locationWeather('UNKNOWN').label).toBe('Cloudy')
   })
 })

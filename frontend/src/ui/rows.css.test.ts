@@ -31,6 +31,7 @@ describe('row engine', () => {
       'ui-notification-row',
       'ui-notification-unread',
       'ui-compact-row',
+      'ui-row-has-portrait',
     ]) {
       expect(rows).toContain(`.${name}`)
     }

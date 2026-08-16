@@ -83,7 +83,7 @@ class CombatIntegrationTest {
 	void flywaySeededMonstersAndEncounterWeights() {
 		Integer monsters = jdbcTemplate.queryForObject("select count(*) from monster_definitions", Integer.class);
 		Integer weights = jdbcTemplate.queryForObject("select count(*) from location_encounter_weights", Integer.class);
-		assertThat(monsters).isEqualTo(18);
+		assertThat(monsters).isEqualTo(28);
 		assertThat(weights).isEqualTo(28);
 	}
 

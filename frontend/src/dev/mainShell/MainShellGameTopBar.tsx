@@ -6,6 +6,7 @@ import { ChromeIcon } from '../../ui/chromeIcons'
 import { CounterBadge } from '../../ui/CounterBadge'
 import { IconButton } from '../../ui/IconButton'
 import { UiIcon } from '../../ui/UiIcon'
+import { XPBar } from '../../ui/XPBar'
 import { DEV_UI_MAIN_SHELL_PATH } from '../devUi'
 import { mainShellCharacter, mainShellCurrencies, mainShellInventory } from '../mainShellVisualFixture'
 
@@ -73,9 +74,22 @@ export function MainShellGameTopBar() {
         <span className="topbar-divider" aria-hidden="true" />
         <div className="game-topbar-identity" data-testid="topbar-identity">
           <CharacterPortrait className="topbar-portrait" avatarCode={character.avatarCode} />
-          <div>
+          <div className="topbar-identity-copy">
             <p className="topbar-name type-item">{character.name}</p>
-            <p className="topbar-level type-meta">Level {character.level}</p>
+            <div className="topbar-progress">
+              <p className="topbar-level type-meta">Level {character.level}</p>
+              <XPBar
+                className="topbar-xp"
+                density="compact"
+                value={character.progression.progressPercent}
+                max={100}
+                showValue
+                valuePlacement="beside"
+                valueText={`${character.progression.progressPercent}%`}
+                label={`${character.progression.progressPercent}% to next level`}
+                testId="topbar-xp"
+              />
+            </div>
           </div>
         </div>
       </div>

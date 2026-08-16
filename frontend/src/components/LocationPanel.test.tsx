@@ -13,13 +13,25 @@ vi.mock('../api/world', () => ({
 }))
 
 import { fetchCurrentLocation, fetchDestinations, fetchNearbyCharacters } from '../api/world'
+import { fetchSparringBots } from '../api/sparring'
+
+vi.mock('../api/sparring', () => ({
+  fetchSparringBots: vi.fn(),
+  startSparringDrill: vi.fn(),
+}))
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
 })
 
-function renderHero(extra?: { onOpenMarket?: () => void; onSearchEncounter?: () => void; onOpenExpedition?: () => void }) {
+function renderHero(extra?: {
+  onOpenMarket?: () => void
+  onSearchEncounter?: () => void
+  onOpenExpedition?: () => void
+  onOpenSparring?: () => void
+  showYard?: boolean
+}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -29,6 +41,8 @@ function renderHero(extra?: { onOpenMarket?: () => void; onSearchEncounter?: () 
         onOpenMarket={extra?.onOpenMarket}
         onSearchEncounter={extra?.onSearchEncounter}
         onOpenExpedition={extra?.onOpenExpedition}
+        onOpenSparring={extra?.onOpenSparring}
+        showYard={extra?.showYard}
       />
     </QueryClientProvider>,
   )
@@ -127,5 +141,51 @@ describe('LocationPanel', () => {
     expect(screen.getByTestId('location-code').textContent).toBe('CITY_SQUARE')
     const art = container.querySelector('.location-hero-art') as HTMLElement
     expect(art.style.backgroundImage).toContain('/locations/city_square.webp')
+  })
+
+  it('offers a Duels action on the yard without replacing the location page', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-yard',
+      code: 'SPARRING_YARD',
+      name: 'Sparring Yard',
+      description: 'Unranked steel for new fighters.',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'CHALLENGE_DUEL', 'START_SPARRING_DRILL'],
+    })
+    vi.mocked(fetchDestinations).mockResolvedValue({ destinations: [] })
+    vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
+    vi.mocked(fetchSparringBots).mockResolvedValue([{ level: 1, name: 'Green Recruit', code: 'SPARRING_BOT_L01' }])
+
+    const onOpenSparring = vi.fn()
+    renderHero({ onOpenSparring })
+
+    expect(await screen.findByTestId('current-location')).toHaveProperty('textContent', 'Sparring Yard')
+    expect(screen.getByTestId('enter-sparring-action').textContent).toContain('Duels')
+    expect(screen.queryByTestId('sparring-yard-panel')).toBeNull()
+    screen.getByTestId('enter-sparring-action').click()
+    expect(onOpenSparring).toHaveBeenCalled()
+  })
+
+  it('loads duel and drill panels on the location page after opening Duels', async () => {
+    vi.mocked(fetchCurrentLocation).mockResolvedValue({
+      id: 'loc-yard',
+      code: 'SPARRING_YARD',
+      name: 'Sparring Yard',
+      description: 'Unranked steel for new fighters.',
+      safety: 'SAFE',
+      region: 'Greyhaven',
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'CHALLENGE_DUEL', 'START_SPARRING_DRILL'],
+    })
+    vi.mocked(fetchDestinations).mockResolvedValue({ destinations: [] })
+    vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
+    vi.mocked(fetchSparringBots).mockResolvedValue([{ level: 1, name: 'Green Recruit', code: 'SPARRING_BOT_L01' }])
+
+    renderHero({ showYard: true })
+
+    expect(await screen.findByTestId('sparring-yard-panel')).toBeTruthy()
+    expect(screen.getByTestId('enter-sparring-action').getAttribute('aria-current')).toBe('true')
+    expect(screen.getByTestId('sparring-nearby-empty')).toBeTruthy()
+    expect(screen.getByText('Green Recruit')).toBeTruthy()
   })
 })

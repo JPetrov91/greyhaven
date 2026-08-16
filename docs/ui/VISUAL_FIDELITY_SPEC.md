@@ -35,6 +35,12 @@ Approved full-screen references, in this order of authority:
 | 4 | `docs/mockups/market.png` | Dense table + inspector: search/filter chrome, selected row, listing rows that are **not** cards. |
 | 5 | `docs/mockups/combat.png` | Cinematic center + grounded HUD: vitals, skill plates, battle log, danger actions. |
 
+Location-activity reference (does not outrank the five screens above):
+
+| File | What it teaches |
+| --- | --- |
+| `docs/mockups/sparring-yard.png` | Home location hero stays; Duels is an action-row activity that swaps the overview mid-row for live-duel and drill panels. Implementation: `docs/tasks/phase-3/sparring-yard.md`. |
+
 If a later screen task conflicts with a primitive in `/dev/ui`, the mockups win.
 
 ## 1.2 Implementation reference (not visual)

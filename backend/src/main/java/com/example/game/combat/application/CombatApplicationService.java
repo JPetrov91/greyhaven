@@ -469,6 +469,24 @@ public class CombatApplicationService {
 				.toList();
 	}
 
+	private static int resolvedEnemyMaxHealth(CombatSessionEntity session, MonsterDefinitionEntity monster) {
+		if (session.getSnapEnemyMaxHealth() > 0) {
+			return session.getSnapEnemyMaxHealth();
+		}
+		return monster.getMaxHealth();
+	}
+
+	private static MonsterView toMonsterView(MonsterDefinitionEntity monster, int maxHealth) {
+		return new MonsterView(
+				monster.getId(),
+				monster.getCode(),
+				monster.getName(),
+				monster.getLevel(),
+				maxHealth,
+				monster.getAiArchetype() == null ? null : monster.getAiArchetype().name(),
+				monster.getMonsterTier().name());
+	}
+
 	private MonsterDefinitionEntity requireMonster(UUID monsterDefinitionId) {
 		return monsterDefinitionRepository.findById(monsterDefinitionId)
 				.orElseThrow(() -> new IllegalStateException("monster definition missing"));
@@ -536,10 +554,10 @@ public class CombatApplicationService {
 				session.getPlayerStamina(),
 				vitals.maxStamina(),
 				session.getEnemyHealth(),
-				monster.getMaxHealth(),
+				resolvedEnemyMaxHealth(session, monster),
 				session.getEnemyStamina(),
 				enemyMaxStamina,
-				EncounterApplicationService.toMonsterView(monster),
+				toMonsterView(monster, resolvedEnemyMaxHealth(session, monster)),
 				potionAvailable,
 				stunned,
 				playerStatuses,
@@ -569,12 +587,79 @@ public class CombatApplicationService {
 				monster.getCriticalChance(),
 				monster.getDamageMin(),
 				monster.getDamageMax(),
+				monster.getMaxHealth(),
 				monster.getAiArchetype(),
 				monster.getSignatureStatus(),
 				monster.getMonsterTier(),
 				family,
 				codes.isEmpty() ? null : String.join(",", codes),
 				bonuses.staminaCostReduction());
+	}
+
+	@Transactional
+	public CombatView startSparringDrill(UUID accountId, UUID encounterId, MonsterCombatProfile bot) {
+		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
+		EncounterEntity encounter = encounterRepository.findWithLockById(encounterId)
+				.orElseThrow(CombatErrors::encounterNotFound);
+		if (!encounter.getCharacterId().equals(vitals.characterId())) {
+			throw CombatErrors.encounterNotFound();
+		}
+		if (encounter.getStatus() != EncounterStatus.AVAILABLE) {
+			throw CombatErrors.encounterNotAvailable();
+		}
+		if (combatSessionRepository.existsByCharacterIdAndStatus(vitals.characterId(), CombatSessionStatus.ACTIVE)) {
+			throw CombatErrors.combatInProgress();
+		}
+		MonsterDefinitionEntity monster = monsterDefinitionRepository.findById(encounter.getMonsterDefinitionId())
+				.orElseThrow(() -> new IllegalStateException("monster missing for encounter"));
+		if (combatSessionRepository.existsByCharacterIdAndOutcomeAcknowledgedFalse(vitals.characterId())) {
+			throw CombatErrors.outcomePending();
+		}
+		Instant now = Instant.now(clock);
+		encounter.markCombatStarted(now);
+		encounterRepository.saveAndFlush(encounter);
+		CombatSessionEntity session = new CombatSessionEntity(
+				UUID.randomUUID(),
+				encounter.getId(),
+				vitals.characterId(),
+				monster.getId(),
+				CombatSessionStatus.ACTIVE,
+				0,
+				vitals.currentHealth(),
+				vitals.currentStamina(),
+				bot.maxHealth(),
+				now,
+				now);
+		combatSessionRepository.saveAndFlush(session);
+		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(vitals.characterId());
+		WeaponFamily family = equippedWeaponQuery.mainHandFamily(vitals.characterId()).orElse(null);
+		List<String> codes = techniqueLoadoutQuery.activeTechniqueCodes(vitals.characterId());
+		session.captureCombat2Snapshot(
+				bot.maxStamina(),
+				bot.maxStamina(),
+				bot.armor(),
+				bot.accuracy(),
+				bot.dodge(),
+				bot.criticalChance(),
+				bot.damageMin(),
+				bot.damageMax(),
+				bot.maxHealth(),
+				bot.archetype(),
+				bot.signatureStatus(),
+				bot.tier(),
+				family,
+				codes.isEmpty() ? null : String.join(",", codes),
+				bonuses.staminaCostReduction());
+		combatSessionRepository.saveAndFlush(session);
+		combatRewardService.createRewardPlan(session, monster, now);
+		GameTelemetry.combatStarted(
+				gameTelemetryRecorder,
+				vitals.characterId(),
+				session.getWeaponFamily(),
+				session.getTechniqueCodes(),
+				bot.level(),
+				bot.tier().name());
+		return toView(session, monster, vitals, loadEvents(session.getId()), null);
 	}
 
 	private Combat2State buildCombat2State(
@@ -590,16 +675,17 @@ public class CombatApplicationService {
 			specs.put(code, catalog.require(code).effect());
 		}
 		TechniqueEffectSpec passive = masteryPassive(session.getCharacterId(), session.getWeaponFamily(), catalog);
+		MonsterDefinitionEntity monster = requireMonster(session.getMonsterDefinitionId());
 		MonsterCombatProfile enemy = new MonsterCombatProfile(
-				requireMonster(session.getMonsterDefinitionId()).getName(),
-				requireMonster(session.getMonsterDefinitionId()).getLevel(),
+				monster.getName(),
+				monster.getLevel(),
 				session.getSnapEnemyDamageMin(),
 				session.getSnapEnemyDamageMax(),
 				session.getSnapEnemyArmor(),
 				session.getSnapEnemyAccuracy(),
 				session.getSnapEnemyDodge(),
 				session.getSnapEnemyCriticalChance(),
-				requireMonster(session.getMonsterDefinitionId()).getMaxHealth(),
+				resolvedEnemyMaxHealth(session, monster),
 				session.getEnemyMaxStamina(),
 				session.getSnapAiArchetype(),
 				session.getSnapSignatureStatus(),

@@ -13,6 +13,7 @@ describe('form engine', () => {
       'ui-textarea',
       'ui-select',
       'ui-search',
+      'ui-range',
       'ui-dropdown',
       'ui-control-error',
       'ui-floating',

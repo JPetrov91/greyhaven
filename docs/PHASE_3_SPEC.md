@@ -274,7 +274,9 @@ Combat depth must come from meaningful decisions, not additional system count.
 
 Arena receives a Training Grounds mode.
 
-Training Grounds contains generated NPC opponents.
+**Shipped as:** a separate SAFE location, Sparring Yard (`SPARRING_YARD`), not an Arena tab. Record: `docs/tasks/phase-3/sparring-yard.md`. Mockup: `docs/mockups/sparring-yard.png`.
+
+Training Grounds contains generated NPC opponents. The yard also hosts unranked live duels for levels 1–10. Ranked Arena stays in the Arena building.
 
 Supported levels:
 

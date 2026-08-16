@@ -326,6 +326,7 @@ export type LocationAction =
   | 'ENTER_DUNGEON'
   | 'ENTER_ARENA'
   | 'CHALLENGE_DUEL'
+  | 'START_SPARRING_DRILL'
   | 'CRAFT'
   | 'CLAIM_CRAFT'
   | 'SALVAGE'

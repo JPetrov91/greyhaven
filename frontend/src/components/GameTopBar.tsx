@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthContext'
 import { fetchCharacter } from '../api/character'
 import { fetchInventory } from '../api/inventory'
+import type { ProgressionResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { CharacterPortrait } from '../ui/CharacterPortrait'
 import { ChromeHint } from '../ui/ChromeHint'
@@ -13,6 +14,7 @@ import { CounterBadge } from '../ui/CounterBadge'
 import { gameLink, isGameNavActive } from '../ui/gameNav'
 import { IconButton } from '../ui/IconButton'
 import { UiIcon } from '../ui/UiIcon'
+import { XPBar } from '../ui/XPBar'
 
 type CombatContext = {
   monsterName: string
@@ -88,9 +90,12 @@ export function GameTopBar({ combatContext = null }: Props) {
         {character ? (
           <div className="game-topbar-identity" data-testid="topbar-identity">
             <CharacterPortrait className="topbar-portrait" avatarCode={character.avatarCode} />
-            <div>
+            <div className="topbar-identity-copy">
               <p className="topbar-name type-item">{character.name}</p>
-              <p className="topbar-level type-meta">Level {character.level}</p>
+              <div className="topbar-progress">
+                <p className="topbar-level type-meta">Level {character.level}</p>
+                <TopbarXpBar progression={character.progression} />
+              </div>
             </div>
           </div>
         ) : (
@@ -185,6 +190,27 @@ export function GameTopBar({ combatContext = null }: Props) {
         </div>
       </div>
     </header>
+  )
+}
+
+function TopbarXpBar({ progression }: { progression?: ProgressionResponse }) {
+  if (!progression) {
+    return null
+  }
+  const percent = progression.maxLevel ? 100 : Math.min(100, Math.max(0, progression.progressPercent))
+  const percentLabel = `${percent}%`
+  return (
+    <XPBar
+      className="topbar-xp"
+      density="compact"
+      value={percent}
+      max={100}
+      showValue
+      valuePlacement="beside"
+      valueText={percentLabel}
+      label={progression.maxLevel ? 'Maximum level' : `${percentLabel} to next level`}
+      testId="topbar-xp"
+    />
   )
 }
 

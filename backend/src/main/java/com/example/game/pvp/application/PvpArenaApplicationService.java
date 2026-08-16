@@ -31,6 +31,7 @@ import com.example.game.pvp.domain.PvpMatchSnapshot;
 import com.example.game.pvp.domain.PvpMatchStatus;
 import com.example.game.pvp.domain.PvpRoundResult;
 import com.example.game.pvp.domain.PvPBalance;
+import com.example.game.sparring.domain.SparringBots;
 import com.example.game.pvp.infrastructure.ArenaDefenseProfileEntity;
 import com.example.game.pvp.infrastructure.ArenaDefenseProfileRepository;
 import com.example.game.pvp.infrastructure.PvpBattleHistoryEntity;
@@ -223,6 +224,9 @@ public class PvpArenaApplicationService {
 	private PvpMatchView startChallenge(UUID accountId, UUID defenderId) {
 		matchSupport.requireAtArena(accountId);
 		CharacterVitalsView attackerPeek = characterVitalsService.vitalsOf(accountId);
+		if (attackerPeek.level() < SparringBots.RANKED_ARENA_MIN_LEVEL) {
+			throw PvpErrors.arenaLevelRequired();
+		}
 		if (attackerPeek.characterId().equals(defenderId)) {
 			throw PvpErrors.selfChallenge();
 		}

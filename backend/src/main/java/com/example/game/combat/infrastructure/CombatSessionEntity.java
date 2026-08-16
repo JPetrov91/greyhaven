@@ -82,6 +82,9 @@ public class CombatSessionEntity implements Persistable<UUID> {
 	@Column(name = "snap_enemy_damage_max", nullable = false)
 	private int snapEnemyDamageMax;
 
+	@Column(name = "snap_enemy_max_health", nullable = false)
+	private int snapEnemyMaxHealth;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "snap_ai_archetype", length = 16)
 	private EnemyAiArchetype snapAiArchetype;
@@ -276,6 +279,10 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		return snapEnemyDamageMax;
 	}
 
+	public int getSnapEnemyMaxHealth() {
+		return snapEnemyMaxHealth;
+	}
+
 	public EnemyAiArchetype getSnapAiArchetype() {
 		return snapAiArchetype;
 	}
@@ -365,6 +372,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 			int criticalChance,
 			int damageMin,
 			int damageMax,
+			int enemyMaxHealth,
 			EnemyAiArchetype archetype,
 			StatusType signatureStatus,
 			MonsterTier monsterTier,
@@ -380,6 +388,7 @@ public class CombatSessionEntity implements Persistable<UUID> {
 		this.snapEnemyCriticalChance = criticalChance;
 		this.snapEnemyDamageMin = damageMin;
 		this.snapEnemyDamageMax = damageMax;
+		this.snapEnemyMaxHealth = enemyMaxHealth;
 		this.snapAiArchetype = archetype;
 		this.snapSignatureStatus = signatureStatus;
 		this.snapMonsterTier = monsterTier;

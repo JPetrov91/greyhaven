@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentEncounter } from '../api/encounter'
 import { fetchCurrentExpedition } from '../api/expedition'
+import type { LocationResponse } from '../api/types'
+import { fetchCurrentLocation } from '../api/world'
 import { GameLayout } from './GameLayout'
 
 vi.mock('../api/combat', () => ({
@@ -20,6 +22,10 @@ vi.mock('../api/encounter', () => ({
 
 vi.mock('../api/expedition', () => ({
   fetchCurrentExpedition: vi.fn(),
+}))
+
+vi.mock('../api/world', () => ({
+  fetchCurrentLocation: vi.fn(),
 }))
 
 vi.mock('./ActivityPanel', () => ({
@@ -64,7 +70,12 @@ vi.mock('./MasteryPanel', () => ({
 }))
 
 vi.mock('./LocationPanel', () => ({
-  LocationPanel: () => <div>location</div>,
+  LocationPanel: ({ showYard }: { showYard?: boolean }) => (
+    <div>
+      location
+      {showYard ? <div data-testid="sparring-yard-panel">yard</div> : null}
+    </div>
+  ),
 }))
 
 vi.mock('./MarketPanel', () => ({
@@ -99,6 +110,26 @@ vi.mock('./PvpCombatPanel', () => ({
   PvpCombatPanel: () => <div>pvp</div>,
 }))
 
+const CITY_SQUARE: LocationResponse = {
+  id: 'loc-square',
+  code: 'CITY_SQUARE',
+  name: 'City Square',
+  description: 'The heart of Greyhaven.',
+  safety: 'SAFE',
+  region: 'Greyhaven',
+  actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY'],
+}
+
+const SPARRING_YARD: LocationResponse = {
+  id: 'loc-yard',
+  code: 'SPARRING_YARD',
+  name: 'Sparring Yard',
+  description: 'Unranked steel for new fighters.',
+  safety: 'SAFE',
+  region: 'Greyhaven',
+  actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'CHALLENGE_DUEL', 'START_SPARRING_DRILL'],
+}
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -122,6 +153,7 @@ describe('GameLayout', () => {
     vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
     vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
     vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
 
     renderGame('/game?panel=market')
 
@@ -133,18 +165,39 @@ describe('GameLayout', () => {
     vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
     vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
     vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
 
     renderGame('/game')
 
     expect(await screen.findByTestId('chat-panel')).toBeTruthy()
     expect(screen.getByTestId('guild-placeholder')).toBeTruthy()
     expect(screen.getByText('location')).toBeTruthy()
+    expect(screen.getByText('character')).toBeTruthy()
+    expect(screen.getByText('equipment-overview')).toBeTruthy()
+    expect(screen.getByText('expedition')).toBeTruthy()
+  })
+
+  it('replaces home overview panels with yard fights after opening Duels', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(SPARRING_YARD)
+
+    renderGame('/game#sparring')
+
+    expect(await screen.findByTestId('chat-panel')).toBeTruthy()
+    expect(await screen.findByTestId('sparring-yard-panel')).toBeTruthy()
+    expect(screen.getByText('location')).toBeTruthy()
+    expect(screen.queryByText('character')).toBeNull()
+    expect(screen.queryByText('equipment-overview')).toBeNull()
+    expect(screen.queryByText('expedition')).toBeNull()
   })
 
   it('replaces the dashboard with combat when a session is active', async () => {
     vi.mocked(fetchCurrentCombat).mockResolvedValue({ id: 'combat-1' } as never)
     vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
     vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
 
     renderGame('/game')
 
@@ -158,6 +211,7 @@ describe('GameLayout', () => {
     vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
     vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
     vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
 
     renderGame('/game#inventory')
     expect(await screen.findByText('inventory')).toBeTruthy()

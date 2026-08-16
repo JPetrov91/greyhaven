@@ -16,6 +16,10 @@ describe('main-shell chrome copies', () => {
     expect(document.querySelector('.game-topbar.surface-base')).not.toBeNull()
     expect(document.querySelector('.type-display')).not.toBeNull()
     expect(screen.getByTestId('topbar-identity')).toBeTruthy()
+    expect(screen.getByText('Level 47')).toBeTruthy()
+    const xp = screen.getByTestId('topbar-xp') as HTMLProgressElement
+    expect(xp.value).toBe(62)
+    expect(xp.closest('.ui-meter')?.querySelector('.ui-meter-value')?.textContent).toBe('62%')
     expect(screen.getByTestId('topbar-silver').textContent).toContain('1,250,764')
     expect(screen.getByTestId('topbar-gold').textContent).toContain('4,320')
     expect(screen.getByTestId('topbar-inventory')).toBeTruthy()

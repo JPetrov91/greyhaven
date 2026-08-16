@@ -47,6 +47,12 @@ public class WorldApplicationService {
 	}
 
 	@Transactional(readOnly = true)
+	public String locationCodeOf(UUID characterId) {
+		CharacterLocationView character = characterLocationService.locationOfCharacter(characterId);
+		return requireLocation(character.currentLocationId()).getCode();
+	}
+
+	@Transactional(readOnly = true)
 	public LocationView currentLocation(UUID accountId) {
 		CharacterLocationView character = characterLocationService.locationOf(accountId);
 		return toLocationView(requireLocation(character.currentLocationId()));

@@ -88,6 +88,29 @@
   min-width: 0;
 }
 
+.ui-stack {
+  display: grid;
+  gap: var(--spacing-16);
+  min-width: 0;
+}
+
+.ui-split {
+  display: grid;
+  gap: var(--spacing-16);
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+@media (max-width: 900px) {
+  .ui-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+html[data-ui-mode='compact'] .ui-split {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .ui-divider {
   display: block;
   width: 100%;

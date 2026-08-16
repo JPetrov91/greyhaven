@@ -25,6 +25,7 @@ export function AppShell() {
       id !== 'expeditions' &&
       id !== 'crafting' &&
       id !== 'pvp' &&
+      id !== 'sparring' &&
       id !== 'market'
     ) {
       return

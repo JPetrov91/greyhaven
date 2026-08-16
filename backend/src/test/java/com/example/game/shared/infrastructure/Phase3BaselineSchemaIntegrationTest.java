@@ -34,14 +34,14 @@ class Phase3BaselineSchemaIntegrationTest {
 			JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
 			var result = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
-			assertThat(result.migrationsExecuted).isEqualTo(5);
+			assertThat(result.migrationsExecuted).isEqualTo(6);
 
 			assertThat(jdbc.queryForObject(
 					"select count(*) from flyway_schema_history where success = true",
-					Integer.class)).isEqualTo(5);
+					Integer.class)).isEqualTo(6);
 			assertThat(jdbc.queryForList(
 					"select version from flyway_schema_history where success = true order by installed_rank",
-					String.class)).containsExactly("1", "2", "3", "4", "5");
+					String.class)).containsExactly("1", "2", "3", "4", "5", "6");
 			assertThat(jdbc.queryForObject(
 					"select value from schema_meta where key = 'bootstrap_version'",
 					String.class)).isEqualTo("phase3");
@@ -66,14 +66,14 @@ class Phase3BaselineSchemaIntegrationTest {
 							""",
 					Integer.class)).isEqualTo(59);
 
-			assertThat(jdbc.queryForObject("select count(*) from locations", Integer.class)).isEqualTo(13);
-			assertThat(jdbc.queryForObject("select count(*) from location_connections", Integer.class)).isEqualTo(26);
+			assertThat(jdbc.queryForObject("select count(*) from locations", Integer.class)).isEqualTo(14);
+			assertThat(jdbc.queryForObject("select count(*) from location_connections", Integer.class)).isEqualTo(28);
 			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(38);
 			assertThat(jdbc.queryForObject("select count(*) from item_definitions where legacy = true", Integer.class))
 					.isEqualTo(7);
 			assertThat(jdbc.queryForObject("select count(*) from affix_definitions", Integer.class)).isEqualTo(16);
 			assertThat(jdbc.queryForObject("select count(*) from item_definition_modifiers", Integer.class)).isEqualTo(29);
-			assertThat(jdbc.queryForObject("select count(*) from monster_definitions", Integer.class)).isEqualTo(18);
+			assertThat(jdbc.queryForObject("select count(*) from monster_definitions", Integer.class)).isEqualTo(28);
 			assertThat(jdbc.queryForObject("select count(*) from combat_technique_definitions", Integer.class)).isEqualTo(25);
 			assertThat(jdbc.queryForObject("select count(*) from merchant_definitions", Integer.class)).isEqualTo(4);
 			assertThat(jdbc.queryForObject("select count(*) from merchant_stock", Integer.class)).isEqualTo(19);

@@ -103,6 +103,18 @@ public class PvpMatchSupport {
 		}
 	}
 
+	void requireAtSparringYard(UUID accountId) {
+		if (!LocationCodes.SPARRING_YARD.equals(worldApplicationService.currentLocation(accountId).code())) {
+			throw PvpErrors.notAtSparringYard();
+		}
+	}
+
+	void requireCharacterAtSparringYard(UUID characterId) {
+		if (!LocationCodes.SPARRING_YARD.equals(worldApplicationService.locationCodeOf(characterId))) {
+			throw PvpErrors.notAtSparringYard();
+		}
+	}
+
 	void saveSnapshot(UUID matchId, PvpMatchSnapshot snapshot, Instant now) {
 		snapshotRepository.saveAndFlush(new PvpMatchSnapshotEntity(
 				matchId,

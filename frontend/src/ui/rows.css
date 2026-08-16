@@ -44,6 +44,25 @@
   grid-template-columns: 1.25rem minmax(0, 1fr) auto;
 }
 
+.ui-row-has-portrait.ui-row-has-icon {
+  grid-template-columns: var(--icon-well-size-lg) minmax(0, 1fr);
+}
+
+.ui-row-has-portrait.ui-row-has-icon.ui-row-has-trail {
+  grid-template-columns: var(--icon-well-size-lg) minmax(0, 1fr) auto;
+}
+
+.ui-row-has-portrait .ui-row-icon {
+  width: var(--icon-well-size-lg);
+  height: var(--icon-well-size-lg);
+}
+
+.ui-row-has-portrait .ui-row-icon :where(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ui-row-icon {
   display: grid;
   place-items: center;

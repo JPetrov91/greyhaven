@@ -6,6 +6,7 @@ import { fetchCurrentCombat } from '../api/combat'
 import { fetchCurrentArenaMatch, fetchCurrentDuel } from '../api/pvp'
 import { fetchCurrentEncounter, searchEncounter } from '../api/encounter'
 import { fetchCurrentExpedition } from '../api/expedition'
+import { fetchCurrentLocation } from '../api/world'
 import { ActivityPanel } from './ActivityPanel'
 import { CharacterSummaryPanel } from './CharacterSummaryPanel'
 import { ChatPanel } from './ChatPanel'
@@ -89,6 +90,12 @@ export function GameLayout() {
     refetchOnWindowFocus: true,
   })
 
+  const locationQuery = useQuery({
+    queryKey: ['location'],
+    queryFn: fetchCurrentLocation,
+    retry: false,
+  })
+
   const duelQuery = useQuery({
     queryKey: ['duel'],
     queryFn: fetchCurrentDuel,
@@ -137,6 +144,12 @@ export function GameLayout() {
   const resumeFailed = combatQuery.isError || encounterQuery.isError
   const claimableExpedition = expeditionQuery.data?.status === 'COMPLETED'
 
+  const yardOpen = location.hash.replace(/^#/, '') === 'sparring'
+  const atYard =
+    Boolean(locationQuery.data?.actions.includes('CHALLENGE_DUEL')) ||
+    Boolean(locationQuery.data?.actions.includes('START_SPARRING_DRILL'))
+  const showYard = yardOpen && atYard
+
   const locationHandlers = {
     onSearchEncounter: () => void handleSearchEncounter(),
     searchBusy: searching,
@@ -146,7 +159,9 @@ export function GameLayout() {
     onOpenChat: () => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' }),
     onOpenWorld: () => navigate(gameLink('world')),
     onOpenArena: () => navigate(gameLink('pvp')),
+    onOpenSparring: () => navigate(showYard ? gameLink('home') : gameLink('sparring')),
     onOpenCrafting: () => navigate(gameLink('crafting')),
+    showYard,
   }
 
   let mainContent
@@ -228,12 +243,14 @@ export function GameLayout() {
     mainContent = (
       <div className="home-dashboard">
         <LocationPanel variant="hero" {...locationHandlers} />
-        <div className="home-mid-row">
-          <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
-          <EquipmentOverviewCard />
-          <QuestTracker />
-          <ExpeditionPanel variant="card" />
-        </div>
+        {showYard ? null : (
+          <div className="home-mid-row">
+            <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
+            <EquipmentOverviewCard />
+            <QuestTracker />
+            <ExpeditionPanel variant="card" />
+          </div>
+        )}
         <div className="home-bottom-row">
           <div id="global-chat">
             <ChatPanel />

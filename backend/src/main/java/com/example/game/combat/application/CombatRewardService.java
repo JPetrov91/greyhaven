@@ -34,6 +34,7 @@ import com.example.game.item.domain.GeneratedItem;
 import com.example.game.mastery.application.MasteryApplicationService;
 import com.example.game.quest.application.QuestProgressSink;
 import com.example.game.shared.domain.RandomProvider;
+import com.example.game.sparring.domain.SparringBots;
 import com.example.game.telemetry.application.GameTelemetry;
 import com.example.game.telemetry.application.GameTelemetryRecorder;
 import com.example.game.telemetry.domain.ItemCreateSource;
@@ -87,6 +88,11 @@ public class CombatRewardService {
 
 	void createRewardPlan(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
 		if (session.isRewardPlanCreated()) {
+			return;
+		}
+		if (SparringBots.isBotCode(monster.getCode())) {
+			session.markRewardPlan(0, 0, now);
+			combatSessionRepository.saveAndFlush(session);
 			return;
 		}
 		int gold = LootGenerator.rollGold(monster.getGoldMin(), monster.getGoldMax(), randomProvider);
@@ -147,6 +153,12 @@ public class CombatRewardService {
 	 */
 	void applyRewardsExactlyOnce(CombatSessionEntity session, MonsterDefinitionEntity monster, Instant now) {
 		if (session.isRewardsApplied()) {
+			return;
+		}
+		if (SparringBots.isBotCode(monster.getCode())) {
+			CharacterVitalsView vitals = characterVitalsService.lockVitalsByCharacterId(session.getCharacterId());
+			session.markRewards(0, 0, vitals.level(), vitals.level(), now);
+			combatSessionRepository.saveAndFlush(session);
 			return;
 		}
 		int gold = session.getPlannedGold();

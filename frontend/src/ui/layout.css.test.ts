@@ -15,6 +15,8 @@ describe('layout primitives', () => {
       'ui-section-heading-row',
       'ui-section-body',
       'ui-divider',
+      'ui-stack',
+      'ui-split',
     ]) {
       expect(layout).toContain(`.${name}`)
     }

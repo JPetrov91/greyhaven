@@ -24,6 +24,7 @@ describe('production UI engine adoption', () => {
     const market = source('components/MarketPanel.tsx')
     const chat = source('components/ChatPanel.tsx')
     const arena = source('components/ArenaPanel.tsx')
+    const sparring = source('components/SparringYardPanel.tsx')
     const mastery = source('components/MasteryPanel.tsx')
     const activity = source('components/ActivityPanel.tsx')
 
@@ -45,6 +46,11 @@ describe('production UI engine adoption', () => {
 
     expect(arena).toContain('TextInput')
     expect(arena).toContain('<Select')
+    expect(sparring).toContain('Field')
+    expect(sparring).toContain('TextInput')
+    expect(sparring).toContain('CompactDataRow')
+    expect(sparring).toContain('Panel')
+    expect(sparring).not.toMatch(/<select/)
     expect(mastery).toContain('<Select')
     expect(activity).toContain('Dropdown')
     expect(activity).toContain('Section')
@@ -54,6 +60,7 @@ describe('production UI engine adoption', () => {
     expect(source('components/CharacterSummaryPanel.tsx')).toContain('HealthBar')
     expect(source('components/CharacterSummaryPanel.tsx')).toContain('StaminaBar')
     expect(source('components/CharacterSummaryPanel.tsx')).toContain('XPBar')
+    expect(source('components/GameTopBar.tsx')).toContain('XPBar')
     expect(source('components/CombatStage.tsx')).toContain('HealthBar')
     expect(source('components/CombatStage.tsx')).toContain('StaminaBar')
   })

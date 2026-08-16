@@ -103,4 +103,62 @@ describe('GameTopBar', () => {
     expect(screen.getByTestId('topbar-combat-context').textContent).toContain('COMBAT — Street Thug')
     expect(screen.getByTestId('topbar-combat-context').textContent).toContain('Round 5')
   })
+
+  it('shows XP progress next to the character level as a percent', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue({
+      id: 'char-1',
+      accountId: 'acc',
+      name: 'Ragnar',
+      level: 11,
+      gold: 4320,
+      arenaMarks: 12,
+      progression: {
+        level: 11,
+        totalExperience: 8470,
+        experienceIntoCurrentLevel: 1240,
+        experienceRequiredForNextLevel: 2000,
+        experienceRemaining: 760,
+        progressPercent: 62,
+        maxLevel: false,
+      },
+    } as never)
+    vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
+
+    renderTopBar()
+
+    expect(await screen.findByText('Level 11')).toBeTruthy()
+    const bar = screen.getByTestId('topbar-xp') as HTMLProgressElement
+    expect(bar.value).toBe(62)
+    expect(bar.max).toBe(100)
+    expect(bar.getAttribute('aria-label')).toBe('62% to next level')
+    expect(bar.closest('.ui-meter')?.querySelector('.ui-meter-value')?.textContent).toBe('62%')
+  })
+
+  it('shows a full XP bar at maximum level', async () => {
+    vi.mocked(fetchCharacter).mockResolvedValue({
+      id: 'char-1',
+      accountId: 'acc',
+      name: 'Ragnar',
+      level: 30,
+      gold: 4320,
+      arenaMarks: 12,
+      progression: {
+        level: 30,
+        totalExperience: 184830,
+        experienceIntoCurrentLevel: 0,
+        experienceRequiredForNextLevel: null,
+        experienceRemaining: null,
+        progressPercent: 100,
+        maxLevel: true,
+      },
+    } as never)
+    vi.mocked(fetchInventory).mockResolvedValue({ usedSlots: 0, capacity: 40, items: [], equipment: { slots: {} } } as never)
+
+    renderTopBar()
+
+    const bar = (await screen.findByTestId('topbar-xp')) as HTMLProgressElement
+    expect(bar.value).toBe(100)
+    expect(bar.getAttribute('aria-label')).toBe('Maximum level')
+    expect(bar.closest('.ui-meter')?.querySelector('.ui-meter-value')?.textContent).toBe('100%')
+  })
 })

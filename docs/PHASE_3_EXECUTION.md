@@ -28,7 +28,7 @@ Do not ask Cursor to implement multiple tasks together.
 06 Quest & NPC Framework
 07 Level 1–10 Content Pass
 08 Combat Refinement
-09 Arena Training Grounds
+09 Arena Training Grounds (implemented as Sparring Yard — `docs/tasks/phase-3/sparring-yard.md`)
 10 Early PvE & Dungeon Refinement
 11 Level 1–10 Balance Validation
 12 Release-Quality UI Design System

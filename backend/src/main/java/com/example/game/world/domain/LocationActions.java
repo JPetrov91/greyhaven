@@ -59,8 +59,14 @@ public final class LocationActions {
 			LocationAction.MOVE,
 			LocationAction.VIEW_NEARBY,
 			LocationAction.ENTER_ARENA,
-			LocationAction.CHALLENGE_DUEL,
 			LocationAction.TALK_NPCS);
+
+	private static final List<LocationAction> SPARRING_YARD_ACTIONS = List.of(
+			LocationAction.INSPECT,
+			LocationAction.MOVE,
+			LocationAction.VIEW_NEARBY,
+			LocationAction.CHALLENGE_DUEL,
+			LocationAction.START_SPARRING_DRILL);
 
 	private static final List<LocationAction> CRAFTSMEN_WARD_ACTIONS = List.of(
 			LocationAction.INSPECT,
@@ -95,6 +101,7 @@ public final class LocationActions {
 			Map.entry(LocationCodes.FOREST, FOREST_ACTIONS),
 			Map.entry(LocationCodes.NORTH_ROAD, NORTH_ROAD_ACTIONS),
 			Map.entry(LocationCodes.ARENA, ARENA_ACTIONS),
+			Map.entry(LocationCodes.SPARRING_YARD, SPARRING_YARD_ACTIONS),
 			Map.entry(LocationCodes.CRAFTSMEN_WARD, CRAFTSMEN_WARD_ACTIONS),
 			Map.entry(LocationCodes.HARBOUR, HARBOUR_ACTIONS),
 			Map.entry(LocationCodes.SEWERS, SEWERS_ACTIONS),

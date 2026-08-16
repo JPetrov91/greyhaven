@@ -63,7 +63,7 @@ public class CombatController {
 		return ResponseEntity.noContent().build();
 	}
 
-	static CombatResponse toResponse(CombatView view) {
+	public static CombatResponse toResponse(CombatView view) {
 		return new CombatResponse(
 				view.id(),
 				view.encounterId(),

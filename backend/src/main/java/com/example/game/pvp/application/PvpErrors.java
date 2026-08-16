@@ -16,6 +16,27 @@ final class PvpErrors {
 				HttpStatus.CONFLICT);
 	}
 
+	static ApiException notAtSparringYard() {
+		return new ApiException(
+				"NOT_AT_SPARRING_YARD",
+				"You must be at the Sparring Yard to duel.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException sparringLevelRequired() {
+		return new ApiException(
+				"SPARRING_LEVEL_REQUIRED",
+				"The Sparring Yard is for characters level 10 and below.",
+				HttpStatus.CONFLICT);
+	}
+
+	static ApiException arenaLevelRequired() {
+		return new ApiException(
+				"ARENA_LEVEL_REQUIRED",
+				"Ranked Arena challenges unlock at level 11.",
+				HttpStatus.CONFLICT);
+	}
+
 	static ApiException selfChallenge() {
 		return new ApiException(
 				"SELF_CHALLENGE",

@@ -76,6 +76,25 @@ class PvpIntegrationTest {
 	}
 
 	@Test
+	void rankedChallengeRejectedBelowLevelEleven() throws Exception {
+		MockHttpSession attackerSession = registerWithCharacter("pvp-low-" + System.nanoTime() + "@greyhaven.test");
+		MockHttpSession defenderSession = registerWithCharacter("pvp-low-d-" + System.nanoTime() + "@greyhaven.test");
+		UUID defenderId = characterId(defenderSession);
+		UUID arenaId = jdbcTemplate.queryForObject("select id from locations where code = 'ARENA'", UUID.class);
+		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(attackerSession)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"destinationLocationId\":\"" + arenaId + "\"}"))
+				.andExpect(status().isOk());
+		mockMvc.perform(withCsrf(post("/api/v1/pvp/arena/challenges"))
+						.session(attackerSession)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"defenderId\":\"" + defenderId + "\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("ARENA_LEVEL_REQUIRED"));
+	}
+
+	@Test
 	void inspectRedactsPrivateFieldsSelfChallengeIsRejectedAndOfflineDefenderIsEnough() throws Exception {
 		MockHttpSession attackerSession = registerWithCharacter("pvp-a-" + System.nanoTime() + "@greyhaven.test");
 		MockHttpSession defenderSession = registerWithCharacter("pvp-d-" + System.nanoTime() + "@greyhaven.test");
@@ -317,8 +336,8 @@ class PvpIntegrationTest {
 		MockHttpSession challenger = registerWithCharacter("duel-a-" + System.nanoTime() + "@greyhaven.test");
 		MockHttpSession opponent = registerWithCharacter("duel-b-" + System.nanoTime() + "@greyhaven.test");
 		UUID defenderId = characterId(opponent);
-		moveToArena(challenger);
-		moveToArena(opponent);
+		moveToSparringYard(challenger);
+		moveToSparringYard(opponent);
 		MvcResult created = mockMvc.perform(withCsrf(post("/api/v1/pvp/duels"))
 						.session(challenger)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -347,8 +366,8 @@ class PvpIntegrationTest {
 
 		MockHttpSession c2 = registerWithCharacter("duel-c-" + System.nanoTime() + "@greyhaven.test");
 		MockHttpSession d2 = registerWithCharacter("duel-e-" + System.nanoTime() + "@greyhaven.test");
-		moveToArena(c2);
-		moveToArena(d2);
+		moveToSparringYard(c2);
+		moveToSparringYard(d2);
 		UUID d2Id = characterId(d2);
 		MvcResult pending = mockMvc.perform(withCsrf(post("/api/v1/pvp/duels"))
 						.session(c2)
@@ -367,8 +386,8 @@ class PvpIntegrationTest {
 		mutableClock.setInstant(START);
 		MockHttpSession c3 = registerWithCharacter("duel-t-" + System.nanoTime() + "@greyhaven.test");
 		MockHttpSession d3 = registerWithCharacter("duel-u-" + System.nanoTime() + "@greyhaven.test");
-		moveToArena(c3);
-		moveToArena(d3);
+		moveToSparringYard(c3);
+		moveToSparringYard(d3);
 		UUID d3Id = characterId(d3);
 		MvcResult live = mockMvc.perform(withCsrf(post("/api/v1/pvp/duels"))
 						.session(c3)
@@ -567,13 +586,13 @@ class PvpIntegrationTest {
 				attackerId);
 		assertThat(potionsAfter).isZero();
 
-		moveToArena(defenderSession);
+		moveToSparringYard(defenderSession);
 		mockMvc.perform(withCsrf(post("/api/v1/pvp/duels"))
 						.session(attackerSession)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"defenderId\":\"" + defenderId + "\"}"))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("COMBAT_IN_PROGRESS"));
+				.andExpect(jsonPath("$.code").value("NOT_AT_SPARRING_YARD"));
 	}
 
 	private UUID winArena(MockHttpSession attackerSession, UUID defenderId) throws Exception {
@@ -597,11 +616,21 @@ class PvpIntegrationTest {
 	}
 
 	private void moveToArena(MockHttpSession session) throws Exception {
+		jdbcTemplate.update("update characters set level = 11 where id = ?", characterId(session));
 		UUID arenaId = jdbcTemplate.queryForObject("select id from locations where code = 'ARENA'", UUID.class);
 		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"destinationLocationId\":\"" + arenaId + "\"}"))
+				.andExpect(status().isOk());
+	}
+
+	private void moveToSparringYard(MockHttpSession session) throws Exception {
+		UUID yardId = jdbcTemplate.queryForObject("select id from locations where code = 'SPARRING_YARD'", UUID.class);
+		mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"destinationLocationId\":\"" + yardId + "\"}"))
 				.andExpect(status().isOk());
 	}
 
