@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import type { CombatResponse, CombatStatusResponse } from '../api/types'
 import { CombatStatusIcon } from '../ui/combatStatusIcons'
 import { monsterCombatArtUrl, PLAYER_COMBAT_AVATAR_URL } from '../ui/combatMedia'
-import { ProgressBar } from '../ui/ProgressBar'
+import { HealthBar } from '../ui/HealthBar'
+import { StaminaBar } from '../ui/StaminaBar'
 import { StatusBadge } from '../ui/StatusBadge'
 import { classNames } from '../ui/classNames'
 
@@ -144,7 +145,11 @@ function StageVital({
       <strong data-testid={testId}>
         {value} / {max}
       </strong>
-      <ProgressBar value={value} max={Math.max(1, max)} label={label} tone={tone} />
+      {tone === 'health' ? (
+        <HealthBar value={value} max={Math.max(1, max)} label={label} />
+      ) : (
+        <StaminaBar value={value} max={Math.max(1, max)} label={label} />
+      )}
     </div>
   )
 }

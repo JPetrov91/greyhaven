@@ -1,32 +1,213 @@
+/*
+  Greyhaven design tokens — visual-system source of truth.
+
+  New semantic names are the contract for later UI work.
+  Legacy names (--ink, --panel, --space-1…5, --radius, --radius-sm)
+  stay as aliases with the same computed values so existing CSS does not shift.
+
+  Do not restyle screens in this file. Office Mode remaps density, type-role
+  sizes, and outer shadow tokens. Apply typography through roles in
+  typography.css. Apply surfaces through surfaces.css, not ad-hoc brown borders.
+*/
+
 :root {
-  --ink: #e8e0d4;
-  --ink-soft: #b3a894;
-  --paper: #12100e;
+  /* Color — surfaces
+     VISUAL TASK 6 notes (gap vs docs/mockups):
+     References are near-black / charcoal / dark brown with localized bronze.
+     Page grit is a dedicated fine cool tile (not the blotchy panel stone).
+     Raster materials below are the primary finish; CSS only places, blends, and lights them. */
+  --color-page-bg: #07090a;
+  --color-surface-base: #12110f;
+  --color-surface-raised: #191614;
+  --color-surface-inset: #0a0c0d;
+  --color-surface-interactive: rgba(164, 134, 103, 0.12);
+  --color-surface-selected: rgba(164, 134, 103, 0.16);
+  --color-surface-floating: #1a1613;
+
+  /* Color — bronze (structural metal) */
+  --color-bronze-dim: #53402c;
+  --color-bronze-normal: #6a5340;
+  --color-bronze-strong: #8a6e55;
+
+  /* Color — gold (polished bronze, not lemon) */
+  --color-gold-dim: #6a5340;
+  --color-gold-normal: #a48667;
+  --color-gold-strong: #b1967a;
+  --color-gold-highlight: #c09962;
+
+  /* Color — text (silver-parchment, not cream / not white) */
+  --color-text-primary: #c8c2b8;
+  --color-text-secondary: #93887e;
+  --color-text-muted: #7a7168;
+  --color-text-disabled: #5c564f;
+  --color-text-bright: #e4e0d8;
+
+  /* Color — semantic (desaturated, information only) */
+  --color-positive: #4a7c44;
+  --color-negative: #8f3c2c;
+  --color-warning: #b07a3a;
+  --color-info: #5a7a8c;
+
+  /* Spacing scale (px at 16px root). Named by step, not the legacy --space-N index. */
+  --spacing-4: 0.25rem;
+  --spacing-6: 0.375rem;
+  --spacing-8: 0.5rem;
+  --spacing-12: 0.75rem;
+  --spacing-16: 1rem;
+  --spacing-20: 1.25rem;
+  --spacing-24: 1.5rem;
+  --spacing-32: 2rem;
+
+  /* Radius — restrained RPG corners (tight, not SaaS-round). */
+  --radius-none: 0;
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-pill: 999px;
+
+  /* Z-index layers. Numeric values match current stacking (tooltip stays at 20). */
+  --z-base: 0;
+  --z-raised: 1;
+  --z-sticky: 10;
+  --z-dropdown: 30;
+  --z-tooltip: 20;
+  --z-modal: 40;
+
+  /* Form / floating / scrollbar */
+  --floating-gap: var(--spacing-12);
+  --floating-width: 22rem;
+  --scrollbar-size: 0.375rem;
+  --scrollbar-track: var(--color-page-bg);
+  --scrollbar-thumb: color-mix(in srgb, var(--color-text-muted) 38%, var(--color-surface-inset));
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--color-bronze-strong) 48%, var(--color-surface-raised));
+
+  /* Legacy color aliases */
+  --ink: var(--color-text-primary);
+  --ink-soft: var(--color-text-secondary);
+  --paper: var(--color-page-bg);
   --panel: rgba(22, 18, 16, 0.94);
-  --panel-solid: #1c1714;
-  --line: #8a6d32;
-  --line-soft: rgba(201, 162, 39, 0.22);
-  --accent: #c9a227;
-  --accent-strong: #e4c56a;
-  --accent-soft: rgba(201, 162, 39, 0.16);
-  --danger: #c45c4a;
-  --danger-soft: rgba(196, 92, 74, 0.18);
-  --upgrade: #7dba7a;
-  --downgrade: #d07070;
-  --mixed: #d4b05a;
-  --mixed-soft: rgba(212, 176, 90, 0.18);
-  --health: #b4453a;
-  --stamina: #d4b05a;
+  --panel-solid: var(--color-surface-raised);
+  --line: var(--color-gold-dim);
+  --line-soft: var(--color-surface-selected);
+  --accent: var(--color-gold-normal);
+  --accent-strong: var(--color-gold-strong);
+  --accent-soft: var(--color-surface-interactive);
+  --danger: var(--color-negative);
+  --danger-soft: rgba(143, 60, 44, 0.18);
+  --upgrade: var(--color-positive);
+  --downgrade: #a04a3c;
+  --mixed: var(--color-warning);
+  --mixed-soft: rgba(176, 122, 58, 0.18);
+  --health: var(--color-negative);
+  --stamina: var(--color-warning);
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --radius: 10px;
-  --radius-sm: 8px;
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
-  --font-display: 'Cormorant Garamond', Georgia, serif;
+
+  /* Meters — trough + desaturated fill. Sheen is the only justified fill gradient. */
+  --meter-fill-health: var(--health);
+  --meter-fill-stamina: var(--stamina);
+  --meter-fill-xp: var(--color-gold-normal);
+  --meter-fill-durability: color-mix(in srgb, var(--color-positive) 62%, var(--color-bronze-normal));
+  --meter-track: var(--color-surface-inset);
+  --meter-sheen: linear-gradient(
+    180deg,
+    rgba(232, 224, 216, 0.26) 0%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  --meter-height-vital: 1.125rem;
+  --meter-height-default: 0.5rem;
+  --meter-height-xp: 0.375rem;
+  --meter-height-durability: 0.25rem;
+  --meter-segment: rgba(0, 0, 0, 0.42);
+  --color-counter: #f4f2ec;
+  --color-counter-fill: #a02020;
+
+  /* Two families only: Cinzel for inscription, Source Sans 3 for all UI work. */
+  --font-ui: 'Source Sans 3', 'Segoe UI', sans-serif;
+  --font-chrome: 'Cinzel', 'Times New Roman', serif;
+  --font-body: var(--font-ui);
+  --font-display: var(--font-chrome);
+
+  /* Typography roles — family, size, weight, line-height, tracking, color */
+  --type-display-family: var(--font-chrome);
+  --type-display-size: 2rem;
+  --type-display-weight: 600;
+  --type-display-line: 1.1;
+  --type-display-tracking: 0.16em;
+  --type-display-color: var(--color-gold-normal);
+
+  --type-page-heading-family: var(--font-chrome);
+  --type-page-heading-size: 1.5rem;
+  --type-page-heading-weight: 600;
+  --type-page-heading-line: 1.15;
+  --type-page-heading-tracking: 0.12em;
+  --type-page-heading-color: var(--color-text-bright);
+
+  --type-panel-heading-family: var(--font-chrome);
+  --type-panel-heading-size: 0.85rem;
+  --type-panel-heading-weight: 600;
+  --type-panel-heading-line: 1.2;
+  --type-panel-heading-tracking: 0.18em;
+  --type-panel-heading-color: var(--color-gold-normal);
+
+  --type-section-heading-family: var(--font-ui);
+  --type-section-heading-size: 0.5625rem;
+  --type-section-heading-weight: 600;
+  --type-section-heading-line: 1.25;
+  --type-section-heading-tracking: 0.14em;
+  --type-section-heading-color: var(--color-bronze-normal);
+
+  --type-item-family: var(--font-ui);
+  --type-item-size: 0.9375rem;
+  --type-item-weight: 600;
+  --type-item-line: 1.25;
+  --type-item-tracking: 0.01em;
+  --type-item-color: var(--color-text-primary);
+
+  --type-body-family: var(--font-ui);
+  --type-body-size: 0.875rem;
+  --type-body-weight: 400;
+  --type-body-line: 1.4;
+  --type-body-tracking: 0;
+  --type-body-color: var(--color-text-primary);
+
+  --type-compact-family: var(--font-ui);
+  --type-compact-size: 0.8125rem;
+  --type-compact-weight: 400;
+  --type-compact-line: 1.35;
+  --type-compact-tracking: 0;
+  --type-compact-color: var(--color-text-primary);
+
+  --type-meta-family: var(--font-ui);
+  --type-meta-size: 0.6875rem;
+  --type-meta-weight: 500;
+  --type-meta-line: 1.3;
+  --type-meta-tracking: 0.02em;
+  --type-meta-color: var(--color-text-muted);
+
+  --type-micro-family: var(--font-ui);
+  --type-micro-size: 0.625rem;
+  --type-micro-weight: 600;
+  --type-micro-line: 1.2;
+  --type-micro-tracking: 0.12em;
+  --type-micro-color: var(--color-bronze-strong);
+
+  --type-numeric-family: var(--font-ui);
+  --type-numeric-size: 0.875rem;
+  --type-numeric-weight: 600;
+  --type-numeric-line: 1.2;
+  --type-numeric-tracking: 0;
+  --type-numeric-color: var(--color-text-bright);
+
+  /* Legacy radius / space / type — keep computed values */
+  --radius: var(--radius-10);
+  --radius-sm: var(--radius-8);
+  --space-1: var(--spacing-4);
+  --space-2: var(--spacing-8);
+  --space-3: var(--spacing-12);
+  --space-4: var(--spacing-16);
+  --space-5: var(--spacing-24);
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
@@ -35,26 +216,206 @@
   --motion: 150ms ease;
   --rarity-common: #c5c0b8;
   --rarity-common-bg: #2a2724;
-  --rarity-uncommon: #6ed39a;
+  --rarity-uncommon: #5a8f62;
   --rarity-uncommon-bg: #163024;
-  --rarity-rare: #7eb0ff;
+  --rarity-rare: #6a8ab8;
   --rarity-rare-bg: #1a2744;
-  --rarity-epic: #d7a0f5;
+  --rarity-epic: #9a7ab0;
   --rarity-epic-bg: #3a1f48;
-  --focus-ring: 2px solid var(--accent);
-  --focus-offset: 2px;
+  --focus-ring: 1px solid color-mix(in srgb, var(--color-gold-normal) 78%, transparent);
+  --focus-offset: 1px;
+
+  /* Borders — restrained metal edge, never bright gold */
+  --color-border-subtle: color-mix(in srgb, var(--color-bronze-normal) 38%, transparent);
+  --color-border-default: color-mix(in srgb, var(--color-bronze-strong) 52%, transparent);
+  --color-border-interactive: color-mix(in srgb, var(--color-gold-normal) 58%, transparent);
+  --color-border-selected: color-mix(in srgb, var(--color-gold-normal) 72%, transparent);
+  --border-subtle: 1px solid var(--color-border-subtle);
+  --border-default: 1px solid var(--color-border-default);
+  --border-interactive: 1px solid var(--color-border-interactive);
+  --border-selected: 1px solid var(--color-border-selected);
+
+  /* Forged edge — top/left catch light, bottom/right recede. Not a uniform stroke. */
+  --color-edge-highlight: color-mix(in srgb, var(--color-bronze-strong) 70%, transparent);
+  --color-edge-side: color-mix(in srgb, var(--color-bronze-normal) 48%, transparent);
+  --color-edge-shadow: color-mix(in srgb, var(--color-bronze-dim) 40%, transparent);
+  --color-edge-selected-highlight: color-mix(in srgb, var(--color-gold-normal) 78%, transparent);
+  --color-edge-selected-side: color-mix(in srgb, var(--color-gold-normal) 58%, transparent);
+  --color-edge-selected-shadow: color-mix(in srgb, var(--color-bronze-dim) 46%, transparent);
+
+  /* Reusable material / ornament assets — raster materials are primary. */
+  --asset-ui-material-page: url('../assets/ui/materials/ui-material-page.webp');
+  --asset-ui-material-dark: url('../assets/ui/materials/ui-material-dark.webp');
+  --asset-ui-material-panel: url('../assets/ui/materials/ui-material-panel.webp');
+  --asset-ui-material-raised: url('../assets/ui/materials/ui-material-raised.webp');
+  --asset-ui-material-inset: url('../assets/ui/materials/ui-material-inset.webp');
+  --asset-ui-bronze-edge: url('../assets/ui/materials/ui-bronze-edge.png');
+  --asset-ui-panel-rim: url('../assets/ui/materials/ui-panel-rim.png');
+  --asset-ui-divider-bronze: url('../assets/ui/materials/ui-divider-bronze.png');
+  --asset-ui-noise: var(--asset-ui-material-dark);
+  --asset-panel-grain: var(--asset-ui-material-panel);
+  --asset-inset-grain: var(--asset-ui-material-inset);
+  --asset-section-divider: url('../assets/ui/ornaments/section-divider.svg');
+  --asset-corner-accent: url('../assets/ui/ornaments/corner-accent.svg');
+  --asset-small-diamond: url('../assets/ui/ornaments/small-diamond.svg');
+  --asset-tiny-pip: url('../assets/ui/ornaments/tiny-pip.svg');
+  --asset-hairline-fade: url('../assets/ui/ornaments/hairline-fade.svg');
+  --asset-frame-corners: url('../assets/ui/ornaments/frame-corners.png');
+
+  --surface-texture-page: var(--asset-ui-material-page);
+  --surface-texture-panel: var(--asset-ui-material-panel);
+  --surface-texture-raised: var(--asset-ui-material-raised);
+  --surface-texture-inset: var(--asset-ui-material-inset);
+  --surface-texture-size-page: 128px 128px;
+  --surface-texture-size-panel: 860px 860px;
+  --surface-texture-anchor: 22% 18%;
+  --surface-plate-position: 0 0, 0 0, 50% 110%, 50% 34%, 0 0, var(--surface-texture-anchor);
+  --surface-raised-position: 0 0, 0 0, 50% 110%, 50% 30%, 0 0, var(--surface-texture-anchor);
+  --surface-inset-position: 0 0, 0 0, var(--surface-texture-anchor);
+  --surface-panel-veil: linear-gradient(
+    color-mix(in srgb, var(--color-surface-base) 62%, transparent),
+    color-mix(in srgb, var(--color-surface-base) 62%, transparent)
+  );
+  --surface-raised-veil: linear-gradient(
+    color-mix(in srgb, var(--color-surface-raised) 66%, transparent),
+    color-mix(in srgb, var(--color-surface-raised) 66%, transparent)
+  );
+  --surface-inset-veil: linear-gradient(
+    color-mix(in srgb, var(--color-surface-inset) 78%, transparent),
+    color-mix(in srgb, var(--color-surface-inset) 78%, transparent)
+  );
+  --surface-warm-wash: radial-gradient(
+    70% 42% at 50% 110%,
+    rgba(0, 0, 0, 0.28),
+    transparent 62%
+  );
+
+  /* Surface finish — lighting binds the raster to the frame. */
+  --surface-sheen: linear-gradient(
+    168deg,
+    color-mix(in srgb, var(--color-bronze-strong) 16%, transparent) 0%,
+    color-mix(in srgb, var(--color-text-primary) 5%, transparent) 12%,
+    transparent 32%
+  );
+  --surface-dust: radial-gradient(
+    88% 52% at 50% 118%,
+    color-mix(in srgb, var(--color-bronze-dim) 26%, transparent),
+    transparent 62%
+  );
+  --surface-luminance: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-text-primary) 6%, transparent) 0%,
+    transparent 28%
+  );
+  --surface-luminance-inset: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.32) 0%,
+    transparent 44%
+  ),
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--color-text-primary) 5%, transparent) 0%,
+      transparent 20%
+    );
+  --surface-vignette: radial-gradient(
+    74% 64% at 50% 30%,
+    transparent 12%,
+    rgba(0, 0, 0, 0.16) 52%,
+    rgba(0, 0, 0, 0.48) 100%
+  );
+  --surface-plate-finish: var(--surface-sheen), var(--surface-luminance), var(--surface-dust), var(--surface-vignette);
+  --surface-highlight: inset 0 1px 0 color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  --surface-inner: inset 0 1px 3px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-bronze-dim) 22%, transparent),
+    inset 12px 0 18px rgba(0, 0, 0, 0.18),
+    inset -12px 0 18px rgba(0, 0, 0, 0.2);
+  --surface-metal: inset 1px 0 0 color-mix(in srgb, var(--color-bronze-strong) 22%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--color-bronze-dim) 28%, transparent);
+  --surface-metal-selected: inset 2px 0 0 color-mix(in srgb, var(--color-gold-normal) 70%, transparent);
+
+  /* Control family — raised plates vs etched wells. Metal stays on the rim. */
+  --control-plate: #1a1613;
+  --control-plate-primary: #241c16;
+  --control-plate-danger: #1a110f;
+  --control-luminance: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-text-primary) 11%, transparent) 0%,
+    transparent 42%,
+    rgba(0, 0, 0, 0.32) 100%
+  );
+
+  /* Shadows — short, dark, low blur. No glow. */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.42), 0 3px 6px rgba(0, 0, 0, 0.28);
+  --shadow-floating: 0 2px 3px rgba(0, 0, 0, 0.55), 0 6px 12px rgba(0, 0, 0, 0.38);
+  --shadow-artwork: 0 4px 10px rgba(0, 0, 0, 0.4);
+
+  /* Icons — 24 grid, stroke UI glyphs. Painted webp is content art, not this scale. */
+  --icon-grid: 24;
+  --icon-stroke: 1.6;
+  --icon-stroke-ornament: 1;
+  --icon-size-sm: 0.75rem;
+  --icon-size-md: 1rem;
+  --icon-size-lg: 1.25rem;
+  --icon-size-xl: 1.5rem;
+  --icon-well-size: 1.75rem;
+  --icon-well-size-lg: 2.25rem;
+  --icon-color: var(--color-text-secondary);
+  --icon-color-disabled: var(--color-text-disabled);
+  --icon-color-active: var(--color-gold-normal);
+  --icon-disabled-opacity: 0.55;
+  --ornament-color: var(--color-bronze-normal);
+  --ornament-opacity: 0.62;
+  --ornament-size-corner: 1.25rem;
+  --ornament-size-accent: 0.5rem;
+  --mark-selected: var(--surface-metal-selected);
+  --nav-idle-color: var(--color-text-primary);
+  --nav-selected-color: var(--color-gold-normal);
+  --nav-selected-plate: var(--color-surface-inset);
+  --nav-selected-fill: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.18) 42%,
+    color-mix(in srgb, var(--color-text-primary) 7%, transparent) 100%
+  );
+  --nav-selected-rail: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--color-gold-normal) 18%,
+    var(--color-text-bright) 50%,
+    var(--color-gold-normal) 82%,
+    transparent 100%
+  );
+  --nav-selected-shadow:
+    var(--shadow-inset),
+    inset 0 3px 6px rgba(0, 0, 0, 0.62),
+    inset 3px 0 0 var(--color-gold-normal),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
 html[data-ui-mode='compact'] {
-  --panel: #161310;
+  --panel: var(--color-surface-base);
   --shadow: none;
-  --radius: 4px;
-  --radius-sm: 4px;
-  --space-2: 0.375rem;
-  --space-3: 0.5rem;
-  --space-4: 0.75rem;
-  --space-5: 1rem;
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-floating: 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-artwork: none;
+  --radius: var(--radius-4);
+  --radius-sm: var(--radius-4);
+  --spacing-8: 0.375rem;
+  --spacing-12: 0.5rem;
+  --spacing-16: 0.75rem;
+  --spacing-24: 1rem;
   --text-md: 0.8125rem;
   --text-lg: 1rem;
   --text-xl: 1.15rem;
+
+  --type-display-size: 1.375rem;
+  --type-page-heading-size: 1.25rem;
+  --type-panel-heading-size: 0.75rem;
+  --type-section-heading-size: 0.5rem;
+  --type-item-size: 0.8125rem;
+  --type-body-size: 0.8125rem;
+  --type-compact-size: 0.75rem;
+  --type-numeric-size: 0.8125rem;
 }

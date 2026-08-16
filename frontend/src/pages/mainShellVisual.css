@@ -1,0 +1,477 @@
+/*
+  Dev-only /dev/ui/main-shell — full-page composition on the UI Engine.
+  Uses tokens, surfaces, type roles, and shared primitives only.
+  Do not reuse these layout classes on production gameplay screens.
+*/
+
+.main-shell-visual {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  color: var(--color-text-primary);
+}
+
+.main-shell-visual .game-topbar {
+  --surface-texture-anchor: 72% 8%;
+  display: grid;
+  grid-template-columns: minmax(14rem, 1fr) auto minmax(14rem, 1fr);
+  align-items: center;
+  gap: var(--spacing-12) var(--spacing-16);
+  padding: var(--spacing-8) var(--spacing-16);
+  border-radius: 0;
+  border-bottom: var(--border-subtle);
+}
+
+.main-shell-visual .game-topbar .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  font-size: 1.15rem;
+  text-decoration: none;
+}
+
+.main-shell-visual .topbar-divider {
+  background: var(--color-border-subtle);
+}
+
+.main-shell-visual .currency-chip {
+  gap: var(--spacing-8);
+  padding: var(--spacing-4) var(--spacing-8);
+  border-radius: var(--radius-2);
+}
+
+.main-shell-visual .ms-topbar-pack {
+  position: relative;
+  display: inline-flex;
+}
+
+.main-shell-visual .ms-topbar-pack .counter-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+}
+
+.main-shell-visual .chrome-menu {
+  position: relative;
+}
+
+.main-shell-visual .chrome-menu-panel {
+  position: absolute;
+  right: 0;
+  z-index: var(--z-dropdown);
+  display: grid;
+  min-width: 8rem;
+  padding: var(--spacing-8);
+}
+
+.main-shell-visual .location-hero {
+  --surface-texture-anchor: 54% 28%;
+  position: relative;
+  overflow: hidden;
+  min-height: 22rem;
+  padding: 0;
+}
+
+.main-shell-visual .location-hero-art {
+  position: absolute;
+  inset: 0 0 0 22%;
+  background-size: cover;
+  background-position: 58% 40%;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 18%);
+}
+
+.main-shell-visual .location-hero-body {
+  position: relative;
+  z-index: var(--z-raised);
+  display: flex;
+  flex-direction: column;
+  min-height: 22rem;
+  padding: var(--spacing-16);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-base) 0%,
+    color-mix(in srgb, var(--color-surface-base) 92%, transparent) 22%,
+    transparent 42%
+  );
+}
+
+.main-shell-visual .location-hero-top,
+.main-shell-visual .location-hero-identity,
+.main-shell-visual .location-hero-pills {
+  display: flex;
+  gap: var(--spacing-12);
+}
+
+.main-shell-visual .location-hero-top {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.main-shell-visual .location-hero-identity {
+  max-width: min(36%, 28rem);
+}
+
+.main-shell-visual .location-hero-region,
+.main-shell-visual .location-hero-place,
+.main-shell-visual .location-hero-kicker,
+.main-shell-visual .location-description {
+  margin: 0;
+}
+
+.main-shell-visual .location-description {
+  max-width: min(36%, 28rem);
+  margin-top: var(--spacing-12);
+}
+
+.main-shell-visual .location-hero-env {
+  width: 13.5rem;
+}
+
+.main-shell-visual .location-hero-env-card {
+  display: grid;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+}
+
+.main-shell-visual .location-hero-clock,
+.main-shell-visual .location-hero-tile-copy {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.main-shell-visual .location-hero-weather {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding-top: var(--spacing-8);
+  border-top: var(--border-subtle);
+}
+
+.main-shell-visual .location-hero-env-art,
+.main-shell-visual .location-hero-tile-art {
+  width: 1.4rem;
+  height: 1.4rem;
+  object-fit: contain;
+}
+
+.main-shell-visual .location-hero-map {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.main-shell-visual .location-hero-pills {
+  flex-wrap: wrap;
+  margin: var(--spacing-12) 0 auto;
+}
+
+.main-shell-visual .location-hero-actions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-12);
+  border-top: var(--border-subtle);
+}
+
+.main-shell-visual .location-hero-tile {
+  justify-content: flex-start;
+  height: auto;
+  min-height: 3.5rem;
+  padding: var(--spacing-8);
+}
+
+.main-shell-visual .location-hero-tile-icon {
+  display: grid;
+  place-items: center;
+  width: var(--icon-well-size-lg);
+  height: var(--icon-well-size-lg);
+}
+
+.main-shell-visual .location-hero-tile-copy {
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ms-body {
+  display: grid;
+  grid-template-columns: minmax(12rem, 15%) minmax(0, 1fr) minmax(16rem, 18%);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ms-nav {
+  --surface-texture-anchor: 8% 62%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  padding: var(--spacing-12);
+  border-radius: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ms-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.ms-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  padding: var(--spacing-6) var(--spacing-8);
+  border: 0;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--nav-idle-color);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ms-nav-link:hover:not(:disabled):not(.ui-nav-selected) {
+  background: var(--color-surface-interactive);
+}
+
+.ms-nav-link .type-compact {
+  color: var(--nav-idle-color);
+}
+
+.ms-nav-link.ui-nav-selected .type-compact {
+  color: var(--nav-selected-color);
+  font-weight: 600;
+}
+
+.ms-nav-link:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ms-nav-link span {
+  display: grid;
+}
+
+.ms-nav-foot {
+  margin-top: auto;
+  display: grid;
+  gap: var(--spacing-8);
+}
+
+.ms-nav-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.ms-nav.is-collapsed {
+  padding-inline: var(--spacing-6);
+}
+
+.ms-nav.is-collapsed .type-section-heading,
+.ms-nav.is-collapsed .type-compact,
+.ms-nav.is-collapsed .type-meta,
+.ms-nav.is-collapsed .ms-nav-status .type-meta {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.ms-workspace {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12);
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ms-screen {
+  display: grid;
+  min-height: 0;
+}
+
+.ms-row-locations {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ms-combat-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ms-combat-body .combat-hud {
+  height: calc(100dvh - 4.25rem);
+}
+
+.ms-combat-body .combat-hud-chat .ms-chat {
+  height: 100%;
+  margin: 0;
+}
+
+.ms-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-12);
+}
+
+.ms-character {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: var(--spacing-12);
+}
+
+.ms-character-art.portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.ms-vitals,
+.ms-stack,
+.ms-stat-row,
+.ms-ledger,
+.ms-expedition-copy {
+  display: grid;
+  gap: var(--spacing-8);
+}
+
+.ms-vital-head,
+.ms-stat-row,
+.ms-ledger div,
+.ms-chat-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.ms-stat-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.ms-stat-row > div,
+.ms-ledger div {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.ms-expedition {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: var(--spacing-8);
+}
+
+.ms-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  background-size: cover;
+  background-position: center;
+}
+
+.ms-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8) var(--spacing-12);
+  margin: 0;
+}
+
+.ms-rewards span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.ms-rewards img,
+.ms-guild-crest {
+  width: 0.95rem;
+  height: 0.95rem;
+  object-fit: contain;
+}
+
+.ms-guild {
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr);
+  gap: var(--spacing-8);
+  align-items: center;
+}
+
+.ms-guild-crest {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
+.ms-rail {
+  --surface-texture-anchor: 84% 46%;
+  min-height: 0;
+  overflow: auto;
+  border-radius: 0;
+}
+
+.ms-rail .ui-section-header {
+  align-items: center;
+}
+
+.ms-chat {
+  --surface-texture-anchor: 38% 76%;
+  display: grid;
+  gap: var(--spacing-12);
+}
+
+.ms-chat-log {
+  max-height: 16rem;
+  overflow: auto;
+  padding: var(--spacing-8);
+}
+
+.ms-chat-line {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: var(--spacing-8);
+  align-items: baseline;
+}
+
+.ms-chat-line p {
+  margin: 0;
+}
+
+.ms-chat-form .ui-input {
+  flex: 1;
+}
+
+.ms-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ms-stack.ui-row-list {
+  gap: 0;
+}
+
+@media (max-width: 1400px) {
+  .main-shell-visual .location-hero-actions,
+  .ms-row,
+  .ms-stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ms-body {
+    grid-template-columns: 3.6rem minmax(0, 1fr) minmax(15rem, 22%);
+  }
+}

@@ -246,7 +246,7 @@ export function GameLayout() {
 
   return (
     <section
-      className="game-shell"
+      className="game-shell surface-page"
       aria-label="Game workspace"
       data-testid="game-layout"
       data-combat-active={occupied ? 'true' : undefined}

@@ -14,6 +14,9 @@ import { EmptyState } from '../ui/EmptyState'
 import { EQUIPMENT_SLOTS, SLOT_LABELS } from '../ui/equipmentSlots'
 import { ErrorState } from '../ui/ErrorState'
 import { Field } from '../ui/Field'
+import { SearchInput } from '../ui/SearchInput'
+import { Select } from '../ui/Select'
+import { TextInput } from '../ui/TextInput'
 import { InventoryEmptySlot, InventoryItemSlot } from '../ui/InventoryItemSlot'
 import { InventoryItemRow } from '../ui/InventoryItemRow'
 import { ItemDetail } from '../ui/ItemDetail'
@@ -311,8 +314,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
           />
           <div className="inventory-filters">
             <Field label="Search" className="inventory-search-field">
-              <input
-                type="search"
+              <SearchInput
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 data-testid="inventory-search"
@@ -320,7 +322,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
               />
             </Field>
             <Field label="Rarity">
-              <select
+              <Select
                 value={rarityFilter}
                 onChange={(event) => setRarityFilter(event.target.value as ItemRarity | '')}
                 data-testid="inventory-rarity-filter"
@@ -330,10 +332,10 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 <option value="UNCOMMON">Uncommon</option>
                 <option value="RARE">Rare</option>
                 <option value="EPIC">Epic</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Type">
-              <select
+              <Select
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value as ItemType | '')}
                 data-testid="inventory-type-select"
@@ -344,10 +346,10 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 <option value="ACCESSORY">Accessory</option>
                 <option value="CONSUMABLE">Consumable</option>
                 <option value="MATERIAL">Material</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Slot">
-              <select
+              <Select
                 value={slotFilter}
                 onChange={(event) => setSlotFilter(event.target.value as EquipmentSlot | '')}
                 data-testid="inventory-slot-filter"
@@ -358,10 +360,10 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                     {SLOT_LABELS[slot]}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <Field label="Usable">
-              <select
+              <Select
                 value={usableFilter}
                 onChange={(event) => setUsableFilter(event.target.value as UsableFilter)}
                 data-testid="inventory-usable-filter"
@@ -369,10 +371,10 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 <option value="">All</option>
                 <option value="usable">Usable</option>
                 <option value="unusable">Not usable</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Sort">
-              <select value={sort} onChange={(event) => setSort(event.target.value)} data-testid="inventory-sort">
+              <Select value={sort} onChange={(event) => setSort(event.target.value)} data-testid="inventory-sort">
                 <option value="name">Name</option>
                 <option value="rarity">Rarity</option>
                 <option value="type">Type</option>
@@ -380,7 +382,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 <option value="recent" disabled>
                   Recent
                 </option>
-              </select>
+              </Select>
             </Field>
             <div className="inventory-view-toggle" role="group" aria-label="Inventory view">
               <button
@@ -513,7 +515,7 @@ export function InventoryPanel({ onMutated, mutationsDisabled = false }: Props) 
                 ) : null}
                 {unreserved > 1 ? (
                   <Field label="Sell quantity">
-                    <input
+                    <TextInput
                       data-testid={`merchant-sell-qty-${selected.code}`}
                       type="number"
                       min={1}

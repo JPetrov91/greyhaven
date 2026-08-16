@@ -14,9 +14,11 @@ import { ErrorState } from '../ui/ErrorState'
 import { gameLink } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
 import { CharacterPortrait } from '../ui/CharacterPortrait'
+import { HealthBar } from '../ui/HealthBar'
 import { Panel } from '../ui/Panel'
-import { ProgressBar } from '../ui/ProgressBar'
+import { StaminaBar } from '../ui/StaminaBar'
 import { StatRow } from '../ui/StatRow'
+import { XPBar } from '../ui/XPBar'
 import { StatusBadge } from '../ui/StatusBadge'
 
 type AttrKey = 'strength' | 'agility' | 'endurance' | 'perception'
@@ -162,8 +164,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
               {character.currentHealth} / {character.maxHealth}
             </span>
           </div>
-          <ProgressBar
-            tone="health"
+          <HealthBar
             max={character.maxHealth}
             value={character.currentHealth}
             label={`Health ${character.currentHealth} of ${character.maxHealth}`}
@@ -176,8 +177,7 @@ export function CharacterSummaryPanel({ mutationsDisabled = false, variant = 'fu
               {character.currentStamina} / {character.maxStamina}
             </span>
           </div>
-          <ProgressBar
-            tone="stamina"
+          <StaminaBar
             max={character.maxStamina}
             value={character.currentStamina}
             label={`Stamina ${character.currentStamina} of ${character.maxStamina}`}
@@ -382,7 +382,11 @@ function VitalMeter({
           <span className="vital-meter-value">{value}</span>
         </div>
       </div>
-      <ProgressBar tone={tone} max={max} value={current} label={ariaLabel} />
+      {tone === 'health' ? (
+        <HealthBar max={max} value={current} label={ariaLabel} />
+      ) : (
+        <StaminaBar max={max} value={current} label={ariaLabel} />
+      )}
     </div>
   )
 }
@@ -416,7 +420,7 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
           <span>XP</span>
           <span data-testid="xp-progress-label">MAX LEVEL</span>
         </div>
-        <ProgressBar className="xp-bar" testId="xp-progress-bar" max={100} value={100} label="MAX LEVEL" />
+        <XPBar testId="xp-progress-bar" max={100} value={100} label="MAX LEVEL" />
       </div>
     )
   }
@@ -433,8 +437,7 @@ function XpProgress({ progression }: { progression: CharacterResponse['progressi
           {formatXp(into)} / {formatXp(required)} XP
         </span>
       </div>
-      <ProgressBar
-        className="xp-bar"
+      <XPBar
         testId="xp-progress-bar"
         max={100}
         value={progression.progressPercent}

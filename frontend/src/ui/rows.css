@@ -1,0 +1,176 @@
+/*
+  Shared list rows: ledger lines, not ticket cards.
+
+  Hairline separators, optional icon, compact copy, trailing meta/action.
+  Activity / notification variants color the icon and a few words — no tinted plates.
+  Compact rows stay single-line for market lists and combat/chat logs.
+*/
+
+.ui-row-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: var(--spacing-8) 0;
+  list-style: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ui-row + .ui-row {
+  border-top: var(--border-subtle);
+}
+
+.ui-row-has-icon {
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+}
+
+.ui-row-has-trail {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ui-row-has-icon.ui-row-has-trail {
+  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+}
+
+.ui-row-icon {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  overflow: hidden;
+  color: var(--icon-color);
+}
+
+.ui-row-icon :where(img, svg) {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+}
+
+.ui-row-body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.ui-row-primary {
+  min-width: 0;
+  font-family: var(--type-compact-family);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+  line-height: var(--type-compact-line);
+  letter-spacing: var(--type-compact-tracking);
+  color: var(--type-compact-color);
+}
+
+.ui-row-secondary,
+.ui-row-meta {
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  font-weight: var(--type-meta-weight);
+  line-height: var(--type-meta-line);
+  letter-spacing: var(--type-meta-tracking);
+  color: var(--type-meta-color);
+}
+
+.ui-row-meta {
+  white-space: nowrap;
+}
+
+.ui-row-trail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  justify-self: end;
+}
+
+.ui-row-action {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-row-interactive {
+  cursor: pointer;
+}
+
+.ui-row-interactive:hover,
+.ui-row-interactive.is-force-hover {
+  background-color: var(--color-surface-interactive);
+}
+
+.ui-row-selected {
+  background-color: var(--color-surface-selected);
+  box-shadow: var(--mark-selected);
+}
+
+.ui-row-tone-important .ui-row-primary {
+  color: var(--color-text-bright);
+}
+
+.ui-row-tone-secondary .ui-row-primary {
+  color: var(--color-text-muted);
+}
+
+.ui-activity-row,
+.ui-notification-row {
+  min-width: 0;
+}
+
+.ui-activity-row.ui-activity-normal .ui-row-icon {
+  color: var(--icon-color);
+}
+
+.ui-activity-system .ui-row-icon {
+  color: var(--color-info);
+}
+
+.ui-activity-reward .ui-row-icon,
+.ui-activity-market .ui-row-icon {
+  color: var(--color-gold-normal);
+}
+
+.ui-activity-warning .ui-row-icon,
+.ui-activity-pvp .ui-row-icon {
+  color: var(--color-negative);
+}
+
+.ui-activity-completed .ui-row-primary {
+  color: var(--color-text-secondary);
+}
+
+.ui-activity-completed .ui-row-icon {
+  opacity: 0.72;
+}
+
+.ui-notification-unread .ui-row-primary {
+  color: var(--color-text-bright);
+}
+
+.ui-compact-row {
+  padding-block: var(--spacing-6);
+}
+
+.ui-compact-row .ui-row-body {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: var(--spacing-8);
+}
+
+.ui-compact-row .ui-row-secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

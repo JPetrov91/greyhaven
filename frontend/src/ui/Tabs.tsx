@@ -4,6 +4,7 @@ import { classNames } from './classNames'
 type Tab<T extends string> = {
   id: T
   label: string
+  disabled?: boolean
 }
 
 type Props<T extends string> = {
@@ -41,9 +42,18 @@ export function Tabs<T extends string>({
     }
   }, [value, filters])
 
+  function enabledTabs() {
+    return tabs.filter((entry) => !entry.disabled)
+  }
+
   function move(direction: 1 | -1) {
-    const index = tabs.findIndex((entry) => entry.id === value)
-    const next = tabs[(index + direction + tabs.length) % tabs.length]
+    const enabled = enabledTabs()
+    if (enabled.length === 0) {
+      return
+    }
+    const current = enabled.findIndex((entry) => entry.id === value)
+    const from = current === -1 ? (direction === 1 ? -1 : 0) : current
+    const next = enabled[(from + direction + enabled.length) % enabled.length]
     if (next) {
       movedByKeyboard.current = true
       onChange(next.id)
@@ -53,7 +63,7 @@ export function Tabs<T extends string>({
   return (
     <div
       ref={listRef}
-      className="tabs"
+      className={classNames('tabs', filters && 'tabs-filters')}
       role={filters ? 'group' : 'tablist'}
       aria-label={label}
       data-testid={testId}
@@ -67,9 +77,14 @@ export function Tabs<T extends string>({
             role={filters ? undefined : 'tab'}
             aria-selected={filters ? undefined : selected}
             aria-pressed={filters ? selected : undefined}
-            tabIndex={filters || selected ? 0 : -1}
+            disabled={tab.disabled}
+            tabIndex={tab.disabled ? -1 : filters || selected ? 0 : -1}
             className={classNames('tab', selected && 'tab-active')}
-            onClick={() => onChange(tab.id)}
+            onClick={() => {
+              if (!tab.disabled) {
+                onChange(tab.id)
+              }
+            }}
             onKeyDown={(event) => {
               if (event.key === 'ArrowRight') {
                 event.preventDefault()

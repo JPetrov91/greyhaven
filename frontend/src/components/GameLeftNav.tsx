@@ -64,11 +64,11 @@ export function GameLeftNav() {
 
   return (
     <nav
-      className={classNames('game-leftnav', collapsed && 'is-collapsed')}
+      className={classNames('game-leftnav', 'surface-base', collapsed && 'is-collapsed')}
       aria-label="Primary"
       data-collapsed={collapsed ? 'true' : undefined}
     >
-      <p className="game-nav-heading">Navigation</p>
+      <p className="game-nav-heading type-section-heading">Navigation</p>
       <ul className="game-nav-list">
         {LIVE_NAV.map((entry) => {
           const active = isGameNavActive(entry.item, location)
@@ -98,7 +98,7 @@ export function GameLeftNav() {
       </ul>
 
       <div>
-        <p className="game-nav-heading">Quick actions</p>
+        <p className="game-nav-heading type-section-heading">Quick actions</p>
         <ul className="quick-actions">
           <li>
             {atTavern ? (

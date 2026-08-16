@@ -23,6 +23,8 @@ import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Field } from '../ui/Field'
+import { Select } from '../ui/Select'
+import { TextInput } from '../ui/TextInput'
 import { gameLink } from '../ui/gameNav'
 import { ItemIcon } from '../ui/itemIcons'
 import { LoadingState } from '../ui/LoadingState'
@@ -595,19 +597,19 @@ function DefenseForm({
     >
       {compact ? null : <h3>Defense strategy</h3>}
       <Field label="Preferred action">
-        <select name="preferredAction" defaultValue={profile.defense.preferredAction}>
+        <Select name="preferredAction" defaultValue={profile.defense.preferredAction}>
           {profile.preferredActionOptions.map((action) => (
             <option key={action} value={action}>
               {action}
             </option>
           ))}
-        </select>
+        </Select>
       </Field>
       <Field label="Preferred technique">
-        <input name="preferredTechniqueCode" defaultValue={profile.defense.preferredTechniqueCode ?? ''} />
+        <TextInput name="preferredTechniqueCode" defaultValue={profile.defense.preferredTechniqueCode ?? ''} />
       </Field>
       <Field label="Heal when HP below %">
-        <input
+        <TextInput
           name="healWhenHpPercentBelow"
           type="number"
           min={0}
@@ -616,7 +618,7 @@ function DefenseForm({
         />
       </Field>
       <Field label="Defend when stamina below %">
-        <input
+        <TextInput
           name="defendWhenStaminaPercentBelow"
           type="number"
           min={0}
@@ -625,7 +627,7 @@ function DefenseForm({
         />
       </Field>
       <Field label="Finisher when enemy HP below %">
-        <input
+        <TextInput
           name="finisherWhenEnemyHpPercentBelow"
           type="number"
           min={0}
@@ -634,7 +636,7 @@ function DefenseForm({
         />
       </Field>
       <Field label="Finisher technique">
-        <input name="finisherTechniqueCode" defaultValue={profile.defense.finisherTechniqueCode ?? ''} />
+        <TextInput name="finisherTechniqueCode" defaultValue={profile.defense.finisherTechniqueCode ?? ''} />
       </Field>
       <Button type="submit">Save defense</Button>
     </form>

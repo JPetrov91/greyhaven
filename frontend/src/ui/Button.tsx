@@ -1,12 +1,28 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { classNames } from './classNames'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: Variant
+export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant
+  loading?: boolean
 }
 
-export function Button({ variant = 'primary', className, type = 'button', ...rest }: Props) {
-  return <button type={type} className={classNames('btn', `btn-${variant}`, className)} {...rest} />
+export function Button({
+  variant = 'primary',
+  className,
+  type = 'button',
+  loading = false,
+  disabled,
+  ...rest
+}: ButtonProps) {
+  return (
+    <button
+      {...rest}
+      type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={classNames('btn', `btn-${variant}`, loading && 'btn-loading', className)}
+    />
+  )
 }

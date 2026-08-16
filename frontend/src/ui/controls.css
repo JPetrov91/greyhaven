@@ -1,0 +1,385 @@
+/*
+  Shared controls: Button, IconButton, Tabs.
+
+  One family: dark metal plates, etched icon wells, inscription tabs.
+  Hierarchy is rim + plate warmth + label, not a gold fill.
+  No pill chips, glow, or display type on controls.
+*/
+
+.btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  min-height: 1.875rem;
+  padding: var(--spacing-6) var(--spacing-16);
+  border-radius: var(--radius-2);
+  font-family: var(--type-compact-family);
+  font-size: var(--type-compact-size);
+  font-weight: 600;
+  line-height: var(--type-compact-line);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  background-color: var(--control-plate);
+  background-image: var(--control-luminance), var(--surface-texture-panel);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-highlight);
+  border-right-color: var(--color-edge-side);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-edge-side);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner), var(--shadow-raised);
+  transition:
+    background-color var(--motion),
+    background-image var(--motion),
+    border-color var(--motion),
+    color var(--motion),
+    box-shadow var(--motion);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  pointer-events: none;
+  background-image: var(--asset-ui-bronze-edge);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% 280%;
+  opacity: 0.4;
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.btn:focus {
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.btn:disabled:not(.btn-loading),
+.btn[aria-disabled='true']:not(.btn-loading) {
+  cursor: not-allowed;
+  color: var(--color-text-disabled);
+  border-top-color: var(--color-edge-shadow);
+  border-right-color: var(--color-edge-shadow);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-edge-shadow);
+  opacity: 0.55;
+}
+
+.btn:disabled:not(.btn-loading)::before,
+.btn[aria-disabled='true']:not(.btn-loading)::before {
+  opacity: 0.16;
+}
+
+.btn-primary {
+  color: var(--color-gold-strong);
+  background-color: var(--control-plate-primary);
+  border-top-color: var(--color-edge-selected-highlight);
+  border-right-color: var(--color-edge-selected-side);
+  border-bottom-color: var(--color-edge-selected-shadow);
+  border-left-color: var(--color-edge-selected-side);
+}
+
+.btn-primary::before {
+  opacity: 0.62;
+}
+
+.btn-primary:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-bright);
+  background-color: #2b221a;
+  border-top-color: var(--color-edge-selected-highlight);
+  border-right-color: var(--color-edge-selected-highlight);
+}
+
+.btn-primary:hover:not(:disabled):not([aria-disabled='true'])::before {
+  opacity: 0.82;
+}
+
+.btn-primary:active:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-surface-inset);
+  background-image: var(--surface-luminance-inset), var(--surface-texture-inset);
+  box-shadow: var(--shadow-inset);
+}
+
+.btn-primary:active:not(:disabled):not([aria-disabled='true'])::before {
+  opacity: 0.22;
+}
+
+.btn-secondary {
+  color: var(--color-text-primary);
+}
+
+.btn-secondary:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-bright);
+  background-color: #211c18;
+  border-top-color: var(--color-edge-highlight);
+  border-right-color: var(--color-border-interactive);
+  border-left-color: var(--color-border-interactive);
+}
+
+.btn-secondary:hover:not(:disabled):not([aria-disabled='true'])::before {
+  opacity: 0.58;
+}
+
+.btn-secondary:active:not(:disabled):not([aria-disabled='true']) {
+  background-color: var(--color-surface-inset);
+  background-image: var(--surface-luminance-inset), var(--surface-texture-inset);
+  box-shadow: var(--shadow-inset);
+}
+
+.btn-ghost {
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn-ghost::before {
+  opacity: 0;
+}
+
+.btn-ghost:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-bright);
+  background-color: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+}
+
+.btn-ghost:active:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-inset);
+}
+
+.btn-danger {
+  color: var(--color-text-primary);
+  background-color: var(--control-plate-danger);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-negative) 18%, transparent), transparent 55%),
+    var(--control-luminance),
+    var(--surface-texture-panel);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, var(--surface-texture-size-panel);
+  border-top-color: color-mix(in srgb, var(--color-negative) 52%, var(--color-bronze-strong));
+  border-right-color: color-mix(in srgb, var(--color-negative) 32%, var(--color-bronze-dim));
+  border-bottom-color: color-mix(in srgb, var(--color-negative) 22%, transparent);
+  border-left-color: color-mix(in srgb, var(--color-negative) 38%, var(--color-bronze-dim));
+}
+
+.btn-danger:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-bright);
+  background-color: #241412;
+  border-top-color: color-mix(in srgb, var(--color-negative) 62%, var(--color-bronze-strong));
+}
+
+.btn-danger:hover:not(:disabled):not([aria-disabled='true'])::before {
+  opacity: 0.5;
+}
+
+.btn-danger:active:not(:disabled):not([aria-disabled='true']) {
+  background-color: #120c0b;
+  box-shadow: var(--shadow-inset);
+}
+
+.btn-icon {
+  width: var(--icon-well-size);
+  height: var(--icon-well-size);
+  min-width: var(--icon-well-size);
+  min-height: var(--icon-well-size);
+  padding: 0;
+  flex: none;
+  line-height: 1;
+  color: var(--icon-color);
+  background-color: var(--color-surface-inset);
+  background-image: var(--surface-luminance-inset), var(--surface-texture-inset);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-panel);
+  border-top-color: var(--color-edge-shadow);
+  border-right-color: color-mix(in srgb, var(--color-bronze-dim) 28%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-bronze-strong) 22%, transparent);
+  border-left-color: var(--color-edge-shadow);
+  box-shadow: var(--shadow-inset);
+}
+
+.btn-icon::before {
+  opacity: 0.18;
+}
+
+.btn-icon.btn-primary {
+  color: var(--color-gold-normal);
+  background-color: var(--control-plate-primary);
+  background-image: var(--control-luminance), var(--surface-texture-panel);
+  border-top-color: var(--color-edge-selected-highlight);
+  border-right-color: var(--color-edge-selected-side);
+  border-bottom-color: var(--color-edge-selected-shadow);
+  border-left-color: var(--color-edge-selected-side);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--shadow-inset);
+}
+
+.btn-icon.btn-primary::before {
+  opacity: 0.48;
+}
+
+.btn-icon.btn-ghost {
+  color: var(--icon-color);
+  background-color: transparent;
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.btn-icon.btn-ghost::before {
+  opacity: 0;
+}
+
+.btn-icon.btn-danger {
+  color: var(--color-text-primary);
+}
+
+.btn-icon:hover:not(:disabled):not([aria-disabled='true']):not(.btn-ghost) {
+  color: var(--color-text-bright);
+  border-top-color: var(--color-edge-side);
+  border-right-color: var(--color-border-interactive);
+  border-bottom-color: var(--color-edge-highlight);
+  border-left-color: var(--color-edge-side);
+}
+
+.btn.btn-loading,
+.btn.btn-loading:hover,
+.btn.btn-loading:disabled {
+  color: transparent;
+  cursor: progress;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid color-mix(in srgb, var(--color-bronze-normal) 45%, transparent);
+  border-top-color: var(--color-gold-normal);
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+.btn-primary.btn-loading::after {
+  border-color: color-mix(in srgb, var(--color-gold-strong) 35%, transparent);
+  border-top-color: var(--color-gold-strong);
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-loading::after {
+    animation: none;
+  }
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0 var(--spacing-16);
+  margin: 0 0 var(--spacing-12);
+  padding: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tab {
+  appearance: none;
+  position: relative;
+  margin: 0 0 -1px;
+  padding: var(--spacing-8) 0 var(--spacing-6);
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--type-compact-family);
+  font-size: var(--type-compact-size);
+  font-weight: 500;
+  line-height: var(--type-compact-line);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.tab:focus {
+  outline: none;
+}
+
+.tab:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.tab:hover:not(:disabled):not(.tab-active) {
+  color: var(--color-text-primary);
+  background-color: transparent;
+}
+
+.tab-active {
+  color: var(--color-gold-normal);
+  background-color: transparent;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: var(--color-gold-normal);
+  background-image: var(--asset-ui-bronze-edge);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 180%;
+}
+
+.tab:disabled,
+.tab[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.tabs-filters {
+  gap: 0;
+  margin: 0 0 var(--spacing-8);
+  padding: 0 var(--spacing-4);
+  background-color: color-mix(in srgb, var(--color-page-bg) 70%, var(--color-surface-base));
+  background-image: var(--surface-luminance-inset);
+  background-repeat: no-repeat;
+  border: 1px solid transparent;
+  border-top-color: var(--color-edge-shadow);
+  border-bottom-color: var(--color-border-subtle);
+}
+
+.tabs-filters .tab {
+  padding: var(--spacing-6) var(--spacing-12);
+}
+
+.tabs-filters .tab-active {
+  color: var(--color-text-bright);
+}

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocation } from 'react-router-dom'
 import {
   fetchMe,
   loginAccount,
@@ -7,6 +8,7 @@ import {
   registerAccount,
 } from '../api/auth'
 import type { MeResponse } from '../api/types'
+import { isDevUiEnabled, isDevUiPath } from '../dev/devUi'
 import { setUnauthorizedHandler } from './sessionExpiry'
 
 type AuthContextValue = {
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const location = useLocation()
+  const skipSessionFetch = isDevUiEnabled() && isDevUiPath(location.pathname)
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -42,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ['me'],
     queryFn: fetchMe,
     retry: false,
+    enabled: !skipSessionFetch,
   })
 
   const me = meQuery.data ?? null

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { activityIconUrl, activityMessageParts, formatRelativeTime } from './activityMedia'
+import { activityIconUrl, activityMessageParts, activityRowVariant, formatRelativeTime } from './activityMedia'
 
 describe('activityMedia', () => {
+  it('maps event types to restrained activity row variants', () => {
+    expect(activityRowVariant('EXPEDITION_COMPLETED')).toBe('reward')
+    expect(activityRowVariant('EXPEDITION_CLAIMED')).toBe('completed')
+    expect(activityRowVariant('MARKET_SOLD')).toBe('market')
+    expect(activityRowVariant('ARENA_VICTORY')).toBe('pvp')
+    expect(activityRowVariant('QUEST_OBJECTIVE')).toBe('system')
+    expect(activityRowVariant('alert')).toBe('warning')
+  })
+
   it('maps event types to painted icons', () => {
     expect(activityIconUrl('EXPEDITION_COMPLETED')).toBe('/icons/activity/chest.webp')
     expect(activityIconUrl('COMBAT_VICTORY')).toBe('/icons/activity/swords.webp')

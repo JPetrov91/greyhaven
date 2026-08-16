@@ -1,54 +1,35 @@
-import { cloneElement, isValidElement, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useId, useRef, type ReactNode } from 'react'
 import { classNames } from './classNames'
-
-type Placement = 'right' | 'left' | 'top' | 'bottom'
+import { Floating, type FloatingPlacement } from './Floating'
 
 type TriggerProps = {
   'aria-describedby'?: string
   'aria-expanded'?: boolean
 }
 
+export type TooltipDensity = 'default' | 'compact' | 'peek' | 'inspector'
+
 type Props = {
   content: ReactNode
   children: ReactNode
   open: boolean
   pinned?: boolean
+  placement?: FloatingPlacement
+  density?: TooltipDensity
+  width?: string
 }
 
-export function Tooltip({ content, children, open, pinned = false }: Props) {
+export function Tooltip({
+  content,
+  children,
+  open,
+  pinned = false,
+  placement = 'right',
+  density = 'default',
+  width,
+}: Props) {
   const tooltipId = useId()
-  const panelRef = useRef<HTMLDivElement>(null)
-  const [placement, setPlacement] = useState<Placement>('right')
-
-  useLayoutEffect(() => {
-    if (!open) {
-      setPlacement('right')
-      return
-    }
-    const panel = panelRef.current
-    const trigger = panel?.previousElementSibling as HTMLElement | null
-    if (!panel || !trigger) {
-      return
-    }
-    const t = trigger.getBoundingClientRect()
-    const p = panel.getBoundingClientRect()
-    const gap = 12
-    const right = window.innerWidth - t.right
-    const left = t.left
-    const bottom = window.innerHeight - t.bottom
-    const top = t.top
-    if (right >= p.width + gap) {
-      setPlacement('right')
-    } else if (left >= p.width + gap) {
-      setPlacement('left')
-    } else if (top >= p.height + gap) {
-      setPlacement('top')
-    } else if (bottom >= p.height + gap) {
-      setPlacement('bottom')
-    } else {
-      setPlacement(right >= left ? 'right' : 'left')
-    }
-  }, [open])
+  const anchorRef = useRef<HTMLDivElement>(null)
 
   const trigger = isValidElement<TriggerProps>(children)
     ? cloneElement(children, {
@@ -57,19 +38,35 @@ export function Tooltip({ content, children, open, pinned = false }: Props) {
       })
     : children
 
+  const resolvedWidth =
+    width ??
+    (density === 'default'
+      ? 'min(var(--floating-width), 70vw)'
+      : density === 'compact'
+        ? 'max-content'
+        : density === 'inspector'
+          ? 'min(16.5rem, 70vw)'
+          : 'min(11.5rem, 36vw)')
+
   return (
-    <div className={classNames('tooltip-anchor', open && 'tooltip-open')}>
+    <div ref={anchorRef} className={classNames('tooltip-anchor', open && 'tooltip-open')}>
       {trigger}
-      {open ? (
-        <div
-          ref={panelRef}
-          id={tooltipId}
-          className={classNames('tooltip-panel', `tooltip-${placement}`)}
-          role="tooltip"
-        >
-          {content}
-        </div>
-      ) : null}
+      <Floating
+        open={open}
+        anchorRef={anchorRef}
+        placement={placement}
+        role="tooltip"
+        id={tooltipId}
+        width={resolvedWidth}
+        className={classNames(
+          'tooltip-panel',
+          density === 'compact' && 'tooltip-panel-compact',
+          density === 'peek' && 'tooltip-panel-peek',
+          density === 'inspector' && 'tooltip-panel-inspector',
+        )}
+      >
+        {content}
+      </Floating>
     </div>
   )
 }

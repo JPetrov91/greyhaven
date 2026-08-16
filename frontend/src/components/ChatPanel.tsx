@@ -3,11 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { chatStreamUrl, fetchChatMessages, postChatMessage } from '../api/chat'
 import type { ChatMessageResponse } from '../api/types'
+import { Button } from '../ui/Button'
 import { classNames } from '../ui/classNames'
 import { ComingLaterButton } from '../ui/ComingLater'
+import { CompactDataRow } from '../ui/CompactDataRow'
+import { CounterBadge } from '../ui/CounterBadge'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
+import { TextInput } from '../ui/TextInput'
 
 const HISTORY_CAP = 100
 const MAX_BODY_LENGTH = 500
@@ -190,9 +194,7 @@ export function ChatPanel() {
                 <>
                   <img className="chat-channel-icon" src={channel.art} alt="" aria-hidden="true" />
                   <span className="chat-channel-label">{channel.label}</span>
-                  <span className="chat-unread" aria-hidden="true">
-                    {channel.unread}
-                  </span>
+                  <CounterBadge count={channel.unread} className="chat-unread" />
                 </>
               )
               if (channel.later) {
@@ -241,15 +243,22 @@ export function ChatPanel() {
           ) : messages.length === 0 ? (
             <EmptyState testId="chat-empty">No messages yet. Say hello to Greyhaven.</EmptyState>
           ) : (
-            <ul className="chat-list" data-testid="chat-list" ref={listRef}>
+            <ul className="chat-list ui-row-list" data-testid="chat-list" ref={listRef}>
               {messages.map((message) => (
-                <li key={message.id} data-testid={`chat-message-${message.id}`}>
-                  <time dateTime={message.createdAt}>{formatWhen(message.createdAt)}</time>
-                  <strong className={`chat-name chat-name-${nameTone(message.characterName)}`}>
-                    [{message.characterName}]
-                  </strong>
-                  <p>{renderBody(message.body)}</p>
-                </li>
+                <CompactDataRow
+                  key={message.id}
+                  testId={`chat-message-${message.id}`}
+                  interactive={false}
+                  metadata={<time dateTime={message.createdAt}>{formatWhen(message.createdAt)}</time>}
+                  primary={
+                    <>
+                      <strong className={`chat-name chat-name-${nameTone(message.characterName)}`}>
+                        [{message.characterName}]
+                      </strong>{' '}
+                      <span>{renderBody(message.body)}</span>
+                    </>
+                  }
+                />
               ))}
             </ul>
           )}
@@ -258,8 +267,7 @@ export function ChatPanel() {
             <div className="chat-input-label">
               <label>
                 <span className="visually-hidden">Message</span>
-                <input
-                  type="text"
+                <TextInput
                   name="body"
                   maxLength={MAX_BODY_LENGTH}
                   value={draft}
@@ -278,9 +286,9 @@ export function ChatPanel() {
                 </svg>
               </ComingLaterButton>
             </div>
-            <button type="submit" className="chat-send" data-testid="chat-send" disabled={sending || !draft.trim()}>
+            <Button type="submit" className="chat-send" data-testid="chat-send" disabled={sending || !draft.trim()}>
               {sending ? 'Sending…' : 'Send'}
-            </button>
+            </Button>
           </form>
           {sendError ? (
             <p className="form-error" role="alert" data-testid="chat-send-error">

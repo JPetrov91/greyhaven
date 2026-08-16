@@ -7,6 +7,7 @@ import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Field } from '../ui/Field'
+import { Select } from '../ui/Select'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
 import { ProgressBar } from '../ui/ProgressBar'
@@ -209,7 +210,7 @@ export function MasteryPanel({ mutationsDisabled = false }: Props) {
       <div className="mastery-loadout" data-testid="mastery-loadout">
         {slots.map((code, index) => (
           <Field key={index} label={`Slot ${index + 1}`}>
-            <select
+            <Select
               data-testid={`loadout-slot-${index}`}
               value={code ?? ''}
               disabled={mutationsDisabled || saving}
@@ -221,7 +222,7 @@ export function MasteryPanel({ mutationsDisabled = false }: Props) {
                   {technique.displayName}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         ))}
       </div>

@@ -1,0 +1,190 @@
+/*
+  Iconography, icon wells, selected marks, and the four-mark ornament pack.
+
+  UI glyphs: 24 grid, 1.6 stroke, currentColor.
+  Ornaments: 1px metal from the asset pack. Opt-in. Hierarchy only.
+  Painted /icons/* webp uses .ui-icon-art (size only).
+*/
+
+.ui-icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--icon-color);
+}
+
+.ui-icon-sm {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.ui-icon-md {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-icon-lg {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.ui-icon-xl {
+  width: var(--icon-size-xl);
+  height: var(--icon-size-xl);
+}
+
+.ui-icon :where(svg, img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ui-icon-art :where(img) {
+  object-fit: contain;
+}
+
+.ui-icon-disabled {
+  color: var(--icon-color-disabled);
+  opacity: var(--icon-disabled-opacity);
+}
+
+.ui-icon-active {
+  color: var(--icon-color-active);
+}
+
+.btn-icon > svg,
+.btn-icon > .ui-icon,
+.ui-icon-well > svg,
+.ui-icon-well > .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-icon-well {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--icon-well-size);
+  height: var(--icon-well-size);
+  color: var(--icon-color);
+  background-color: var(--color-surface-inset);
+  background-image: var(--surface-luminance-inset), var(--surface-texture-inset);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-shadow);
+  border-right-color: color-mix(in srgb, var(--color-bronze-dim) 28%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-bronze-strong) 22%, transparent);
+  border-left-color: var(--color-edge-shadow);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-inset);
+}
+
+.ui-icon-well-lg {
+  width: var(--icon-well-size-lg);
+  height: var(--icon-well-size-lg);
+}
+
+.ui-icon-well-lg > svg,
+.ui-icon-well-lg > .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.ui-icon-well-active {
+  color: var(--icon-color-active);
+  border-top-color: var(--color-edge-selected-highlight);
+  border-right-color: var(--color-edge-selected-side);
+  border-bottom-color: var(--color-edge-selected-shadow);
+  border-left-color: var(--color-edge-selected-side);
+  box-shadow: var(--mark-selected), var(--shadow-inset);
+}
+
+.ui-mark-selected {
+  box-shadow: var(--mark-selected);
+}
+
+.ui-nav-selected {
+  position: relative;
+  color: var(--nav-selected-color);
+  background-color: var(--nav-selected-plate);
+  background-image: var(--nav-selected-fill), var(--surface-texture-inset);
+  background-repeat: no-repeat, no-repeat;
+  background-size: auto, var(--surface-texture-size-panel);
+  box-shadow: var(--nav-selected-shadow);
+}
+
+.ui-nav-selected::before {
+  content: '';
+  position: absolute;
+  top: 18%;
+  bottom: 18%;
+  left: 0;
+  width: 0.18rem;
+  pointer-events: none;
+  background: var(--nav-selected-rail);
+}
+
+.ui-nav-selected:hover {
+  background-color: var(--nav-selected-plate);
+  background-image: var(--nav-selected-fill), var(--surface-texture-inset);
+}
+
+.ui-mark-frame {
+  box-shadow: inset 1px 0 0 var(--color-edge-selected-side),
+    inset 0 1px 0 var(--color-edge-selected-highlight),
+    inset -1px 0 0 var(--color-edge-selected-shadow),
+    inset 0 -1px 0 var(--color-edge-selected-shadow);
+}
+
+.ui-ornament {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--ornament-color);
+  opacity: var(--ornament-opacity);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.ui-ornament-divider {
+  display: block;
+  width: 100%;
+  height: var(--icon-size-md);
+  background-image: var(--asset-section-divider);
+  background-size: 100% var(--icon-size-md);
+}
+
+.ui-ornament-corner {
+  width: var(--ornament-size-corner);
+  height: var(--ornament-size-corner);
+  background-image: var(--asset-corner-accent);
+}
+
+.ui-ornament-diamond {
+  width: var(--ornament-size-accent);
+  height: var(--ornament-size-accent);
+  background-image: var(--asset-small-diamond);
+}
+
+.ui-ornament-accent {
+  width: var(--ornament-size-accent);
+  height: var(--ornament-size-accent);
+  background-image: var(--asset-tiny-pip);
+}
+
+.ui-ornament-tr {
+  transform: scaleX(-1);
+}
+
+.ui-ornament-bl {
+  transform: scaleY(-1);
+}
+
+.ui-ornament-br {
+  transform: scale(-1);
+}

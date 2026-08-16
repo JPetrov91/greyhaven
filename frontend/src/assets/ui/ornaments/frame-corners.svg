@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- Top-left: highlight metal -->
+  <path d="M1.5 10.5V1.5H10.5" stroke="#a48667" stroke-width="1.15" stroke-linecap="square" stroke-opacity="0.88"/>
+  <path d="M3.6 8.2V3.6H8.2" stroke="#8a6e55" stroke-width="0.8" stroke-linecap="square" stroke-opacity="0.42"/>
+  <rect x="1.1" y="1.1" width="1.7" height="1.7" fill="#b1967a" fill-opacity="0.78"/>
+
+  <!-- Top-right -->
+  <path d="M21.5 1.5H30.5V10.5" stroke="#a48667" stroke-width="1.15" stroke-linecap="square" stroke-opacity="0.82"/>
+  <path d="M23.8 3.6H28.4V8.2" stroke="#8a6e55" stroke-width="0.8" stroke-linecap="square" stroke-opacity="0.4"/>
+  <rect x="29.2" y="1.1" width="1.7" height="1.7" fill="#b1967a" fill-opacity="0.7"/>
+
+  <!-- Bottom-right: receding bronze -->
+  <path d="M30.5 21.5V30.5H21.5" stroke="#6a5340" stroke-width="1.15" stroke-linecap="square" stroke-opacity="0.58"/>
+  <path d="M28.4 23.8V28.4H23.8" stroke="#53402c" stroke-width="0.8" stroke-linecap="square" stroke-opacity="0.38"/>
+  <rect x="29.2" y="29.2" width="1.7" height="1.7" fill="#8a6e55" fill-opacity="0.45"/>
+
+  <!-- Bottom-left -->
+  <path d="M10.5 30.5H1.5V21.5" stroke="#6a5340" stroke-width="1.15" stroke-linecap="square" stroke-opacity="0.55"/>
+  <path d="M8.2 28.4H3.6V23.8" stroke="#53402c" stroke-width="0.8" stroke-linecap="square" stroke-opacity="0.36"/>
+  <rect x="1.1" y="29.2" width="1.7" height="1.7" fill="#8a6e55" fill-opacity="0.42"/>
+</svg>

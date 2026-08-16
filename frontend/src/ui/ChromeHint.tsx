@@ -21,7 +21,7 @@ export function ChromeHint({ label, children }: Props) {
         }
       }}
     >
-      <Tooltip content={label} open={open}>
+      <Tooltip content={label} open={open} density="compact" placement="bottom">
         {children}
       </Tooltip>
     </div>

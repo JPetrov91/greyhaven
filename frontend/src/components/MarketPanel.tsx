@@ -36,6 +36,9 @@ import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { Field } from '../ui/Field'
+import { SearchInput } from '../ui/SearchInput'
+import { Select } from '../ui/Select'
+import { TextInput } from '../ui/TextInput'
 import { formatRarity } from '../ui/formatRarity'
 import { gameLink } from '../ui/gameNav'
 import { ItemDetail } from '../ui/ItemDetail'
@@ -496,8 +499,7 @@ export function MarketPanel({ onClose }: Props) {
       ) : (
         <>
       <Field label="Search" className="market-search-field">
-        <input
-          type="search"
+        <SearchInput
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           data-testid="market-search"
@@ -507,7 +509,7 @@ export function MarketPanel({ onClose }: Props) {
 
       <div className="market-filter-row">
         <Field label="Item type">
-          <select
+          <Select
             data-testid="market-type-filter"
             value={itemType}
             onChange={(event) => {
@@ -520,10 +522,10 @@ export function MarketPanel({ onClose }: Props) {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Rarity">
-          <select
+          <Select
             data-testid="market-rarity-filter"
             value={rarity}
             onChange={(event) => {
@@ -536,10 +538,10 @@ export function MarketPanel({ onClose }: Props) {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Weapon family">
-          <select
+          <Select
             data-testid="market-family-filter"
             value={weaponFamily}
             onChange={(event) => {
@@ -552,10 +554,10 @@ export function MarketPanel({ onClose }: Props) {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Min level">
-          <input
+          <TextInput
             data-testid="market-level-filter"
             type="number"
             min={1}
@@ -568,7 +570,7 @@ export function MarketPanel({ onClose }: Props) {
           />
         </Field>
         <Field label="Max level">
-          <input
+          <TextInput
             type="number"
             min={1}
             value={maxLevel}
@@ -580,7 +582,7 @@ export function MarketPanel({ onClose }: Props) {
           />
         </Field>
         <Field label="Min price">
-          <input
+          <TextInput
             data-testid="market-price-filter"
             type="number"
             min={1}
@@ -593,7 +595,7 @@ export function MarketPanel({ onClose }: Props) {
           />
         </Field>
         <Field label="Max price">
-          <input
+          <TextInput
             type="number"
             min={1}
             value={maxPrice}
@@ -606,7 +608,7 @@ export function MarketPanel({ onClose }: Props) {
         </Field>
         <LockedFilter testId="market-seller-filter" label="Seller" value="All sellers" />
         <Field label="Sort by">
-          <select
+          <Select
             data-testid="market-sort"
             value={`${sort}:${direction}`}
             onChange={(event) => {
@@ -620,11 +622,12 @@ export function MarketPanel({ onClose }: Props) {
             <option value="CREATED_AT:ASC">Oldest</option>
             <option value="PRICE:ASC">Price: Low to High</option>
             <option value="PRICE:DESC">Price: High to Low</option>
-          </select>
+          </Select>
         </Field>
-        <button
+        <Button
           type="button"
-          className="btn btn-secondary market-refresh"
+          variant="secondary"
+          className="market-refresh"
           data-testid="market-refresh"
           aria-label="Refresh listings"
           onClick={() => {
@@ -633,7 +636,7 @@ export function MarketPanel({ onClose }: Props) {
           }}
         >
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div className="market-tabs" role="tablist" aria-label="Marketplace views">
@@ -699,7 +702,7 @@ export function MarketPanel({ onClose }: Props) {
                   }}
                 >
                   <Field label="Item">
-                    <select
+                    <Select
                       data-testid="market-item-select"
                       value={selectedItemId}
                       onChange={(event) => {
@@ -716,10 +719,10 @@ export function MarketPanel({ onClose }: Props) {
                           {itemLabel(item)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </Field>
                   <Field label="Quantity">
-                    <input
+                    <TextInput
                       data-testid="market-quantity-input"
                       type="number"
                       min={1}
@@ -729,7 +732,7 @@ export function MarketPanel({ onClose }: Props) {
                     />
                   </Field>
                   <Field label="Price (gold)">
-                    <input
+                    <TextInput
                       data-testid="market-price-input"
                       type="number"
                       min={1}
@@ -1185,7 +1188,7 @@ function BuyOrdersBoard({
         }}
       >
         <Field label="Item">
-          <select
+          <Select
             data-testid="buy-order-item-select"
             value={orderDefinitionId}
             onChange={(event) => onDefinitionId(event.target.value)}
@@ -1196,10 +1199,10 @@ function BuyOrdersBoard({
                 {item.displayName}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Quantity">
-          <input
+          <TextInput
             data-testid="buy-order-quantity"
             type="number"
             min={1}
@@ -1208,7 +1211,7 @@ function BuyOrdersBoard({
           />
         </Field>
         <Field label="Max unit price">
-          <input
+          <TextInput
             data-testid="buy-order-price"
             type="number"
             min={1}
@@ -1280,17 +1283,17 @@ function BuyOrdersBoard({
         >
           <h3>Fulfill {selectedOrder.itemName}</h3>
           <Field label="Your item">
-            <select data-testid="fulfill-item-select" value={fulfillItemId} onChange={(event) => onFulfillItemId(event.target.value)}>
+            <Select data-testid="fulfill-item-select" value={fulfillItemId} onChange={(event) => onFulfillItemId(event.target.value)}>
               <option value="">Select a matching stack</option>
               {fulfillChoices.map((item) => (
                 <option key={item.id} value={item.id}>
                   {itemLabel(item)}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Quantity">
-            <input
+            <TextInput
               data-testid="fulfill-quantity"
               type="number"
               min={1}
@@ -1326,9 +1329,9 @@ function OrderInspector({ order }: { order: MarketBuyOrderResponse }) {
 function LockedFilter({ testId, label, value }: { testId: string; label: string; value: string }) {
   return (
     <Field label={label}>
-      <select data-testid={testId} disabled title="Coming later" className="coming-later" aria-disabled="true">
+      <Select data-testid={testId} disabled title="Coming later" className="coming-later" aria-disabled="true">
         <option>{value}</option>
-      </select>
+      </Select>
     </Field>
   )
 }
@@ -1432,8 +1435,7 @@ function MerchantHub({
       </div>
       <div className="market-browse">
         <Field label="Search" className="market-search-field">
-          <input
-            type="search"
+          <SearchInput
             value={search}
             onChange={(event) => onSearch(event.target.value)}
             data-testid="merchant-search"
@@ -1523,7 +1525,7 @@ function MerchantHub({
                 />
               </dl>
               <Field label="Quantity">
-                <input
+                <TextInput
                   data-testid="merchant-buy-quantity"
                   type="number"
                   min={1}

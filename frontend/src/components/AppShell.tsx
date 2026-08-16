@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { Button } from '../ui/Button'
 import { focusSection } from '../ui/hashFocus'
+import { isDevUiPath, isDevUiShowcasePath, isDevUiVisualShellPath } from '../dev/devUi'
 import { applyUiMode, persistUiMode, readStoredUiMode, type UiMode } from '../ui/uiMode'
 
 export function AppShell() {
@@ -53,12 +54,27 @@ export function AppShell() {
     location.pathname === '/register' ||
     location.pathname === '/create-character' ||
     location.pathname === '/characters'
+  const isUiShowcase = isDevUiShowcasePath(location.pathname)
+  const isVisualShell = isDevUiVisualShellPath(location.pathname)
+  const hideChrome = isAuthLanding || gameChrome || isDevUiPath(location.pathname)
+  const shellClass = isAuthLanding
+    ? 'app-shell app-shell-auth'
+    : isUiShowcase
+      ? 'app-shell app-shell-showcase'
+      : 'app-shell'
+  const mainClass = isAuthLanding
+    ? 'app-main app-main-auth'
+    : gameChrome || isVisualShell
+      ? 'app-main app-main-game'
+      : isUiShowcase
+        ? 'app-main app-main-showcase'
+        : 'app-main'
 
   return (
-    <div className={isAuthLanding ? 'app-shell app-shell-auth' : 'app-shell'}>
-      {isAuthLanding || gameChrome ? null : (
-        <header className="app-header">
-          <NavLink to={isAuthenticated ? '/game' : '/login'} className="brand">
+    <div className={shellClass}>
+      {hideChrome ? null : (
+        <header className="app-header surface-raised">
+          <NavLink to={isAuthenticated ? '/game' : '/login'} className="brand type-display">
             Greyhaven
           </NavLink>
           <nav className="app-nav" aria-label="Primary">
@@ -99,11 +115,7 @@ export function AppShell() {
           </nav>
         </header>
       )}
-      <main
-        className={
-          isAuthLanding ? 'app-main app-main-auth' : gameChrome ? 'app-main app-main-game' : 'app-main'
-        }
-      >
+      <main className={mainClass}>
         <Outlet />
       </main>
     </div>

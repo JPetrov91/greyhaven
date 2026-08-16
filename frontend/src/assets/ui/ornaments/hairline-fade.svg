@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="1" viewBox="0 0 400 1" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="hair" x1="0" y1="0.5" x2="400" y2="0.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6a5340" stop-opacity="0"/>
+      <stop offset="0.14" stop-color="#6a5340" stop-opacity="0.38"/>
+      <stop offset="0.86" stop-color="#6a5340" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#6a5340" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="1" fill="url(#hair)"/>
+</svg>

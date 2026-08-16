@@ -1,0 +1,169 @@
+/*
+  Typography roles. Apply these classes or the matching tokens.
+  Cinzel / --font-chrome is only for Display and Page Heading.
+*/
+
+.type-display {
+  font-family: var(--type-display-family);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  line-height: var(--type-display-line);
+  letter-spacing: var(--type-display-tracking);
+  color: var(--type-display-color);
+  text-transform: uppercase;
+}
+
+.type-page-heading {
+  font-family: var(--type-page-heading-family);
+  font-size: var(--type-page-heading-size);
+  font-weight: var(--type-page-heading-weight);
+  line-height: var(--type-page-heading-line);
+  letter-spacing: var(--type-page-heading-tracking);
+  color: var(--type-page-heading-color);
+  text-transform: uppercase;
+}
+
+.type-panel-heading {
+  font-family: var(--type-panel-heading-family);
+  font-size: var(--type-panel-heading-size);
+  font-weight: var(--type-panel-heading-weight);
+  line-height: var(--type-panel-heading-line);
+  letter-spacing: var(--type-panel-heading-tracking);
+  color: var(--type-panel-heading-color);
+  text-transform: uppercase;
+}
+
+.type-section-heading {
+  font-family: var(--type-section-heading-family);
+  font-size: var(--type-section-heading-size);
+  font-weight: var(--type-section-heading-weight);
+  line-height: var(--type-section-heading-line);
+  letter-spacing: var(--type-section-heading-tracking);
+  color: var(--type-section-heading-color);
+  text-transform: uppercase;
+}
+
+.type-item {
+  font-family: var(--type-item-family);
+  font-size: var(--type-item-size);
+  font-weight: var(--type-item-weight);
+  line-height: var(--type-item-line);
+  letter-spacing: var(--type-item-tracking);
+  color: var(--type-item-color);
+}
+
+.type-body {
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line);
+  letter-spacing: var(--type-body-tracking);
+  color: var(--type-body-color);
+}
+
+.type-compact {
+  font-family: var(--type-compact-family);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+  line-height: var(--type-compact-line);
+  letter-spacing: var(--type-compact-tracking);
+  color: var(--type-compact-color);
+}
+
+.type-meta {
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  font-weight: var(--type-meta-weight);
+  line-height: var(--type-meta-line);
+  letter-spacing: var(--type-meta-tracking);
+  color: var(--type-meta-color);
+}
+
+.type-micro {
+  font-family: var(--type-micro-family);
+  font-size: var(--type-micro-size);
+  font-weight: var(--type-micro-weight);
+  line-height: var(--type-micro-line);
+  letter-spacing: var(--type-micro-tracking);
+  color: var(--type-micro-color);
+  text-transform: uppercase;
+}
+
+.type-numeric {
+  font-family: var(--type-numeric-family);
+  font-size: var(--type-numeric-size);
+  font-weight: var(--type-numeric-weight);
+  line-height: var(--type-numeric-line);
+  letter-spacing: var(--type-numeric-tracking);
+  color: var(--type-numeric-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.type-numeric-gold {
+  color: var(--color-gold-normal);
+}
+
+.type-positive {
+  color: var(--color-positive);
+}
+
+.type-negative {
+  color: var(--color-negative);
+}
+
+.type-warning {
+  color: var(--color-warning);
+}
+
+/* Global element mapping — not feature pages */
+:root {
+  font-family: var(--type-body-family);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-line);
+  letter-spacing: var(--type-body-tracking);
+  color: var(--type-body-color);
+}
+
+body {
+  font-size: var(--type-body-size);
+}
+
+h1,
+h2 {
+  font-family: var(--type-page-heading-family);
+  font-size: var(--type-page-heading-size);
+  font-weight: var(--type-page-heading-weight);
+  line-height: var(--type-page-heading-line);
+  letter-spacing: var(--type-page-heading-tracking);
+  color: var(--type-page-heading-color);
+  text-transform: uppercase;
+}
+
+h3 {
+  font-family: var(--type-section-heading-family);
+  font-size: var(--type-section-heading-size);
+  font-weight: var(--type-section-heading-weight);
+  line-height: var(--type-section-heading-line);
+  letter-spacing: var(--type-section-heading-tracking);
+  color: var(--type-section-heading-color);
+  text-transform: uppercase;
+}
+
+.brand {
+  font-family: var(--type-display-family);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  line-height: var(--type-display-line);
+  letter-spacing: var(--type-display-tracking);
+  color: var(--type-display-color);
+  text-transform: uppercase;
+}
+
+.muted {
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  font-weight: var(--type-meta-weight);
+  line-height: var(--type-meta-line);
+  letter-spacing: var(--type-meta-tracking);
+  color: var(--type-meta-color);
+}

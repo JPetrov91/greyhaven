@@ -218,7 +218,7 @@ function EquipmentSlotControl({
       }}
     >
       {equippedItem ? (
-        <Tooltip content={<ItemPeek compact item={equippedItem} />} open={peekOpen}>
+        <Tooltip content={<ItemPeek compact item={equippedItem} />} open={peekOpen} density="peek">
           {trigger}
         </Tooltip>
       ) : (

@@ -24,10 +24,18 @@ export function ComingLaterButton({
   )
 }
 
-export function ComingLaterChip({ children, testId }: { children: ReactNode; testId?: string }) {
+export function ComingLaterChip({
+  children,
+  testId,
+  className,
+}: {
+  children: ReactNode
+  testId?: string
+  className?: string
+}) {
   return (
     <span
-      className="currency-chip currency-chip-locked"
+      className={classNames('currency-chip', 'currency-chip-locked', className)}
       title={COMING_LATER_LABEL}
       data-testid={testId}
       aria-disabled="true"

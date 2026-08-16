@@ -572,13 +572,13 @@
 }
 
 .auth-landing .auth-form label.auth-remember:has(input:checked)::before {
-  border-color: #d4b05a;
+  border-color: var(--color-warning);
   background: #c9a44a;
   box-shadow: inset 0 0 0 2px rgba(8, 6, 5, 0.35);
 }
 
 .auth-landing .auth-form label.auth-remember:hover::before {
-  border-color: #e4c56a;
+  border-color: var(--color-gold-strong);
 }
 
 .auth-forgot {
@@ -772,7 +772,7 @@ body:has(.app-shell-auth) {
 html[data-ui-mode='compact'] .auth-landing {
   gap: 0.7rem;
   padding: 0.7rem 0.8rem 0;
-  background: #12100e;
+  background: var(--color-page-bg);
 }
 
 html[data-ui-mode='compact'] .auth-landing-bg,

@@ -437,13 +437,15 @@ export function LocationPanel({
   )
 }
 
-type HeroProps = {
+export type LocationHeroProps = {
   location: LocationResponse
   destinations: DestinationResponse[]
   movingToId: string | null
   moveError: string | null
   searchBusy: boolean
   searchError: string | null
+  /** When set, skips the live Greyhaven clock so visual fixtures stay stable. */
+  clock?: string
   onSearchEncounter?: () => void
   onOpenWorld?: () => void
   onOpenMarket?: () => void
@@ -478,7 +480,7 @@ function heroActionTiles({
   onOpenCrafting,
   onMove,
 }: Pick<
-  HeroProps,
+  LocationHeroProps,
   | 'location'
   | 'destinations'
   | 'movingToId'
@@ -623,13 +625,14 @@ function heroActionTiles({
   return tiles.slice(0, 5)
 }
 
-function LocationHero({
+export function LocationHero({
   location,
   destinations,
   movingToId,
   moveError,
   searchBusy,
   searchError,
+  clock: clockOverride,
   onSearchEncounter,
   onOpenWorld,
   onOpenMarket,
@@ -638,8 +641,9 @@ function LocationHero({
   onOpenArena,
   onOpenCrafting,
   onMove,
-}: HeroProps) {
-  const clock = useGreyhavenClock()
+}: LocationHeroProps) {
+  const liveClock = useGreyhavenClock()
+  const clock = clockOverride ?? liveClock
   const weather = locationWeather(location.code)
   const safe = location.safety === 'SAFE'
   const tiles = heroActionTiles({

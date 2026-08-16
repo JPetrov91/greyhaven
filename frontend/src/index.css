@@ -1,12 +1,20 @@
 @import './ui/tokens.css';
+@import './ui/typography.css';
+@import './ui/surfaces.css';
+@import './ui/layout.css';
+@import './ui/controls.css';
+@import './ui/forms.css';
+@import './ui/meters.css';
+@import './ui/rows.css';
+@import './ui/iconography.css';
 @import './ui/components.css';
 @import './ui/game-shell.css';
 @import './pages/authLanding.css';
 @import './pages/createCharacter.css';
+@import './pages/uiShowcase.css';
+@import './pages/mainShellVisual.css';
 
 :root {
-  font-family: var(--font-body);
-  color: var(--ink);
   background: var(--paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -26,10 +34,10 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(90, 58, 22, 0.22), transparent 42%),
-    radial-gradient(circle at 88% 8%, rgba(40, 28, 18, 0.35), transparent 36%),
-    linear-gradient(160deg, #161310 0%, #12100e 48%, #1a1510 100%);
+  background-color: var(--color-page-bg);
+  background-image: var(--surface-warm-wash), var(--surface-texture-page);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-page);
 }
 
 a {
@@ -40,14 +48,6 @@ a {
 
 a:hover {
   color: var(--accent);
-}
-
-h1,
-h2,
-.brand {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
 :focus-visible {
@@ -65,16 +65,13 @@ h2,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1.4rem;
-  border-bottom: 1px solid var(--line-soft);
-  background: rgba(18, 16, 14, 0.86);
-  backdrop-filter: blur(8px);
+  gap: var(--spacing-16);
+  padding: var(--spacing-12) var(--spacing-24);
+  border-radius: 0;
+  border-bottom: var(--border-subtle);
 }
 
 .brand {
-  font-size: 1.8rem;
-  color: var(--accent-strong);
   text-decoration: none;
 }
 
@@ -197,9 +194,6 @@ h2,
   font-size: 0.95rem;
 }
 
-.muted {
-  color: var(--ink-soft);
-}
 
 .form-error {
   margin: 0;
@@ -348,8 +342,12 @@ h2,
 .inventory-item-meta,
 .inventory-item-stats {
   margin: 0.25rem 0 0;
-  color: var(--ink-soft);
-  font-size: 0.95rem;
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  font-weight: var(--type-meta-weight);
+  line-height: var(--type-meta-line);
+  letter-spacing: var(--type-meta-tracking);
+  color: var(--type-meta-color);
 }
 
 .inventory-item-actions {
@@ -533,7 +531,10 @@ h2,
 }
 
 html[data-ui-mode='compact'] body {
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: var(--surface-warm-wash), var(--surface-texture-page);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-page);
 }
 
 html[data-ui-mode='compact'] .app-header,

@@ -1,0 +1,286 @@
+/*
+  Shared meters and status marks: ProgressBar family, Badge, StatusBadge,
+  CounterBadge, RarityBadge.
+
+  Three meter species: vital troughs, thin XP gold, quiet durability.
+  Counters are red discs. Status is hierarchy, not pastel chips.
+*/
+
+.ui-meter {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.ui-meter-track,
+.ui-meter-overlay {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.ui-meter-beside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.ui-meter-value {
+  font-family: var(--type-numeric-family);
+  font-size: var(--type-numeric-size);
+  font-weight: var(--type-numeric-weight);
+  line-height: var(--type-numeric-line);
+  letter-spacing: var(--type-numeric-tracking);
+  color: var(--type-numeric-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meter-overlay .ui-meter-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--type-compact-size);
+  color: var(--color-counter);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+}
+
+.progress-bar,
+.xp-bar {
+  --meter-fill: var(--meter-fill-xp);
+  display: block;
+  width: 100%;
+  height: var(--meter-height-default);
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-shadow);
+  border-right-color: var(--color-edge-side);
+  border-bottom-color: var(--color-edge-highlight);
+  border-left-color: var(--color-edge-shadow);
+  border-radius: var(--radius-2);
+  background-color: var(--meter-track);
+  background-image: var(--surface-luminance-inset);
+  box-shadow: var(--shadow-inset);
+  color: var(--meter-fill);
+}
+
+.progress-health,
+.progress-stamina,
+.progress-vital {
+  height: var(--meter-height-vital);
+}
+
+.progress-xp,
+.xp-bar,
+.progress-compact {
+  height: var(--meter-height-xp);
+}
+
+.progress-durability,
+.progress-hairline {
+  height: var(--meter-height-durability);
+}
+
+.progress-health {
+  --meter-fill: var(--meter-fill-health);
+}
+
+.progress-stamina {
+  --meter-fill: var(--meter-fill-stamina);
+}
+
+.progress-xp,
+.xp-bar {
+  --meter-fill: var(--meter-fill-xp);
+}
+
+.progress-durability {
+  --meter-fill: var(--meter-fill-durability);
+}
+
+.progress-bar::-webkit-progress-bar,
+.xp-bar::-webkit-progress-bar {
+  background-color: var(--meter-track);
+  background-image: var(--surface-luminance-inset);
+  border-radius: var(--radius-2);
+  box-shadow: none;
+}
+
+.progress-bar::-webkit-progress-value,
+.xp-bar::-webkit-progress-value,
+.progress-bar::-moz-progress-bar,
+.xp-bar::-moz-progress-bar {
+  background-color: var(--meter-fill);
+  background-image: var(--meter-sheen);
+  box-shadow: none;
+}
+
+.progress-segments {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(100% / var(--meter-segments, 10) - 1px),
+    var(--meter-segment) calc(100% / var(--meter-segments, 10) - 1px),
+    var(--meter-segment) calc(100% / var(--meter-segments, 10))
+  );
+}
+
+.badge,
+.status-badge,
+.rarity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  margin: 0;
+  padding: 0.02rem 0.28rem;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: var(--radius-2);
+  font-family: var(--type-micro-family);
+  font-size: var(--type-micro-size);
+  font-weight: var(--type-micro-weight);
+  line-height: var(--type-micro-line);
+  letter-spacing: var(--type-micro-tracking);
+  text-transform: uppercase;
+  background-color: transparent;
+  background-image: none;
+  color: var(--color-text-secondary);
+  box-shadow: none;
+}
+
+.badge-neutral,
+.status-neutral {
+  color: var(--color-text-secondary);
+}
+
+.badge-accent {
+  color: var(--color-gold-normal);
+}
+
+.badge-danger,
+.status-danger,
+.safety-danger {
+  color: var(--color-negative);
+}
+
+.badge-warning,
+.status-mixed {
+  color: var(--color-warning);
+}
+
+.status-safe,
+.safety-safe,
+.status-upgrade {
+  color: var(--color-positive);
+}
+
+.status-downgrade {
+  color: var(--downgrade);
+}
+
+.rarity-common {
+  color: var(--rarity-common);
+}
+
+.rarity-uncommon {
+  color: var(--rarity-uncommon);
+}
+
+.rarity-rare {
+  color: var(--rarity-rare);
+}
+
+.rarity-epic {
+  color: var(--rarity-epic);
+}
+
+.status-badge-label {
+  min-width: 0;
+}
+
+.status-badge-effect {
+  display: grid;
+  grid-template-columns: 1.15rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  padding: var(--spacing-4) 0;
+  border: 0;
+  border-radius: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--type-compact-family);
+  font-size: var(--type-compact-size);
+  font-weight: var(--type-compact-weight);
+  line-height: var(--type-compact-line);
+  justify-items: start;
+}
+
+.status-badge-effect .status-badge-label {
+  color: var(--color-text-primary);
+}
+
+.status-badge-icon {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-2);
+  background: color-mix(in srgb, currentColor 22%, var(--color-surface-inset));
+  box-shadow: inset 0 1px 0 rgba(232, 224, 216, 0.12);
+}
+
+.status-badge-meta {
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  font-weight: var(--type-meta-weight);
+  line-height: var(--type-meta-line);
+  letter-spacing: var(--type-meta-tracking);
+  color: var(--color-text-muted);
+  text-transform: none;
+}
+
+.counter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  margin: 0;
+  padding: 0 0.22rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-family: var(--type-micro-family);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  background-color: var(--color-counter-fill);
+  color: var(--color-counter);
+  box-shadow: none;
+}
+
+.counter-neutral {
+  color: var(--color-text-secondary);
+  background-color: color-mix(in srgb, var(--color-text-muted) 28%, var(--color-surface-inset));
+}
+
+.counter-accent {
+  color: var(--color-gold-normal);
+  background-color: color-mix(in srgb, var(--color-gold-normal) 22%, var(--color-surface-inset));
+}
+
+.counter-danger {
+  color: var(--color-counter);
+  background-color: var(--color-counter-fill);
+}

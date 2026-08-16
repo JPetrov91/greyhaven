@@ -9,7 +9,10 @@ import { CharacterPortrait } from '../ui/CharacterPortrait'
 import { ChromeHint } from '../ui/ChromeHint'
 import { ChromeIcon } from '../ui/chromeIcons'
 import { ComingLaterButton, ComingLaterChip, COMING_LATER_LABEL } from '../ui/ComingLater'
+import { CounterBadge } from '../ui/CounterBadge'
 import { gameLink, isGameNavActive } from '../ui/gameNav'
+import { IconButton } from '../ui/IconButton'
+import { UiIcon } from '../ui/UiIcon'
 
 type CombatContext = {
   monsterName: string
@@ -75,9 +78,9 @@ export function GameTopBar({ combatContext = null }: Props) {
   }
 
   return (
-    <header className="game-topbar">
+    <header className="game-topbar surface-raised">
       <div className="game-topbar-left">
-        <Link to={gameLink('home')} className="brand">
+        <Link to={gameLink('home')} className="brand type-display">
           <img src="/auth/crest.svg" alt="" className="brand-crest" />
           Greyhaven
         </Link>
@@ -86,12 +89,12 @@ export function GameTopBar({ combatContext = null }: Props) {
           <div className="game-topbar-identity" data-testid="topbar-identity">
             <CharacterPortrait className="topbar-portrait" avatarCode={character.avatarCode} />
             <div>
-              <p className="topbar-name">{character.name}</p>
-              <p className="topbar-level muted">Level {character.level}</p>
+              <p className="topbar-name type-item">{character.name}</p>
+              <p className="topbar-level type-meta">Level {character.level}</p>
             </div>
           </div>
         ) : (
-          <span className="muted">{me?.email}</span>
+          <span className="type-meta">{me?.email}</span>
         )}
         {combatContext ? (
           <p className="topbar-combat-chip" data-testid="topbar-combat-context">
@@ -100,16 +103,16 @@ export function GameTopBar({ combatContext = null }: Props) {
         ) : null}
       </div>
       <div className="currency-row" aria-label="Currencies">
-        <ComingLaterChip testId="topbar-silver">
+        <ComingLaterChip testId="topbar-silver" className="currency-chip surface-inset">
           <CurrencyFace kind="silver" label="Silver" />
         </ComingLaterChip>
-        <span className="currency-chip" data-testid="topbar-gold">
+        <span className="currency-chip surface-inset" data-testid="topbar-gold">
           <CurrencyFace kind="gold" label="Gold" value={character?.gold.toLocaleString('en-US') ?? '—'} />
         </span>
-        <span className="currency-chip" data-testid="topbar-marks">
+        <span className="currency-chip surface-inset" data-testid="topbar-marks">
           <CurrencyFace kind="honor" label="Marks" value={character?.arenaMarks.toLocaleString('en-US') ?? '—'} />
         </span>
-        <ComingLaterChip testId="topbar-credits">
+        <ComingLaterChip testId="topbar-credits" className="currency-chip surface-inset">
           <CurrencyFace kind="credits" label="Credits" />
         </ComingLaterChip>
       </div>
@@ -125,16 +128,20 @@ export function GameTopBar({ combatContext = null }: Props) {
           </ComingLaterButton>
         </ChromeHint>
         <ChromeHint label="Inventory">
-          <Link
-            to={gameLink('inventory')}
-            data-testid="topbar-inventory"
-            className="btn btn-ghost btn-icon-chrome"
-            aria-label="Inventory"
-            aria-current={packActive ? 'page' : undefined}
-          >
-            <ChromeIcon name="pack" />
-            {itemCount > 0 ? <span className="inventory-badge">{itemCount}</span> : null}
-          </Link>
+          <span className="topbar-pack">
+            <Link
+              to={gameLink('inventory')}
+              data-testid="topbar-inventory"
+              className="btn btn-ghost btn-icon-chrome"
+              aria-label="Inventory"
+              aria-current={packActive ? 'page' : undefined}
+            >
+              <UiIcon>
+                <ChromeIcon name="pack" />
+              </UiIcon>
+            </Link>
+            {itemCount > 0 ? <CounterBadge count={itemCount} tone="accent" /> : null}
+          </span>
         </ChromeHint>
         <ChromeHint label={`Friends — ${COMING_LATER_LABEL}`}>
           <ComingLaterButton data-testid="topbar-friends" className="btn-icon-chrome" aria-label="Friends" title="">
@@ -153,25 +160,26 @@ export function GameTopBar({ combatContext = null }: Props) {
         </ChromeHint>
         <div className="chrome-menu" ref={menuRef}>
           <ChromeHint label="Menu">
-            <Button
-              type="button"
+            <IconButton
+              label="Menu"
               variant="ghost"
               className="btn-icon-chrome"
               data-testid="topbar-menu"
-              aria-label="Menu"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-controls={menuId}
               onClick={() => setMenuOpen((open) => !open)}
             >
-              <ChromeIcon name="menu" />
-            </Button>
+              <UiIcon>
+                <ChromeIcon name="menu" />
+              </UiIcon>
+            </IconButton>
           </ChromeHint>
           {menuOpen ? (
-            <div className="chrome-menu-panel" id={menuId} role="menu" data-testid="topbar-menu-panel">
-              <button type="button" role="menuitem" data-testid="logout-button" onClick={() => void handleLogout()}>
+            <div className="chrome-menu-panel surface-floating" id={menuId} role="menu" data-testid="topbar-menu-panel">
+              <Button type="button" variant="ghost" role="menuitem" data-testid="logout-button" onClick={() => void handleLogout()}>
                 Logout
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -193,8 +201,8 @@ function CurrencyFace({
     <>
       <img src={`/chrome/currency-${kind}.webp`} alt="" className="currency-icon" />
       <span className="currency-copy">
-        <span className="muted">{label}</span>
-        {value ? <strong> {value}</strong> : null}
+        <span className="type-micro">{label}</span>
+        {value ? <strong className="type-numeric type-numeric-gold"> {value}</strong> : null}
       </span>
     </>
   )

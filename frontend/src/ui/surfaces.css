@@ -1,0 +1,194 @@
+/*
+  Surface, border, and shadow engine.
+
+  Variants compose a controlled finish:
+  dark fill + generated raster material + faint luminance + forged bronze edge
+  + top highlight + inner depth + optional outer contact.
+  No glass, glow, page-wide noise, or bright gold fills.
+*/
+
+.surface-base,
+.panel,
+.game-column,
+.chat-panel,
+.combat-panel,
+.encounter-prompt,
+.expedition-panel,
+.crafting-panel,
+.pvp-panel,
+.market-panel,
+.auth-page {
+  background-color: var(--color-surface-base);
+  background-image: var(--surface-plate-finish), var(--surface-panel-veil), var(--surface-texture-panel);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: var(--surface-plate-position);
+  background-size: auto, auto, auto, auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-highlight);
+  border-right-color: var(--color-edge-shadow);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-edge-side);
+  border-radius: var(--radius-2);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner);
+}
+
+.surface-raised {
+  background-color: var(--color-surface-raised);
+  background-image: var(--surface-plate-finish), var(--surface-raised-veil), var(--surface-texture-raised);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: var(--surface-raised-position);
+  background-size: auto, auto, auto, auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-highlight);
+  border-right-color: var(--color-edge-side);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-edge-highlight);
+  border-radius: var(--radius-2);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner), var(--shadow-raised);
+}
+
+.surface-inset,
+.ui-control,
+.field input,
+.field select,
+.field textarea,
+.auth-form input,
+.market-create-form select,
+.market-create-form input,
+.chat-form input,
+.inventory-filters select {
+  background-color: var(--color-surface-inset);
+  background-image: var(--surface-luminance-inset), var(--surface-inset-veil), var(--surface-texture-inset);
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: var(--surface-inset-position);
+  background-size: auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-shadow);
+  border-right-color: color-mix(in srgb, var(--color-bronze-dim) 28%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-bronze-strong) 22%, transparent);
+  border-left-color: var(--color-edge-shadow);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-inset);
+}
+
+.surface-interactive {
+  background-color: var(--color-surface-raised);
+  background-image: var(--surface-plate-finish), var(--surface-raised-veil), var(--surface-texture-raised);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: var(--surface-raised-position);
+  background-size: auto, auto, auto, auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-border-interactive);
+  border-right-color: var(--color-edge-side);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-border-interactive);
+  border-radius: var(--radius-2);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner);
+}
+
+.surface-selected {
+  background-color: var(--color-surface-raised);
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--color-gold-normal) 8%, transparent),
+      color-mix(in srgb, var(--color-gold-normal) 8%, transparent)
+    ),
+    var(--surface-plate-finish),
+    var(--surface-raised-veil),
+    var(--surface-texture-raised);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: 0 0, var(--surface-raised-position);
+  background-size: auto, auto, auto, auto, auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-selected-highlight);
+  border-right-color: var(--color-edge-selected-shadow);
+  border-bottom-color: var(--color-edge-selected-shadow);
+  border-left-color: var(--color-edge-selected-side);
+  border-radius: var(--radius-2);
+  box-shadow:
+    var(--surface-highlight),
+    var(--surface-metal-selected),
+    var(--surface-inner);
+}
+
+.surface-floating,
+.ui-floating,
+.tooltip-panel,
+.ui-dialog,
+.toast {
+  background-color: var(--color-surface-floating);
+  background-image: var(--surface-plate-finish), var(--surface-raised-veil), var(--surface-texture-raised);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: var(--surface-raised-position);
+  background-size: auto, auto, auto, auto, auto, var(--surface-texture-size-panel);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--color-edge-highlight);
+  border-right-color: var(--color-edge-side);
+  border-bottom-color: var(--color-edge-shadow);
+  border-left-color: var(--color-edge-highlight);
+  border-radius: var(--radius-2);
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner), var(--shadow-floating);
+}
+
+.surface-page,
+.panel.surface-page {
+  background-color: var(--color-page-bg);
+  background-image: var(--surface-warm-wash), var(--surface-texture-page);
+  background-repeat: no-repeat, repeat;
+  background-size: auto, var(--surface-texture-size-page);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.panel.surface-base,
+.panel.surface-raised,
+.panel.surface-inset,
+.panel.surface-interactive,
+.panel.surface-selected,
+.panel.surface-floating {
+  border-radius: var(--radius-2);
+}
+
+.panel:not(.surface-page),
+.surface-frame {
+  position: relative;
+}
+
+.panel:not(.surface-page)::before,
+.surface-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+  pointer-events: none;
+  background-image: var(--asset-ui-panel-rim), var(--asset-ui-bronze-edge);
+  background-repeat: repeat-x, no-repeat;
+  background-position: top 1px center, top center;
+  background-size: auto 6px, 100% 4px;
+  opacity: 0.62;
+  box-shadow:
+    inset 3px 3px 0 0 color-mix(in srgb, var(--color-bronze-dim) 18%, transparent),
+    inset -3px -3px 0 0 color-mix(in srgb, var(--color-bronze-dim) 12%, transparent);
+}
+
+.panel:not(.surface-page)::after,
+.surface-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+  pointer-events: none;
+  border: var(--ornament-size-corner) solid transparent;
+  border-image-source: var(--asset-frame-corners);
+  border-image-slice: 64;
+  border-image-width: var(--ornament-size-corner);
+  border-image-repeat: stretch;
+  opacity: 0.92;
+}

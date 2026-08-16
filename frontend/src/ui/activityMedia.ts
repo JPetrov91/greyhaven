@@ -1,4 +1,5 @@
 import type { ActivityType } from '../api/types'
+import type { ActivityRowVariant } from './ActivityRow'
 
 export type ActivityIconName = 'scroll' | 'chest' | 'gold' | 'swords' | 'craft' | 'alert'
 
@@ -35,6 +36,45 @@ const ICON_BY_TYPE: Record<ActivityType, ActivityIconName> = {
   QUEST_ACCEPTED: 'scroll',
   QUEST_OBJECTIVE: 'scroll',
   QUEST_COMPLETED: 'scroll',
+}
+
+export function activityRowVariant(type: ActivityType | 'alert'): ActivityRowVariant {
+  switch (type) {
+    case 'alert':
+      return 'warning'
+    case 'COMBAT_VICTORY':
+    case 'ARENA_VICTORY':
+    case 'ARENA_DEFEAT':
+    case 'DUEL_RESULT':
+      return 'pvp'
+    case 'MARKET_SOLD':
+    case 'MARKET_BOUGHT':
+    case 'MARKET_CANCELLED':
+    case 'MARKET_LISTING_FEE':
+    case 'MARKET_SALE':
+    case 'BUY_ORDER_CREATED':
+    case 'BUY_ORDER_FILLED':
+    case 'BUY_ORDER_CANCELLED':
+      return 'market'
+    case 'EXPEDITION_CLAIMED':
+    case 'CRAFTING_CLAIMED':
+    case 'QUEST_COMPLETED':
+      return 'completed'
+    case 'LEVEL_UP':
+    case 'ITEM_FOUND':
+    case 'EXPEDITION_COMPLETED':
+    case 'MASTERY_UNLOCK':
+    case 'TECHNIQUE_UNLOCK':
+    case 'PROFESSION_RANK_UP':
+    case 'CRAFTING_STARTED':
+      return 'reward'
+    case 'ITEM_SALVAGED':
+    case 'QUEST_ACCEPTED':
+    case 'QUEST_OBJECTIVE':
+      return 'system'
+    default:
+      return 'normal'
+  }
 }
 
 export function activityIconUrl(type: ActivityType | 'alert'): string {

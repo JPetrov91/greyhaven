@@ -1,3 +1,5 @@
+import { ICON_GRID, ICON_STROKE } from './iconography'
+
 export type ChromeIconName =
   | 'trophy'
   | 'mail'
@@ -27,7 +29,7 @@ export type ChromeIconName =
 const STROKE = {
   fill: 'none' as const,
   stroke: 'currentColor',
-  strokeWidth: 1.6,
+  strokeWidth: ICON_STROKE,
   strokeLinejoin: 'round' as const,
 }
 
@@ -56,7 +58,7 @@ export function ChromeIcon({ name, className = 'chrome-icon' }: { name: ChromeIc
     return <img className={`${className} chrome-icon-art`} src={art} alt="" aria-hidden="true" />
   }
   return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className={className} viewBox={`0 0 ${ICON_GRID} ${ICON_GRID}`} aria-hidden="true" focusable="false">
       {glyph(name)}
     </svg>
   )
