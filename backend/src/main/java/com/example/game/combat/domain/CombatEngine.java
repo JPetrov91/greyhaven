@@ -381,6 +381,11 @@ public final class CombatEngine {
 						state.playerStats().armor(),
 						StatusEffectEngine.stacks(working.playerStatuses, StatusType.ARMOR_BREAK),
 						guarded);
+				if (state.playerStats().hasBlockSoak()) {
+					int soakMin = Math.max(1, state.playerStats().blockSoakMin());
+					int soak = random.nextInt(soakMin, state.playerStats().blockSoakMax());
+					damage = Math.max(0, damage - soak);
+				}
 				if (guarded) {
 					working.playerStatuses = new ArrayList<>(
 							StatusEffectEngine.consumeGuardedOnHit(working.playerStatuses));

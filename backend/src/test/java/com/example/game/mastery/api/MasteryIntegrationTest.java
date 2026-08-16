@@ -85,7 +85,7 @@ class MasteryIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/character/masteries").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.equippedWeaponFamily").value("SWORD"))
+				.andExpect(jsonPath("$.equippedWeaponFamily").value(org.hamcrest.Matchers.nullValue()))
 				.andExpect(jsonPath("$.masteries.length()").value(5))
 				.andExpect(jsonPath("$.masteries[?(@.weaponFamily=='SWORD')].level").value(org.hamcrest.Matchers.hasItem(0)))
 				.andExpect(jsonPath("$.masteries[?(@.weaponFamily=='AXE')].totalExperience")
@@ -104,10 +104,11 @@ class MasteryIntegrationTest {
 		String email = "mastery-win-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		grantEquippedRustySword(characterId);
 
 		UUID combatId = startCombat(session);
 		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
-		mutableRandomProvider.queue(5, 90);
+		mutableRandomProvider.queue(5, 6, 90);
 		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -184,6 +185,7 @@ class MasteryIntegrationTest {
 		String email = "mastery-mismatch-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		grantEquippedRustySword(characterId);
 
 		jdbcTemplate.update(
 				"""
@@ -218,6 +220,7 @@ class MasteryIntegrationTest {
 		String email = "mastery-combat-codes-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		grantEquippedRustySword(characterId);
 
 		jdbcTemplate.update(
 				"""
@@ -253,10 +256,6 @@ class MasteryIntegrationTest {
 		String email = "mastery-unarmed-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
-		UUID swordId = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
-
-		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + swordId + "/unequip")).session(session))
-				.andExpect(status().isOk());
 
 		winCombat(session);
 
@@ -268,6 +267,7 @@ class MasteryIntegrationTest {
 		String email = "mastery-unlock-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		grantEquippedRustySword(characterId);
 
 		jdbcTemplate.update(
 				"""
@@ -346,7 +346,7 @@ class MasteryIntegrationTest {
 	private void winCombat(MockHttpSession session) throws Exception {
 		UUID combatId = startCombat(session);
 		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
-		mutableRandomProvider.queue(5, 90);
+		mutableRandomProvider.queue(5, 6, 90);
 		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -432,6 +432,12 @@ class MasteryIntegrationTest {
 						""",
 				UUID.class,
 				email);
+	}
+
+	private void grantEquippedRustySword(UUID characterId) {
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
+		UUID swordId = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.equipOwnedItem(characterId, swordId);
 	}
 
 	private MockHttpSession registerWithCharacter(String email) throws Exception {

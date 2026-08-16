@@ -141,6 +141,7 @@ export type EncounterSearchResponse = {
   found: boolean
   encounterId: string | null
   monster: MonsterResponse | null
+  flavour?: string | null
 }
 
 export type EncounterResponse = {
@@ -282,6 +283,10 @@ export type InventoryItemResponse = {
   rolledWeaponDamage: number | null
   rolledArmorValue: number | null
   weaponDamage: number | null
+  weaponDamageMin?: number | null
+  weaponDamageMax?: number | null
+  blockSoakMin?: number | null
+  blockSoakMax?: number | null
   armorValue: number | null
   healAmount: number | null
   accuracy?: number
@@ -764,6 +769,9 @@ export type QuestResponse = {
   objectives: QuestObjectiveResponse[]
   rewards: QuestRewardResponse[]
   unlocks: string[]
+  kitFamily?: string | null
+  lastSearchOutcome?: string | null
+  completeText?: string | null
 }
 
 export type QuestListResponse = {
@@ -792,6 +800,8 @@ export type NpcTalkActionResponse = {
   questCode: string | null
   merchantCode: string | null
   label: string
+  hint?: string | null
+  action?: string | null
 }
 
 export type NpcTalkResponse = {

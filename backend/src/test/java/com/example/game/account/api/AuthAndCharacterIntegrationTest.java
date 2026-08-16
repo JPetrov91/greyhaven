@@ -186,7 +186,7 @@ class AuthAndCharacterIntegrationTest {
 				.andExpect(jsonPath("$.maxStamina").value(85))
 				.andExpect(jsonPath("$.currentHealth").value(165))
 				.andExpect(jsonPath("$.currentStamina").value(85))
-				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
+				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(8))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
 				.andReturn();
 		refreshCsrfCookie(createResult);

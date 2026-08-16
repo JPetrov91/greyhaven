@@ -40,6 +40,7 @@ export function GameLayout() {
   const view = gameViewFromLocation(location)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [talkOpen, setTalkOpen] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const showMarket = searchParams.get('panel') === MARKET_PANEL
@@ -162,6 +163,9 @@ export function GameLayout() {
     onOpenSparring: () => navigate(showYard ? gameLink('home') : gameLink('sparring')),
     onOpenCrafting: () => navigate(gameLink('crafting')),
     showYard,
+    talkOpen,
+    onTalkOpen: () => setTalkOpen(true),
+    onTalkClose: () => setTalkOpen(false),
   }
 
   let mainContent
@@ -247,7 +251,10 @@ export function GameLayout() {
           <div className="home-mid-row">
             <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
             <EquipmentOverviewCard />
-            <QuestTracker />
+            <QuestTracker
+              locationCode={locationQuery.data?.code}
+              onOpenTalk={() => setTalkOpen(true)}
+            />
             <ExpeditionPanel variant="card" />
           </div>
         )}

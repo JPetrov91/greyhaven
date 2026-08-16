@@ -30,7 +30,7 @@ export function verdictTone(
   return 'neutral'
 }
 
-const PRIMARY_STAT_LABELS = new Set(['Damage', 'Armor', 'Heal'])
+const PRIMARY_STAT_LABELS = new Set(['Damage', 'Armor', 'Heal', 'Block'])
 
 export function formatCatalogLabel(value: string): string {
   return value
@@ -68,11 +68,28 @@ export function itemCombatStatRows(
   item: InventoryItemResponse,
 ): Array<{ label: string; value: number | string }> {
   const rows: Array<{ label: string; value: number | string }> = []
-  if (item.weaponDamage != null) {
+  if (item.weaponDamageMin != null && item.weaponDamageMax != null) {
+    rows.push({
+      label: 'Damage',
+      value:
+        item.weaponDamageMin === item.weaponDamageMax
+          ? item.weaponDamageMin
+          : `${item.weaponDamageMin}–${item.weaponDamageMax}`,
+    })
+  } else if (item.weaponDamage != null) {
     rows.push({ label: 'Damage', value: item.weaponDamage })
   }
   if (item.armorValue != null) {
     rows.push({ label: 'Armor', value: item.armorValue })
+  }
+  if (item.blockSoakMin != null && item.blockSoakMax != null) {
+    rows.push({
+      label: 'Block',
+      value:
+        item.blockSoakMin === item.blockSoakMax
+          ? item.blockSoakMin
+          : `${item.blockSoakMin}–${item.blockSoakMax}`,
+    })
   }
   if (item.healAmount != null) {
     rows.push({ label: 'Heal', value: item.healAmount })

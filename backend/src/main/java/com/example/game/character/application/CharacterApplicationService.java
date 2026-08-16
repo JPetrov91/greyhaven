@@ -46,6 +46,7 @@ public class CharacterApplicationService {
 	private final CharacterCombatGuard characterCombatGuard;
 	private final StartingLocationProvider startingLocationProvider;
 	private final StarterLoadoutGranter starterLoadoutGranter;
+	private final com.example.game.quest.application.QuestApplicationService questApplicationService;
 	private final EquippedBonusProvider equippedBonusProvider;
 	private final PublicEquipmentQuery publicEquipmentQuery;
 	private final CharacterStateSyncService characterStateSyncService;
@@ -63,6 +64,7 @@ public class CharacterApplicationService {
 			CharacterCombatGuard characterCombatGuard,
 			StartingLocationProvider startingLocationProvider,
 			StarterLoadoutGranter starterLoadoutGranter,
+			com.example.game.quest.application.QuestApplicationService questApplicationService,
 			EquippedBonusProvider equippedBonusProvider,
 			PublicEquipmentQuery publicEquipmentQuery,
 			CharacterStateSyncService characterStateSyncService,
@@ -78,6 +80,7 @@ public class CharacterApplicationService {
 		this.characterCombatGuard = characterCombatGuard;
 		this.startingLocationProvider = startingLocationProvider;
 		this.starterLoadoutGranter = starterLoadoutGranter;
+		this.questApplicationService = questApplicationService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.publicEquipmentQuery = publicEquipmentQuery;
 		this.characterStateSyncService = characterStateSyncService;
@@ -161,6 +164,7 @@ public class CharacterApplicationService {
 					CharacterBalance.STARTING_GOLD,
 					GoldCreateReason.STARTING);
 			starterLoadoutGranter.grantStarterLoadout(saved.getId());
+			questApplicationService.activateForNewCharacter(saved.getId());
 			masteryApplicationService.initializeForCharacter(saved.getId());
 			craftingApplicationService.initializeForCharacter(saved.getId());
 			assignActive(accountId, saved.getId(), now);

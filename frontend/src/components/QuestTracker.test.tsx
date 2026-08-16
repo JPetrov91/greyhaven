@@ -23,7 +23,7 @@ describe('QuestTracker', () => {
       quests: [
         {
           code: 'QST_MILITIA_NOTICE',
-          name: 'Militia Notice',
+          name: 'Issued Steel',
           description: 'Old Town is restless.',
           category: 'MAIN',
           status: 'ACTIVE',
@@ -38,12 +38,12 @@ describe('QuestTracker', () => {
           tracked: true,
           objectives: [
             {
-              type: 'KILL',
-              targetCode: 'STREET_THUG',
+              type: 'TALK_TO_NPC',
+              targetCode: 'MILITIA_OFFICER',
               requiredAmount: 1,
               currentAmount: 0,
               completed: false,
-              displayText: 'Defeat a Street Thug',
+              displayText: 'Speak with Watch-Sergeant Bren',
               consumeOnTurnIn: false,
             },
           ],
@@ -61,7 +61,55 @@ describe('QuestTracker', () => {
       </MemoryRouter>,
     )
     expect(await screen.findByTestId('tracked-quest-QST_MILITIA_NOTICE')).toBeTruthy()
-    expect(screen.getByText('Defeat a Street Thug 0/1')).toBeTruthy()
+    expect(screen.getByText('Speak with Watch-Sergeant Bren')).toBeTruthy()
+    expect(screen.queryByText('0/1')).toBeNull()
+  })
+
+  it('opens Talk from the tracker on the Square', async () => {
+    vi.mocked(fetchQuests).mockResolvedValue({
+      quests: [
+        {
+          code: 'QST_MILITIA_NOTICE',
+          name: 'Issued Steel',
+          description: 'The watch is thin.',
+          category: 'MAIN',
+          status: 'ACTIVE',
+          recommendedLevel: 1,
+          startNpcCode: 'MILITIA_OFFICER',
+          startNpcName: 'Watch-Sergeant Bren',
+          turnInNpcCode: 'MILITIA_OFFICER',
+          turnInNpcName: 'Watch-Sergeant Bren',
+          nextQuestCode: 'QST_ARM_THE_WATCH',
+          nextQuestName: 'Arm the Watch',
+          repeatable: false,
+          tracked: true,
+          objectives: [
+            {
+              type: 'TALK_TO_NPC',
+              targetCode: 'MILITIA_OFFICER',
+              requiredAmount: 1,
+              currentAmount: 0,
+              completed: false,
+              displayText: 'Speak with Watch-Sergeant Bren',
+              consumeOnTurnIn: false,
+            },
+          ],
+          rewards: [],
+          unlocks: [],
+        },
+      ],
+    })
+    const onOpenTalk = vi.fn()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <QuestTracker locationCode="CITY_SQUARE" onOpenTalk={onOpenTalk} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+    ;(await screen.findByTestId('tracked-talk-QST_MILITIA_NOTICE')).click()
+    expect(onOpenTalk).toHaveBeenCalled()
   })
 
   it('asks the player to return to the turn-in NPC', async () => {
@@ -69,7 +117,7 @@ describe('QuestTracker', () => {
       quests: [
         {
           code: 'QST_MILITIA_NOTICE',
-          name: 'Militia Notice',
+          name: 'Issued Steel',
           description: 'Old Town is restless.',
           category: 'MAIN',
           status: 'READY_TO_TURN_IN',

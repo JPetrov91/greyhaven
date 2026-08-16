@@ -13,10 +13,14 @@ public record EquippedBonuses(
 		int agility,
 		int endurance,
 		int perception,
-		int staminaCostReduction
+		int staminaCostReduction,
+		int weaponDamageMin,
+		int weaponDamageMax,
+		int blockSoakMin,
+		int blockSoakMax
 ) {
 
 	public static EquippedBonuses none() {
-		return new EquippedBonuses(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+		return new EquippedBonuses(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	}
 }

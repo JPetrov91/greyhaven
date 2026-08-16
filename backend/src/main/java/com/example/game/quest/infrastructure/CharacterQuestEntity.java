@@ -46,6 +46,14 @@ public class CharacterQuestEntity implements Persistable<UUID> {
 	@Column(name = "rewards_applied", nullable = false)
 	private boolean rewardsApplied;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "kit_family", length = 16)
+	private com.example.game.quest.domain.IssuedSteelKitFamily kitFamily;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "last_search_outcome", length = 16)
+	private com.example.game.quest.domain.IssuedSteelSearchOutcome lastSearchOutcome;
+
 	@Transient
 	private boolean unsaved;
 
@@ -104,6 +112,22 @@ public class CharacterQuestEntity implements Persistable<UUID> {
 
 	public boolean isRewardsApplied() {
 		return rewardsApplied;
+	}
+
+	public com.example.game.quest.domain.IssuedSteelKitFamily getKitFamily() {
+		return kitFamily;
+	}
+
+	public com.example.game.quest.domain.IssuedSteelSearchOutcome getLastSearchOutcome() {
+		return lastSearchOutcome;
+	}
+
+	public void grantKit(com.example.game.quest.domain.IssuedSteelKitFamily family) {
+		this.kitFamily = family;
+	}
+
+	public void recordSearchOutcome(com.example.game.quest.domain.IssuedSteelSearchOutcome outcome) {
+		this.lastSearchOutcome = outcome;
 	}
 
 	public void markReady(Instant now) {

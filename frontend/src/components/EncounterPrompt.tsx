@@ -18,7 +18,7 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
     return (
       <section className="encounter-prompt" data-testid="encounter-nothing">
         <h3>Search result</h3>
-        <p>Nothing found this time.</p>
+        <p>{encounter.flavour ?? 'Nothing found this time.'}</p>
         <Button type="button" data-testid="encounter-dismiss" onClick={onCleared}>
           Continue
         </Button>
@@ -68,6 +68,7 @@ export function EncounterPrompt({ encounter, onCleared, onCombatStarted }: Props
           : ''}
         {encounter.monster.archetype ? ` · ${encounter.monster.archetype.charAt(0)}${encounter.monster.archetype.slice(1).toLowerCase()}` : ''}
       </p>
+      {encounter.flavour ? <p className="muted">{encounter.flavour}</p> : null}
       <p>A hostile presence blocks the path. Fight or ignore?</p>
       <div className="encounter-actions">
         <Button type="button" data-testid="encounter-fight" disabled={busy} onClick={() => void handleFight()}>

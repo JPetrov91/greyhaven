@@ -68,19 +68,15 @@ class InventorySeleniumIT {
 		registerAndEnterGame(uniqueEmail("inv-e2e-start"), uniqueName("InvStart"));
 		ui.waitForInventory();
 
-		assertThat(ui.text("inventory-capacity")).isEqualTo("3 / 40 slots");
-		assertThat(ui.text("inventory-item-" + ItemCodes.RUSTY_SWORD))
-				.contains("Rusty Sword")
-				.contains("Common")
-				.contains("Damage 6")
-				.contains("Equipped");
+		assertThat(ui.text("inventory-capacity")).isEqualTo("2 / 40 slots");
+		assertThat(ui.hasTestId("inventory-item-" + ItemCodes.RUSTY_SWORD)).isFalse();
 		assertThat(ui.text("inventory-item-" + ItemCodes.WORN_LEATHER_ARMOR)).contains("Armor 3");
 		assertThat(ui.text("inventory-item-" + ItemCodes.HEALING_POTION))
 				.contains("Qty 2")
 				.contains("Heal 40");
 
 		ui.waitForEquipment();
-		assertThat(ui.text("equipped-weapon")).isEqualTo("Rusty Sword");
+		assertThat(ui.text("equipped-weapon")).isEqualTo("Empty");
 		assertThat(ui.text("equipped-armor")).isEqualTo("Worn Leather Armor");
 	}
 
@@ -88,20 +84,20 @@ class InventorySeleniumIT {
 	void unequippingAndReequippingUpdatesDerivedStats() {
 		registerAndEnterGame(uniqueEmail("inv-e2e-equip"), uniqueName("InvEquip"));
 		ui.waitForInventory();
-		ui.clickAction("inventory-item-" + ItemCodes.RUSTY_SWORD);
-		ui.clickAction("unequip-" + ItemCodes.RUSTY_SWORD);
+		ui.clickAction("inventory-item-" + ItemCodes.WORN_LEATHER_ARMOR);
+		ui.clickAction("unequip-" + ItemCodes.WORN_LEATHER_ARMOR);
 
 		ui.waitForEquipment();
-		ui.waitForText("equipped-weapon", "Empty");
-		ui.waitForText("derived-damage", "8");
+		ui.waitForText("equipped-armor", "Empty");
+		ui.waitForText("derived-armor", "0");
 
 		ui.waitForInventory();
-		ui.clickAction("inventory-item-" + ItemCodes.RUSTY_SWORD);
-		ui.clickAction("equip-" + ItemCodes.RUSTY_SWORD);
+		ui.clickAction("inventory-item-" + ItemCodes.WORN_LEATHER_ARMOR);
+		ui.clickAction("equip-" + ItemCodes.WORN_LEATHER_ARMOR);
 
 		ui.waitForEquipment();
-		ui.waitForText("equipped-weapon", "Rusty Sword");
-		ui.waitForText("derived-damage", "14");
+		ui.waitForText("equipped-armor", "Worn Leather Armor");
+		ui.waitForText("derived-armor", "3");
 	}
 
 	@Test
@@ -134,11 +130,11 @@ class InventorySeleniumIT {
 		ui.clickAction("inventory-item-" + ItemCodes.HEALING_POTION);
 		ui.clickAction("use-" + ItemCodes.HEALING_POTION);
 		ui.waitForTextContaining("inventory-item-" + ItemCodes.HEALING_POTION, "Qty 1");
-		assertThat(ui.text("inventory-capacity")).isEqualTo("3 / 40 slots");
+		assertThat(ui.text("inventory-capacity")).isEqualTo("2 / 40 slots");
 
 		ui.clickAction("use-" + ItemCodes.HEALING_POTION);
 		ui.waitUntilGone("inventory-item-" + ItemCodes.HEALING_POTION);
-		ui.waitForText("inventory-capacity", "2 / 40 slots");
+		ui.waitForText("inventory-capacity", "1 / 40 slots");
 	}
 
 	@Test
@@ -146,8 +142,8 @@ class InventorySeleniumIT {
 		registerAndEnterGame(uniqueEmail("inv-e2e-actions"), uniqueName("InvActs"));
 		ui.waitForInventory();
 
-		ui.clickAction("inventory-item-" + ItemCodes.RUSTY_SWORD);
-		assertThat(ui.hasTestId("use-" + ItemCodes.RUSTY_SWORD)).isFalse();
+		ui.clickAction("inventory-item-" + ItemCodes.WORN_LEATHER_ARMOR);
+		assertThat(ui.hasTestId("use-" + ItemCodes.WORN_LEATHER_ARMOR)).isFalse();
 		ui.clickAction("inventory-item-" + ItemCodes.HEALING_POTION);
 		assertThat(ui.hasTestId("equip-" + ItemCodes.HEALING_POTION)).isFalse();
 		assertThat(ui.hasTestId("unequip-" + ItemCodes.HEALING_POTION)).isFalse();

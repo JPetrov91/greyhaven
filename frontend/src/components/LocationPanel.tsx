@@ -76,6 +76,9 @@ type Props = {
   onOpenCrafting?: () => void
   showYard?: boolean
   variant?: 'full' | 'hero'
+  talkOpen?: boolean
+  onTalkOpen?: () => void
+  onTalkClose?: () => void
 }
 
 function formatGreyhavenTime(date: Date): string {
@@ -110,12 +113,18 @@ export function LocationPanel({
   onOpenCrafting,
   showYard = false,
   variant = 'full',
+  talkOpen: talkOpenProp,
+  onTalkOpen,
+  onTalkClose,
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
   const [movingToId, setMovingToId] = useState<string | null>(null)
   const [inspected, setInspected] = useState<PublicCharacterResponse | null>(null)
-  const [talkOpen, setTalkOpen] = useState(false)
+  const [internalTalkOpen, setInternalTalkOpen] = useState(false)
+  const talkOpen = talkOpenProp ?? internalTalkOpen
+  const openTalk = onTalkOpen ?? (() => setInternalTalkOpen(true))
+  const closeTalk = onTalkClose ?? (() => setInternalTalkOpen(false))
 
   const locationQuery = useQuery({
     queryKey: ['location'],
@@ -219,8 +228,10 @@ export function LocationPanel({
             onOpenSparring={onOpenSparring}
             showYard={showYard}
             onOpenCrafting={onOpenCrafting}
+            onOpenTalk={openTalk}
             onMove={(id) => void handleMove(id)}
           />
+          <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
         </div>
         {yard}
       </>
@@ -379,7 +390,7 @@ export function LocationPanel({
                         Open
                       </Button>
                     ) : action === 'TALK_NPCS' ? (
-                      <Button type="button" data-testid="talk-npcs-action" onClick={() => setTalkOpen(true)}>
+                      <Button type="button" data-testid="talk-npcs-action" onClick={openTalk}>
                         Talk
                       </Button>
                     ) : action === 'VIEW_CHAT' ? (
@@ -453,7 +464,7 @@ export function LocationPanel({
               </Button>
             </aside>
           ) : null}
-          <NpcDialogue open={talkOpen} onClose={() => setTalkOpen(false)} onOpenMarket={onOpenMarket} />
+          <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
     </div>
   )
 }
@@ -476,6 +487,7 @@ export type LocationHeroProps = {
   onOpenSparring?: () => void
   showYard?: boolean
   onOpenCrafting?: () => void
+  onOpenTalk?: () => void
   onMove: (destinationLocationId: string) => void
 }
 
@@ -504,6 +516,7 @@ function heroActionTiles({
   onOpenSparring,
   showYard = false,
   onOpenCrafting,
+  onOpenTalk,
   onMove,
 }: Pick<
   LocationHeroProps,
@@ -520,6 +533,7 @@ function heroActionTiles({
   | 'onOpenSparring'
   | 'showYard'
   | 'onOpenCrafting'
+  | 'onOpenTalk'
   | 'onMove'
 >): HeroTileModel[] {
   const actions = new Set(location.actions)
@@ -645,13 +659,23 @@ function heroActionTiles({
         onClick: () => onOpenMarket?.(),
       })
     }
-    tiles.push({
-      testId: 'hero-notice',
-      icon: 'notice',
-      title: 'Notice Board',
-      subtitle: 'Quests & tasks',
-      comingLater: true,
-    })
+    if (actions.has('TALK_NPCS')) {
+      tiles.push({
+        testId: 'talk-npcs-action',
+        icon: 'notice',
+        title: 'People',
+        subtitle: 'Talk here',
+        onClick: () => onOpenTalk?.(),
+      })
+    } else {
+      tiles.push({
+        testId: 'hero-notice',
+        icon: 'notice',
+        title: 'Notice Board',
+        subtitle: 'Quests & tasks',
+        comingLater: true,
+      })
+    }
     tiles.push({
       testId: 'hero-guild',
       icon: 'guild',
@@ -681,6 +705,7 @@ export function LocationHero({
   onOpenSparring,
   showYard = false,
   onOpenCrafting,
+  onOpenTalk,
   onMove,
 }: LocationHeroProps) {
   const liveClock = useGreyhavenClock()
@@ -701,6 +726,7 @@ export function LocationHero({
     onOpenSparring,
     showYard,
     onOpenCrafting,
+    onOpenTalk,
     onMove,
   })
 

@@ -6,6 +6,10 @@ package com.example.game.item.domain;
 public final class ItemCodes {
 
 	public static final String RUSTY_SWORD = "RUSTY_SWORD";
+	public static final String RUSTY_AXE = "RUSTY_AXE";
+	public static final String RUSTY_MACE = "RUSTY_MACE";
+	public static final String RUSTY_DAGGER = "RUSTY_DAGGER";
+	public static final String RUSTY_SHIELD = "RUSTY_SHIELD";
 	public static final String WORN_LEATHER_ARMOR = "WORN_LEATHER_ARMOR";
 	public static final String IRON_SWORD = "IRON_SWORD";
 	public static final String LEATHER_ARMOR = "LEATHER_ARMOR";

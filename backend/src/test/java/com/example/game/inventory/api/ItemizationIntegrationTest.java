@@ -107,7 +107,7 @@ class ItemizationIntegrationTest {
 				"select count(*) from item_instances where owner_character_id = ?",
 				Integer.class,
 				characterId);
-		assertThat(instanceCount).isEqualTo(4);
+		assertThat(instanceCount).isEqualTo(3);
 	}
 
 	@Test
@@ -192,6 +192,16 @@ class ItemizationIntegrationTest {
 		String email = "item-compare-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
+		UUID rustyId = jdbcTemplate.queryForObject(
+				"""
+						select i.id from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = 'RUSTY_SWORD'
+						""",
+				UUID.class,
+				characterId);
+		inventoryApplicationService.equipOwnedItem(characterId, rustyId);
 		mutableRandomProvider.queue(1, 100, 0, 0, 3);
 
 		inventoryApplicationService.grantItems(characterId, ItemCodes.IRON_AXE, 1);

@@ -336,8 +336,8 @@ describe('MarketPanel', () => {
           stock: [
             {
               itemDefinitionId: 'def-sword',
-              itemCode: 'RUSTY_SWORD',
-              itemName: 'Rusty Sword',
+              itemCode: 'MILITIA_SHORTSWORD',
+              itemName: 'Militia Shortsword',
               description: 'A notched starter blade.',
               itemType: 'WEAPON',
               rarity: 'COMMON',
@@ -367,15 +367,15 @@ describe('MarketPanel', () => {
 
     expect(await screen.findByTestId('merchant-WEAPONSMITH')).toBeTruthy()
     expect(screen.getByText('Edric Varn')).toBeTruthy()
-    expect(screen.getByTestId('merchant-stock-RUSTY_SWORD')).toBeTruthy()
-    expect(await screen.findByTestId('buy-merchant-RUSTY_SWORD')).toBeTruthy()
+    expect(screen.getByTestId('merchant-stock-MILITIA_SHORTSWORD')).toBeTruthy()
+    expect(await screen.findByTestId('buy-merchant-MILITIA_SHORTSWORD')).toBeTruthy()
     expect(screen.getAllByText('7g').length).toBeGreaterThan(0)
     const seller = screen.getByTestId('merchant-identity')
     expect(seller.textContent).toContain('Edric Varn')
     expect(seller.textContent).toContain('Greyhaven Weaponsmith')
     expect(seller.textContent).toContain('Honest steel.')
     expect(seller.className).toContain('market-seller')
-    expect(screen.getByText('Rusty Sword', { selector: '.item-name' }).closest('.market-item-card')).toBeTruthy()
+    expect(screen.getByText('Militia Shortsword', { selector: '.item-name' }).closest('.market-item-card')).toBeTruthy()
     expect(screen.getByText('Damage')).toBeTruthy()
     expect(screen.getByText('+4 Accuracy')).toBeTruthy()
     expect(screen.getByText('Required Level')).toBeTruthy()

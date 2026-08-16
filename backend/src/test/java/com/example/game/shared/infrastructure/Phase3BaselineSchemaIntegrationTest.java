@@ -34,14 +34,14 @@ class Phase3BaselineSchemaIntegrationTest {
 			JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
 			var result = Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
-			assertThat(result.migrationsExecuted).isEqualTo(6);
+			assertThat(result.migrationsExecuted).isEqualTo(7);
 
 			assertThat(jdbc.queryForObject(
 					"select count(*) from flyway_schema_history where success = true",
-					Integer.class)).isEqualTo(6);
+					Integer.class)).isEqualTo(7);
 			assertThat(jdbc.queryForList(
 					"select version from flyway_schema_history where success = true order by installed_rank",
-					String.class)).containsExactly("1", "2", "3", "4", "5", "6");
+					String.class)).containsExactly("1", "2", "3", "4", "5", "6", "7");
 			assertThat(jdbc.queryForObject(
 					"select value from schema_meta where key = 'bootstrap_version'",
 					String.class)).isEqualTo("phase3");
@@ -68,7 +68,7 @@ class Phase3BaselineSchemaIntegrationTest {
 
 			assertThat(jdbc.queryForObject("select count(*) from locations", Integer.class)).isEqualTo(14);
 			assertThat(jdbc.queryForObject("select count(*) from location_connections", Integer.class)).isEqualTo(28);
-			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(38);
+			assertThat(jdbc.queryForObject("select count(*) from item_definitions", Integer.class)).isEqualTo(42);
 			assertThat(jdbc.queryForObject("select count(*) from item_definitions where legacy = true", Integer.class))
 					.isEqualTo(7);
 			assertThat(jdbc.queryForObject("select count(*) from affix_definitions", Integer.class)).isEqualTo(16);
@@ -76,14 +76,14 @@ class Phase3BaselineSchemaIntegrationTest {
 			assertThat(jdbc.queryForObject("select count(*) from monster_definitions", Integer.class)).isEqualTo(28);
 			assertThat(jdbc.queryForObject("select count(*) from combat_technique_definitions", Integer.class)).isEqualTo(25);
 			assertThat(jdbc.queryForObject("select count(*) from merchant_definitions", Integer.class)).isEqualTo(4);
-			assertThat(jdbc.queryForObject("select count(*) from merchant_stock", Integer.class)).isEqualTo(19);
+			assertThat(jdbc.queryForObject("select count(*) from merchant_stock", Integer.class)).isEqualTo(18);
 			assertThat(jdbc.queryForObject("select count(*) from crafting_recipes", Integer.class)).isEqualTo(12);
 			assertThat(jdbc.queryForObject("select count(*) from salvage_outputs", Integer.class)).isEqualTo(50);
 			assertThat(jdbc.queryForObject("select count(*) from dungeon_definitions", Integer.class)).isEqualTo(1);
 			assertThat(jdbc.queryForObject("select count(*) from dungeon_rooms", Integer.class)).isEqualTo(8);
 			assertThat(jdbc.queryForObject("select count(*) from npc_definitions", Integer.class)).isEqualTo(7);
 			assertThat(jdbc.queryForObject("select count(*) from quest_definition", Integer.class)).isEqualTo(2);
-			assertThat(jdbc.queryForObject("select count(*) from quest_objective_definition", Integer.class)).isEqualTo(4);
+			assertThat(jdbc.queryForObject("select count(*) from quest_objective_definition", Integer.class)).isEqualTo(5);
 			assertThat(jdbc.queryForObject("select count(*) from quest_reward_definition", Integer.class)).isEqualTo(3);
 			assertThat(jdbc.queryForObject(
 					"""
@@ -129,6 +129,24 @@ class Phase3BaselineSchemaIntegrationTest {
 					"select equipment_slot from item_definitions where id = ?",
 					String.class,
 					RUSTY_SWORD)).isEqualTo("MAIN_HAND");
+			assertThat(jdbc.queryForObject(
+					"select weapon_damage_min from item_definitions where id = ?",
+					Integer.class,
+					RUSTY_SWORD)).isEqualTo(4);
+			assertThat(jdbc.queryForObject(
+					"select weapon_damage_max from item_definitions where id = ?",
+					Integer.class,
+					RUSTY_SWORD)).isEqualTo(8);
+			assertThat(jdbc.queryForObject(
+					"select count(*) from item_definitions where code in ('RUSTY_AXE','RUSTY_MACE','RUSTY_DAGGER','RUSTY_SHIELD')",
+					Integer.class)).isEqualTo(4);
+			assertThat(jdbc.queryForObject(
+					"""
+							select count(*) from merchant_stock s
+							join item_definitions d on d.id = s.item_definition_id
+							where d.code = 'RUSTY_SWORD'
+							""",
+					Integer.class)).isZero();
 			assertThat(jdbc.queryForObject(
 					"select equipment_slot from item_definitions where id = ?",
 					String.class,

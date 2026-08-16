@@ -9,6 +9,29 @@ public record CombatantStats(
 		int dodge,
 		int criticalChance,
 		int armor,
-		int agility
+		int agility,
+		int weaponDamageMin,
+		int weaponDamageMax,
+		double strengthDamage,
+		int blockSoakMin,
+		int blockSoakMax
 ) {
+
+	public CombatantStats(
+			int physicalDamage,
+			int accuracy,
+			int dodge,
+			int criticalChance,
+			int armor,
+			int agility) {
+		this(physicalDamage, accuracy, dodge, criticalChance, armor, agility, 0, 0, 0, 0, 0);
+	}
+
+	public boolean rollsWeaponRange() {
+		return weaponDamageMax > weaponDamageMin && weaponDamageMin > 0;
+	}
+
+	public boolean hasBlockSoak() {
+		return blockSoakMax > 0 && blockSoakMax >= blockSoakMin;
+	}
 }

@@ -60,7 +60,7 @@ public record DungeonRunResponse(
 		if (encounter == null || !encounter.found()) {
 			return null;
 		}
-		return new EncounterSearchResponse(true, encounter.encounterId(), toMonster(encounter.monster()));
+		return new EncounterSearchResponse(true, encounter.encounterId(), toMonster(encounter.monster()), encounter.flavour());
 	}
 
 	private static MonsterResponse toMonster(MonsterView monster) {

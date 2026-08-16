@@ -55,6 +55,9 @@ class PvpIntegrationTest {
 	private JdbcTemplate jdbcTemplate;
 
 	@Autowired
+	private com.example.game.inventory.application.InventoryApplicationService inventoryApplicationService;
+
+	@Autowired
 	private RandomProvider randomProvider;
 
 	@Autowired
@@ -116,7 +119,7 @@ class PvpIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").exists())
 				.andExpect(jsonPath("$.arenaRating").value(1000))
-				.andExpect(jsonPath("$.equipment[?(@.slot=='MAIN_HAND')].code").value(org.hamcrest.Matchers.hasItem("RUSTY_SWORD")))
+				.andExpect(jsonPath("$.equipment[?(@.slot=='MAIN_HAND')]").isEmpty())
 				.andExpect(jsonPath("$.gold").doesNotExist())
 				.andExpect(jsonPath("$.accountId").doesNotExist())
 				.andExpect(jsonPath("$.currentHealth").doesNotExist())
@@ -152,6 +155,8 @@ class PvpIntegrationTest {
 		MockHttpSession defenderSession = registerWithCharacter("pvp-eq-d-" + System.nanoTime() + "@greyhaven.test");
 		UUID attackerId = characterId(attackerSession);
 		UUID defenderId = characterId(defenderSession);
+		grantEquippedRusty(attackerId);
+		grantEquippedRusty(defenderId);
 		moveToArena(attackerSession);
 
 		MvcResult started = mockMvc.perform(withCsrf(post("/api/v1/pvp/arena/challenges"))
@@ -199,7 +204,7 @@ class PvpIntegrationTest {
 				.andExpect(jsonPath("$.equipment[?(@.slot=='MAIN_HAND')]").isEmpty());
 
 		mutableRandomProvider.clear();
-		mutableRandomProvider.queue(1, 90, 90, 1, 90, 90);
+		mutableRandomProvider.queue(1, 6, 90, 1, 6, 90);
 		mockMvc.perform(withCsrf(post("/api/v1/pvp/arena/matches/" + matchId + "/actions"))
 						.session(attackerSession)
 						.contentType(MediaType.APPLICATION_JSON)
@@ -632,6 +637,19 @@ class PvpIntegrationTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"destinationLocationId\":\"" + yardId + "\"}"))
 				.andExpect(status().isOk());
+	}
+
+	private void grantEquippedRusty(UUID characterId) {
+		inventoryApplicationService.grantCatalogExact(characterId, com.example.game.item.domain.ItemCodes.RUSTY_SWORD, 1);
+		UUID swordId = jdbcTemplate.queryForObject(
+				"""
+						select i.id from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = 'RUSTY_SWORD'
+						""",
+				UUID.class,
+				characterId);
+		inventoryApplicationService.equipOwnedItem(characterId, swordId);
 	}
 
 	private UUID characterId(MockHttpSession session) throws Exception {

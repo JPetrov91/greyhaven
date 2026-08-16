@@ -59,7 +59,10 @@ public final class CombatStrikeResolver {
 			return new Outcome(defenderHealth, List.copyOf(defenderCurrent), List.copyOf(events), false);
 		}
 
-		double raw = attacker.physicalDamage() * (1.0 + spec.damagePercentModifier() / 100.0);
+		double weaponPart = attacker.rollsWeaponRange()
+				? random.nextInt(attacker.weaponDamageMin(), attacker.weaponDamageMax())
+				: attacker.physicalDamage() - attacker.strengthDamage();
+		double raw = (weaponPart + attacker.strengthDamage()) * (1.0 + spec.damagePercentModifier() / 100.0);
 		if (masteryPassive != null && masteryPassive.damagePercentModifier() != 0) {
 			raw *= 1.0 + masteryPassive.damagePercentModifier() / 100.0;
 		}
@@ -93,6 +96,11 @@ public final class CombatStrikeResolver {
 				defender.armor(),
 				StatusEffectEngine.stacks(defenderCurrent, StatusType.ARMOR_BREAK),
 				guarded);
+		if (defender.hasBlockSoak()) {
+			int soakMin = Math.max(1, defender.blockSoakMin());
+			int soak = random.nextInt(soakMin, defender.blockSoakMax());
+			damage = Math.max(0, damage - soak);
+		}
 		if (guarded) {
 			defenderCurrent = new ArrayList<>(StatusEffectEngine.consumeGuardedOnHit(defenderCurrent));
 		}

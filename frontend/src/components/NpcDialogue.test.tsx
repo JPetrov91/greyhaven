@@ -36,7 +36,7 @@ describe('NpcDialogue', () => {
           locationCode: 'CITY_SQUARE',
           merchantCode: null,
           interactions: ['TALK', 'QUEST'],
-          questBadges: ['AVAILABLE_QUEST'],
+          questBadges: ['ACTIVE'],
         },
       ],
     })
@@ -48,8 +48,13 @@ describe('NpcDialogue', () => {
       text: 'Old Town is restless.',
       merchantCode: null,
       actions: [
-        { type: 'ACCEPT', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Accept quest' },
-        { type: 'CLOSE', questCode: null, merchantCode: null, label: 'Leave' },
+        { type: 'DIALOGUE', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'I’ll walk Old Town', action: 'WALK_OLD_TOWN' },
+        { type: 'DIALOGUE', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Why me?', action: 'WHY_ME' },
+        { type: 'CHOOSE_KIT', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Sword', hint: 'Rusty weapon + shield', action: 'SWORD' },
+        { type: 'CHOOSE_KIT', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Axe', hint: 'Rusty weapon + shield', action: 'AXE' },
+        { type: 'CHOOSE_KIT', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Mace', hint: 'Rusty weapon + shield', action: 'MACE' },
+        { type: 'CHOOSE_KIT', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'Daggers', hint: 'No shield', action: 'DAGGERS' },
+        { type: 'CLOSE', questCode: null, merchantCode: null, label: 'Not now' },
       ],
     })
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -60,8 +65,15 @@ describe('NpcDialogue', () => {
     )
     fireEvent.click(await screen.findByTestId('talk-npc-MILITIA_OFFICER'))
     expect(await screen.findByTestId('npc-talk-text')).toHaveProperty('textContent', 'Old Town is restless.')
-    expect(screen.getByTestId('talk-npc-MILITIA_OFFICER').textContent).toContain('!')
-    expect(screen.getByTestId('npc-action-ACCEPT')).toBeTruthy()
+    expect(screen.getByTestId('talk-npc-MILITIA_OFFICER').textContent).toContain('…')
+    expect(screen.getByTestId('npc-action-DIALOGUE-WALK_OLD_TOWN')).toBeTruthy()
+    expect(screen.getByTestId('npc-action-DIALOGUE-WHY_ME')).toBeTruthy()
+    expect(screen.getByTestId('npc-action-CHOOSE_KIT-SWORD').textContent).toContain('Rusty weapon + shield')
+    expect(screen.getByTestId('npc-action-CHOOSE_KIT-AXE').textContent).toContain('Rusty weapon + shield')
+    expect(screen.getByTestId('npc-action-CHOOSE_KIT-MACE').textContent).toContain('Rusty weapon + shield')
+    expect(screen.getByTestId('npc-action-CHOOSE_KIT-DAGGERS').textContent).toContain('No shield')
+    expect(screen.getByTestId('npc-action-CLOSE').textContent).toContain('Not now')
+    expect(screen.queryByTestId('npc-action-CHOOSE_KIT-BOW')).toBeNull()
   })
 
   it('shows a quest complete summary after turn-in', async () => {
@@ -95,7 +107,7 @@ describe('NpcDialogue', () => {
     })
     vi.mocked(turnInQuest).mockResolvedValue({
       code: 'QST_MILITIA_NOTICE',
-      name: 'Militia Notice',
+      name: 'Issued Steel',
       description: 'Old Town is restless.',
       category: 'MAIN',
       status: 'COMPLETED',
@@ -112,6 +124,8 @@ describe('NpcDialogue', () => {
       rewards: [
         { kind: 'XP', amount: 40, itemCode: null, itemName: null, unlockCode: null },
         { kind: 'ITEM', amount: 1, itemCode: 'HEALING_POTION', itemName: 'Healing Potion', unlockCode: null },
+        { kind: 'ITEM', amount: 1, itemCode: 'RUSTY_SWORD', itemName: 'Rusty Sword', unlockCode: null },
+        { kind: 'ITEM', amount: 1, itemCode: 'RUSTY_SHIELD', itemName: 'Rusty Shield', unlockCode: null },
       ],
       unlocks: [],
     })
@@ -128,6 +142,8 @@ describe('NpcDialogue', () => {
     })
     expect(screen.getByTestId('quest-complete').textContent).toContain('40 XP')
     expect(screen.getByTestId('quest-complete').textContent).toContain('Healing Potion')
+    expect(screen.getByTestId('quest-complete').textContent).toContain('Rusty Sword')
+    expect(screen.getByTestId('quest-complete').textContent).toContain('Rusty Shield')
     expect(screen.getByTestId('quest-complete').textContent).toContain('Arm the Watch')
   })
 })

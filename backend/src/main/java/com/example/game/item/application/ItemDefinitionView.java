@@ -22,6 +22,10 @@ public record ItemDefinitionView(
 		int baseValue,
 		int requiredLevel,
 		Integer weaponDamage,
+		Integer weaponDamageMin,
+		Integer weaponDamageMax,
+		Integer blockSoakMin,
+		Integer blockSoakMax,
 		Integer armorValue,
 		Integer healAmount,
 		boolean twoHanded,
@@ -52,6 +56,10 @@ public record ItemDefinitionView(
 				requiredStrength,
 				requiredAgility,
 				requiredEndurance,
-				requiredPerception);
+				requiredPerception,
+				weaponDamageMin,
+				weaponDamageMax,
+				blockSoakMin,
+				blockSoakMax);
 	}
 }

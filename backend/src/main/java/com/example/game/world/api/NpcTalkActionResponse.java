@@ -4,6 +4,8 @@ public record NpcTalkActionResponse(
 		String type,
 		String questCode,
 		String merchantCode,
-		String label
+		String label,
+		String hint,
+		String action
 ) {
 }

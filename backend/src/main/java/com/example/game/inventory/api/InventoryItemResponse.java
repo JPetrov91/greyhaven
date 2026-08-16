@@ -42,6 +42,10 @@ public record InventoryItemResponse(
 		int endurance,
 		int perception,
 		int staminaCostReduction,
+		Integer weaponDamageMin,
+		Integer weaponDamageMax,
+		Integer blockSoakMin,
+		Integer blockSoakMax,
 		List<ItemAffixResponse> affixes,
 		ItemComparisonResponse comparison
 ) {

@@ -22,7 +22,10 @@ public record QuestView(
 		boolean tracked,
 		List<QuestObjectiveView> objectives,
 		List<QuestRewardView> rewards,
-		List<String> unlocks
+		List<String> unlocks,
+		String kitFamily,
+		String lastSearchOutcome,
+		String completeText
 ) {
 
 	public static QuestView of(
@@ -43,6 +46,50 @@ public record QuestView(
 			List<QuestObjectiveView> objectives,
 			List<QuestRewardView> rewards,
 			List<String> unlocks) {
+		return of(
+				code,
+				name,
+				description,
+				category,
+				status,
+				recommendedLevel,
+				startNpcCode,
+				startNpcName,
+				turnInNpcCode,
+				turnInNpcName,
+				nextQuestCode,
+				nextQuestName,
+				repeatable,
+				tracked,
+				objectives,
+				rewards,
+				unlocks,
+				null,
+				null,
+				null);
+	}
+
+	public static QuestView of(
+			String code,
+			String name,
+			String description,
+			QuestCategory category,
+			QuestListStatus status,
+			int recommendedLevel,
+			String startNpcCode,
+			String startNpcName,
+			String turnInNpcCode,
+			String turnInNpcName,
+			String nextQuestCode,
+			String nextQuestName,
+			boolean repeatable,
+			boolean tracked,
+			List<QuestObjectiveView> objectives,
+			List<QuestRewardView> rewards,
+			List<String> unlocks,
+			String kitFamily,
+			String lastSearchOutcome,
+			String completeText) {
 		return new QuestView(
 				code,
 				name,
@@ -60,6 +107,9 @@ public record QuestView(
 				tracked,
 				objectives,
 				rewards,
-				unlocks);
+				unlocks,
+				kitFamily,
+				lastSearchOutcome,
+				completeText);
 	}
 }

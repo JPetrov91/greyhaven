@@ -32,6 +32,10 @@ public class InventoryEquippedBonusProvider implements EquippedBonusProvider {
 				snapshot.agility(),
 				snapshot.endurance(),
 				snapshot.perception(),
-				snapshot.staminaCostReduction());
+				snapshot.staminaCostReduction(),
+				snapshot.weaponDamageMin(),
+				snapshot.weaponDamageMax(),
+				snapshot.blockSoakMin(),
+				snapshot.blockSoakMax());
 	}
 }

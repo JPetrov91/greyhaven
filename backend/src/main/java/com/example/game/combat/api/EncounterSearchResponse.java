@@ -5,6 +5,7 @@ import java.util.UUID;
 public record EncounterSearchResponse(
 		boolean found,
 		UUID encounterId,
-		MonsterResponse monster
+		MonsterResponse monster,
+		String flavour
 ) {
 }

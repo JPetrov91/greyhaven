@@ -206,7 +206,9 @@ class MarketIntegrationTest {
 		MockHttpSession other = registerWithCharacter(otherEmail);
 		UUID ownerId = characterIdForEmail(ownerEmail);
 		UUID otherId = characterIdForEmail(otherEmail);
+		inventoryApplicationService.grantCatalogExact(ownerId, ItemCodes.RUSTY_SWORD, 1);
 		UUID equippedSword = itemInstanceId(ownerId, ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.equipOwnedItem(ownerId, equippedSword);
 		inventoryApplicationService.grantItems(otherId, ItemCodes.WOLF_PELT, 1);
 		UUID foreignPelt = itemInstanceId(otherId, ItemCodes.WOLF_PELT);
 
@@ -517,7 +519,7 @@ class MarketIntegrationTest {
 		inventoryApplicationService.grantItems(sellerId, ItemCodes.OLD_DAGGER, 1);
 		UUID daggerId = itemInstanceId(sellerId, ItemCodes.OLD_DAGGER);
 		inventoryApplicationService.grantItems(buyerId, ItemCodes.WOLF_PELT, 1);
-		int remaining = 40 - 4;
+		int remaining = 40 - 3;
 		inventoryApplicationService.grantItems(buyerId, ItemCodes.IRON_SWORD, remaining);
 
 		moveToMarket(seller);

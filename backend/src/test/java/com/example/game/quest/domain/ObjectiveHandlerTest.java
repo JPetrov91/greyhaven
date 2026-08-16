@@ -69,6 +69,15 @@ class ObjectiveHandlerTest {
 				empty)).isTrue();
 		assertThat(talkProgress.completed()).isTrue();
 
+		SearchLocationObjectiveHandler search = new SearchLocationObjectiveHandler();
+		ObjectiveProgress searchProgress = new ObjectiveProgress(0, false);
+		assertThat(search.apply(
+				new QuestObjectiveSpec(QuestObjectiveType.SEARCH_LOCATION, "OLD_TOWN", 1, false),
+				searchProgress,
+				new LocationSearchedFact("OLD_TOWN"),
+				empty)).isTrue();
+		assertThat(searchProgress.completed()).isTrue();
+
 		CraftItemObjectiveHandler craft = new CraftItemObjectiveHandler();
 		ObjectiveProgress craftProgress = new ObjectiveProgress(0, false);
 		assertThat(craft.apply(

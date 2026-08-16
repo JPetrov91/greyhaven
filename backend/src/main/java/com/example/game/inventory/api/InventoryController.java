@@ -101,6 +101,10 @@ public class InventoryController {
 				item.endurance(),
 				item.perception(),
 				item.staminaCostReduction(),
+				item.weaponDamageMin(),
+				item.weaponDamageMax(),
+				item.blockSoakMin(),
+				item.blockSoakMax(),
 				item.affixes().stream()
 						.map(affix -> new ItemAffixResponse(
 								affix.code(),

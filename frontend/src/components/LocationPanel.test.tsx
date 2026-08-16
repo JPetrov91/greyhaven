@@ -20,6 +20,11 @@ vi.mock('../api/sparring', () => ({
   startSparringDrill: vi.fn(),
 }))
 
+vi.mock('../api/npcs', () => ({
+  fetchNpcs: vi.fn().mockResolvedValue({ npcs: [] }),
+  talkToNpc: vi.fn(),
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -98,7 +103,7 @@ describe('LocationPanel', () => {
       description: 'The heart of Greyhaven.',
       safety: 'SAFE',
       region: 'Greyhaven',
-      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY'],
+      actions: ['INSPECT', 'MOVE', 'VIEW_NEARBY', 'TALK_NPCS'],
     })
     vi.mocked(fetchDestinations).mockResolvedValue({ destinations: [] })
     vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
@@ -110,9 +115,13 @@ describe('LocationPanel', () => {
     expect(screen.getByTestId('location-pvp').textContent).toContain('No PvP')
     expect(screen.getByTestId('open-market-BROWSE_MARKET')).toHaveProperty('disabled', false)
     expect(screen.getByTestId('hero-tavern')).toHaveProperty('disabled', true)
-    expect(screen.getByTestId('hero-notice')).toHaveProperty('disabled', true)
+    expect(screen.getByTestId('talk-npcs-action')).toHaveProperty('disabled', false)
+    expect(screen.queryByTestId('hero-notice')).toBeNull()
     expect(screen.getByTestId('hero-guild')).toHaveProperty('disabled', true)
     expect(screen.getByTestId('location-weather').textContent).toContain('Cloudy')
+    expect(screen.queryByTestId('npc-dialogue')).toBeNull()
+    screen.getByTestId('talk-npcs-action').click()
+    expect(await screen.findByTestId('npc-dialogue')).toBeTruthy()
   })
 
   it('hides implied inspect/travel/nearby from Available actions', async () => {

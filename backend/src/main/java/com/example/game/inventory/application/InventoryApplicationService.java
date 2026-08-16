@@ -761,7 +761,12 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 		}
 		ItemStats total = ItemStats.empty();
 		ArmorCategory heaviestArmor = null;
-		for (UUID itemId : equipped.values()) {
+		int weaponDamageMin = 0;
+		int weaponDamageMax = 0;
+		int blockSoakMin = 0;
+		int blockSoakMax = 0;
+		for (Map.Entry<EquipmentSlot, UUID> entry : equipped.entrySet()) {
+			UUID itemId = entry.getValue();
 			if (itemId == null) {
 				continue;
 			}
@@ -773,8 +778,27 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			if (definition == null) {
 				definition = requireDefinition(instance.getItemDefinitionId());
 			}
-			total = total.plus(statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog));
+			ItemStats stats = statsOf(instance, definition, catalogModifiers, affixesByInstance, catalog);
+			total = total.plus(stats);
 			heaviestArmor = ArmorCategory.heaviest(heaviestArmor, definition.armorCategory());
+			if (entry.getKey() == EquipmentSlot.MAIN_HAND && stats.weaponDamage() > 0) {
+				if (definition.weaponDamageMin() != null
+						&& definition.weaponDamageMax() != null
+						&& definition.weaponDamageMax() > definition.weaponDamageMin()) {
+					weaponDamageMin = definition.weaponDamageMin();
+					weaponDamageMax = definition.weaponDamageMax();
+				}
+				else {
+					weaponDamageMin = stats.weaponDamage();
+					weaponDamageMax = stats.weaponDamage();
+				}
+			}
+			if (entry.getKey() == EquipmentSlot.OFF_HAND
+					&& definition.blockSoakMin() != null
+					&& definition.blockSoakMax() != null) {
+				blockSoakMin = definition.blockSoakMin();
+				blockSoakMax = definition.blockSoakMax();
+			}
 		}
 		total = total.plusDodge(ItemBalance.armorDodge(heaviestArmor));
 		return new EquippedBonusesSnapshot(
@@ -787,7 +811,11 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 				total.agility(),
 				total.endurance(),
 				total.perception(),
-				total.staminaCostReduction());
+				total.staminaCostReduction(),
+				weaponDamageMin,
+				weaponDamageMax,
+				blockSoakMin,
+				blockSoakMax);
 	}
 
 	private InventoryView buildInventoryView(CharacterVitalsView vitals) {
@@ -884,6 +912,10 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 							statsByInstance.get(instance.getId()).endurance(),
 							statsByInstance.get(instance.getId()).perception(),
 							statsByInstance.get(instance.getId()).staminaCostReduction(),
+							definition.weaponDamageMin(),
+							definition.weaponDamageMax(),
+							definition.blockSoakMin(),
+							definition.blockSoakMax(),
 							affixViews,
 							comparison);
 				})
@@ -1202,7 +1234,11 @@ public class InventoryApplicationService implements HealingPotionConsumption {
 			int agility,
 			int endurance,
 			int perception,
-			int staminaCostReduction
+			int staminaCostReduction,
+			int weaponDamageMin,
+			int weaponDamageMax,
+			int blockSoakMin,
+			int blockSoakMax
 	) {
 	}
 }

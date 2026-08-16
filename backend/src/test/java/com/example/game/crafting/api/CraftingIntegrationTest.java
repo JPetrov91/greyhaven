@@ -215,7 +215,9 @@ class CraftingIntegrationTest {
 		String email = "salvage-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
 		UUID equipped = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.equipOwnedItem(characterId, equipped);
 		inventoryApplicationService.grantItems(characterId, ItemCodes.OLD_DAGGER, 1);
 		UUID dagger = itemInstanceId(characterId, ItemCodes.OLD_DAGGER);
 

@@ -55,6 +55,18 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 	@Column(name = "weapon_damage")
 	private Integer weaponDamage;
 
+	@Column(name = "weapon_damage_min")
+	private Integer weaponDamageMin;
+
+	@Column(name = "weapon_damage_max")
+	private Integer weaponDamageMax;
+
+	@Column(name = "block_soak_min")
+	private Integer blockSoakMin;
+
+	@Column(name = "block_soak_max")
+	private Integer blockSoakMax;
+
 	@Column(name = "armor_value")
 	private Integer armorValue;
 
@@ -179,6 +191,22 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 		return weaponDamage;
 	}
 
+	public Integer getWeaponDamageMin() {
+		return weaponDamageMin;
+	}
+
+	public Integer getWeaponDamageMax() {
+		return weaponDamageMax;
+	}
+
+	public Integer getBlockSoakMin() {
+		return blockSoakMin;
+	}
+
+	public Integer getBlockSoakMax() {
+		return blockSoakMax;
+	}
+
 	public Integer getArmorValue() {
 		return armorValue;
 	}
@@ -244,6 +272,10 @@ public class ItemDefinitionEntity implements Persistable<UUID> {
 				requiredStrength,
 				requiredAgility,
 				requiredEndurance,
-				requiredPerception);
+				requiredPerception,
+				weaponDamageMin,
+				weaponDamageMax,
+				blockSoakMin,
+				blockSoakMax);
 	}
 }

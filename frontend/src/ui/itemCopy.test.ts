@@ -90,6 +90,27 @@ describe('market inspect copy', () => {
       itemLevel: 'Item Level 3',
     })
     expect(itemPrimaryStatRows(sword)).toEqual([{ label: 'Damage', value: 8 }])
+    expect(
+      itemPrimaryStatRows({
+        ...sword,
+        weaponDamageMin: 4,
+        weaponDamageMax: 8,
+      }),
+    ).toEqual([{ label: 'Damage', value: '4–8' }])
+    expect(
+      itemPrimaryStatRows({
+        ...potion(),
+        type: 'ARMOR' as const,
+        equipmentSlot: 'OFF_HAND' as const,
+        healAmount: null,
+        armorValue: 1,
+        blockSoakMin: 1,
+        blockSoakMax: 2,
+      }),
+    ).toEqual([
+      { label: 'Armor', value: 1 },
+      { label: 'Block', value: '1–2' },
+    ])
     expect(itemSecondaryStatRows(sword)).toEqual([
       { label: 'Accuracy', value: '+4' },
       { label: 'Crit', value: '+1' },

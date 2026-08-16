@@ -46,7 +46,8 @@ public class EncounterController {
 		return new EncounterSearchResponse(
 				view.found(),
 				view.encounterId(),
-				toMonster(view.monster()));
+				toMonster(view.monster()),
+				view.flavour());
 	}
 
 	@PostMapping("/{id}/fight")

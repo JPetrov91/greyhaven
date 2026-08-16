@@ -48,6 +48,10 @@ public record InventoryItemView(
 		int endurance,
 		int perception,
 		int staminaCostReduction,
+		Integer weaponDamageMin,
+		Integer weaponDamageMax,
+		Integer blockSoakMin,
+		Integer blockSoakMax,
 		List<ItemAffixView> affixes,
 		ItemComparisonView comparison
 ) {

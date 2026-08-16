@@ -10,6 +10,7 @@ import com.example.game.quest.domain.ExpeditionCompletedFact;
 import com.example.game.quest.domain.InventoryChangedFact;
 import com.example.game.quest.domain.ItemsGrantedFact;
 import com.example.game.quest.domain.LocationVisitedFact;
+import com.example.game.quest.domain.LocationSearchedFact;
 import com.example.game.quest.domain.QuestProgressFact;
 import com.example.game.quest.domain.TalkFact;
 
@@ -26,6 +27,10 @@ public interface QuestProgressSink {
 
 	default void onLocationVisited(UUID characterId, String locationCode) {
 		notify(characterId, new LocationVisitedFact(locationCode));
+	}
+
+	default void onLocationSearched(UUID characterId, String locationCode) {
+		notify(characterId, new LocationSearchedFact(locationCode));
 	}
 
 	default void onItemsGranted(UUID characterId, String itemCode, int quantity, String grantKey) {

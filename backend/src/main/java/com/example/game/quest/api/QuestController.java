@@ -83,7 +83,10 @@ public class QuestController {
 				view.tracked(),
 				view.objectives().stream().map(QuestController::toObjective).toList(),
 				view.rewards().stream().map(QuestController::toReward).toList(),
-				view.unlocks());
+				view.unlocks(),
+				view.kitFamily(),
+				view.lastSearchOutcome(),
+				view.completeText());
 	}
 
 	private static QuestObjectiveResponse toObjective(QuestObjectiveView view) {

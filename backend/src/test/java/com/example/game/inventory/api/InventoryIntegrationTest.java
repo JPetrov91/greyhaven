@@ -89,7 +89,7 @@ class InventoryIntegrationTest {
 						""",
 				Integer.class);
 
-		assertThat(definitionCount).isEqualTo(38);
+		assertThat(definitionCount).isEqualTo(42);
 		assertThat(mainHandCount).isGreaterThanOrEqualTo(3);
 		assertThat(chestCount).isGreaterThanOrEqualTo(2);
 		assertThat(modifierCount).isEqualTo(29);
@@ -104,32 +104,29 @@ class InventoryIntegrationTest {
 		mockMvc.perform(get("/api/v1/inventory").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.capacity").value(40))
-				.andExpect(jsonPath("$.usedSlots").value(3))
-				.andExpect(jsonPath("$.items.length()").value(3))
-				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").isNotEmpty())
+				.andExpect(jsonPath("$.usedSlots").value(2))
+				.andExpect(jsonPath("$.items.length()").value(2))
+				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").value(nullValue()))
 				.andExpect(jsonPath("$.equipment.slots.CHEST").isNotEmpty())
 				.andExpect(jsonPath("$.equipment.slots.HEAD").value(nullValue()))
-				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].legacy", hasItem(false)))
-				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].affixes.length()", hasItem(0)))
-				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].accuracy", hasItem(4)))
-				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].criticalChance", hasItem(1)))
-				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')]").isEmpty())
+				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(8))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
-				.andExpect(jsonPath("$.derivedStats.accuracy").value(87))
+				.andExpect(jsonPath("$.derivedStats.accuracy").value(83))
 				.andExpect(jsonPath("$.derivedStats.dodge").value(8))
-				.andExpect(jsonPath("$.derivedStats.criticalChance").value(8));
+				.andExpect(jsonPath("$.derivedStats.criticalChance").value(7));
 
 		mockMvc.perform(get("/api/v1/character").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
-				.andExpect(jsonPath("$.derivedStats.armor").value(3));
+				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(8));
 	}
 
 	@Test
 	void unequipAndEquipUpdateEquipmentAndDerivedStats() throws Exception {
 		String email = "inv-equip-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
-		UUID weaponId = itemInstanceId(characterIdForEmail(email), ItemCodes.RUSTY_SWORD);
+		UUID characterId = characterIdForEmail(email);
+		UUID weaponId = grantEquippedRustySword(characterId);
 
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/unequip")).session(session))
 				.andExpect(status().isOk())
@@ -140,7 +137,10 @@ class InventoryIntegrationTest {
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/equip")).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.equipment.slots.MAIN_HAND").value(weaponId.toString()))
-				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14));
+				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(14))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].weaponDamageMin", hasItem(4)))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].weaponDamageMax", hasItem(8)))
+				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].rolledWeaponDamage", hasItem(6)));
 	}
 
 	@Test
@@ -200,7 +200,8 @@ class InventoryIntegrationTest {
 	void nonConsumableItemsCannotBeUsed() throws Exception {
 		String email = "inv-notusable-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
-		UUID weaponId = itemInstanceId(characterIdForEmail(email), ItemCodes.RUSTY_SWORD);
+		UUID characterId = characterIdForEmail(email);
+		UUID weaponId = grantEquippedRustySword(characterId);
 
 		mockMvc.perform(withCsrf(post("/api/v1/inventory/" + weaponId + "/use")).session(session))
 				.andExpect(status().isBadRequest())
@@ -213,7 +214,7 @@ class InventoryIntegrationTest {
 		registerWithCharacter(ownerEmail);
 		MockHttpSession thiefSession = registerWithCharacter("inv-thief-" + System.nanoTime() + "@greyhaven.test");
 		UUID ownerCharacterId = characterIdForEmail(ownerEmail);
-		UUID ownerWeaponId = itemInstanceId(ownerCharacterId, ItemCodes.RUSTY_SWORD);
+		UUID ownerWeaponId = grantEquippedRustySword(ownerCharacterId);
 		UUID ownerPotionId = itemInstanceId(ownerCharacterId, ItemCodes.HEALING_POTION);
 
 		for (String path : new String[] {
@@ -270,8 +271,7 @@ class InventoryIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/inventory").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'MAIN_HAND')].code",
-						containsInAnyOrder(ItemCodes.RUSTY_SWORD)))
+				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'MAIN_HAND')]").isEmpty())
 				.andExpect(jsonPath("$.items[?(@.equipmentSlot == 'CHEST')].code",
 						containsInAnyOrder(ItemCodes.WORN_LEATHER_ARMOR)))
 				.andExpect(jsonPath("$.items[?(@.usable == true)].code",
@@ -327,12 +327,12 @@ class InventoryIntegrationTest {
 		registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
 
-		// Starter loadout already uses 3 slots. Fill to capacity with wolf pelts (stackable = 1 slot).
+		// Starter loadout already uses 2 slots. Fill to capacity with wolf pelts (stackable = 1 slot).
 		inventoryApplicationService.grantItems(characterId, ItemCodes.WOLF_PELT, 1);
-		assertThat(slotCount(characterId)).isEqualTo(4);
+		assertThat(slotCount(characterId)).isEqualTo(3);
 
 		// Fill remaining slots with non-stackable weapons (each dagger is one slot).
-		int remaining = 40 - 4;
+		int remaining = 40 - 3;
 		inventoryApplicationService.grantItems(characterId, ItemCodes.OLD_DAGGER, remaining);
 		assertThat(slotCount(characterId)).isEqualTo(40);
 
@@ -347,12 +347,12 @@ class InventoryIntegrationTest {
 		registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
 
-		assertThat(slotCount(characterId)).isEqualTo(3);
+		assertThat(slotCount(characterId)).isEqualTo(2);
 		assertThat(itemQuantity(characterId, ItemCodes.HEALING_POTION)).isEqualTo(2);
 
 		inventoryApplicationService.grantItems(characterId, ItemCodes.HEALING_POTION, 3);
 
-		assertThat(slotCount(characterId)).isEqualTo(3);
+		assertThat(slotCount(characterId)).isEqualTo(2);
 		assertThat(itemQuantity(characterId, ItemCodes.HEALING_POTION)).isEqualTo(5);
 		assertThat(stackRowCount(characterId, ItemCodes.HEALING_POTION)).isEqualTo(1);
 	}
@@ -433,6 +433,13 @@ class InventoryIntegrationTest {
 				characterId,
 				code);
 		return count == null ? 0 : count;
+	}
+
+	private UUID grantEquippedRustySword(UUID characterId) {
+		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
+		UUID weaponId = itemInstanceId(characterId, ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.equipOwnedItem(characterId, weaponId);
+		return weaponId;
 	}
 
 	private UUID itemInstanceId(UUID characterId, String code) {

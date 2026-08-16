@@ -19,6 +19,9 @@ public record QuestResponse(
 		boolean tracked,
 		List<QuestObjectiveResponse> objectives,
 		List<QuestRewardResponse> rewards,
-		List<String> unlocks
+		List<String> unlocks,
+		String kitFamily,
+		String lastSearchOutcome,
+		String completeText
 ) {
 }

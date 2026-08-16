@@ -51,9 +51,21 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
     retry: false,
   })
   const talkMutation = useMutation({
-    mutationFn: ({ code, questCode }: { code: string; questCode?: string }) => talkToNpc(code, questCode),
+    mutationFn: ({
+      code,
+      questCode,
+      action,
+      kitFamily,
+    }: {
+      code: string
+      questCode?: string
+      action?: string
+      kitFamily?: string
+    }) => talkToNpc(code, questCode, action, kitFamily),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['quests'] })
+      await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      await queryClient.invalidateQueries({ queryKey: ['character'] })
     },
   })
   const acceptMutation = useMutation({
@@ -82,24 +94,41 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
   const talk = talkMutation.data
   const npcs = npcsQuery.data?.npcs ?? []
 
-  async function handleAction(talkView: NpcTalkResponse, type: string, questCode: string | null) {
-    if (type === 'CLOSE') {
+  async function handleAction(talkView: NpcTalkResponse, action: NpcTalkResponse['actions'][number]) {
+    if (action.type === 'CLOSE') {
       onClose()
       return
     }
-    if (type === 'SHOP') {
+    if (action.type === 'SHOP') {
       onOpenMarket?.()
       onClose()
       return
     }
-    if (type === 'ACCEPT' && questCode) {
-      await acceptMutation.mutateAsync(questCode)
-      talkMutation.mutate({ code: talkView.code, questCode })
+    if (action.type === 'ACCEPT' && action.questCode) {
+      await acceptMutation.mutateAsync(action.questCode)
+      talkMutation.mutate({ code: talkView.code, questCode: action.questCode })
       return
     }
-    if (type === 'TURN_IN' && questCode) {
-      await turnInMutation.mutateAsync(questCode)
-      talkMutation.mutate({ code: talkView.code, questCode })
+    if (action.type === 'TURN_IN' && action.questCode) {
+      await turnInMutation.mutateAsync(action.questCode)
+      talkMutation.mutate({ code: talkView.code, questCode: action.questCode })
+      return
+    }
+    if (action.type === 'DIALOGUE') {
+      talkMutation.mutate({
+        code: talkView.code,
+        questCode: action.questCode ?? undefined,
+        action: action.action ?? undefined,
+      })
+      return
+    }
+    if (action.type === 'CHOOSE_KIT') {
+      talkMutation.mutate({
+        code: talkView.code,
+        questCode: action.questCode ?? undefined,
+        action: 'CHOOSE_KIT',
+        kitFamily: action.action ?? undefined,
+      })
     }
   }
 
@@ -137,12 +166,13 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
           <div className="npc-talk-actions">
             {talk.actions.map((action) => (
               <Button
-                key={`${action.type}-${action.questCode ?? action.merchantCode ?? 'x'}`}
+                key={`${action.type}-${action.action ?? action.questCode ?? action.merchantCode ?? action.label}`}
                 type="button"
-                data-testid={`npc-action-${action.type}`}
-                onClick={() => void handleAction(talk, action.type, action.questCode)}
+                data-testid={`npc-action-${action.type}${action.action ? `-${action.action}` : ''}`}
+                onClick={() => void handleAction(talk, action)}
               >
                 {action.label}
+                {action.hint ? <span className="muted"> {action.hint}</span> : null}
               </Button>
             ))}
           </div>

@@ -13,11 +13,13 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.example.game.telemetry.application.GameTelemetryRecorder;
 import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.character.application.EquippedBonusProvider;
 import com.example.game.character.application.EquippedBonuses;
 import com.example.game.character.domain.CharacterStatCalculator;
+import com.example.game.character.domain.CombatBalance;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.combat.domain.ActionCombatBalance;
 import com.example.game.combat.domain.Combat2State;
@@ -62,7 +64,7 @@ import com.example.game.mastery.domain.TechniqueEffectSpec;
 import com.example.game.mastery.domain.TechniqueKind;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.telemetry.application.GameTelemetry;
-import com.example.game.telemetry.application.GameTelemetryRecorder;
+import com.example.game.quest.application.IssuedSteelKitService;
 
 @Service
 public class CombatApplicationService {
@@ -84,6 +86,7 @@ public class CombatApplicationService {
 	private final Clock clock;
 	private final TransactionTemplate transactionTemplate;
 	private final ApplicationEventPublisher eventPublisher;
+	private final IssuedSteelKitService issuedSteelKitService;
 
 	public CombatApplicationService(
 			CharacterVitalsService characterVitalsService,
@@ -102,7 +105,8 @@ public class CombatApplicationService {
 			RandomProvider randomProvider,
 			Clock clock,
 			PlatformTransactionManager transactionManager,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher,
+			IssuedSteelKitService issuedSteelKitService) {
 		this.characterVitalsService = characterVitalsService;
 		this.equippedBonusProvider = equippedBonusProvider;
 		this.inventoryApplicationService = inventoryApplicationService;
@@ -120,6 +124,7 @@ public class CombatApplicationService {
 		this.clock = clock;
 		this.transactionTemplate = new TransactionTemplate(transactionManager);
 		this.eventPublisher = eventPublisher;
+		this.issuedSteelKitService = issuedSteelKitService;
 	}
 
 	@Transactional
@@ -384,6 +389,7 @@ public class CombatApplicationService {
 		if (result.status() == CombatSessionStatus.PLAYER_LOST) {
 			synced = characterVitalsService.applyDefeatRecovery(vitals.characterId());
 			resolveEncounter(session.getEncounterId(), EncounterCloseReason.LOST, now);
+			recordIssuedSteelCombat(vitals.characterId(), session.getEncounterId(), false);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_ESCAPED) {
 			synced = characterVitalsService.syncCombatVitals(
@@ -392,6 +398,7 @@ public class CombatApplicationService {
 					result.playerStamina(),
 					true);
 			resolveEncounter(session.getEncounterId(), EncounterCloseReason.ESCAPED, now);
+			recordIssuedSteelCombat(vitals.characterId(), session.getEncounterId(), false);
 		}
 		else if (result.status() == CombatSessionStatus.PLAYER_WON) {
 			synced = characterVitalsService.syncCombatVitals(
@@ -400,6 +407,7 @@ public class CombatApplicationService {
 					result.playerStamina(),
 					true);
 			resolveEncounter(session.getEncounterId(), EncounterCloseReason.WON, now);
+			recordIssuedSteelCombat(vitals.characterId(), session.getEncounterId(), true);
 		}
 		else {
 			synced = characterVitalsService.syncCombatVitals(
@@ -440,6 +448,17 @@ public class CombatApplicationService {
 		if (encounter.isDungeonEncounter()) {
 			eventPublisher.publishEvent(new EncounterClosedEvent(encounter.getCharacterId(), encounterId, reason));
 		}
+	}
+
+	private void recordIssuedSteelCombat(UUID characterId, UUID encounterId, boolean victory) {
+		if (encounterId == null) {
+			return;
+		}
+		EncounterEntity encounter = encounterRepository.findById(encounterId).orElse(null);
+		if (encounter == null) {
+			return;
+		}
+		issuedSteelKitService.recordCombat(characterId, encounter.getLocationId(), victory);
 	}
 
 	private void persistEvents(UUID sessionId, int roundNumber, List<CombatEvent> events, Instant now) {
@@ -707,7 +726,12 @@ public class CombatApplicationService {
 						derived.dodge(),
 						derived.criticalChance(),
 						derived.armor(),
-						totalAgility),
+						totalAgility,
+						bonuses.weaponDamageMin(),
+						bonuses.weaponDamageMax(),
+						(vitals.strength() + bonuses.strength()) * CombatBalance.PHYSICAL_DAMAGE_PER_STRENGTH,
+						bonuses.blockSoakMin(),
+						bonuses.blockSoakMax()),
 				enemy,
 				loadStatuses(session.getId(), CombatantSide.PLAYER),
 				loadStatuses(session.getId(), CombatantSide.ENEMY),

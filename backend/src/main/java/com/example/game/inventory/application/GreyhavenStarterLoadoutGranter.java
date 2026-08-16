@@ -42,7 +42,6 @@ public class GreyhavenStarterLoadoutGranter implements StarterLoadoutGranter {
 	@Override
 	@Transactional
 	public void grantStarterLoadout(UUID characterId) {
-		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.RUSTY_SWORD, 1);
 		inventoryApplicationService.grantCatalogExact(characterId, ItemCodes.WORN_LEATHER_ARMOR, 1);
 		inventoryApplicationService.grantItems(characterId, ItemCodes.HEALING_POTION, 2);
 

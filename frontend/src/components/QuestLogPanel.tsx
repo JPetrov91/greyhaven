@@ -34,9 +34,40 @@ export function rewardPreview(quest: QuestResponse): string {
     .join(' · ')
 }
 
+export function recommendedLocation(quest: QuestResponse): string | null {
+  if (quest.status === 'COMPLETED' || quest.status === 'AVAILABLE') {
+    return null
+  }
+  if (quest.status === 'READY_TO_TURN_IN') {
+    return 'City Square'
+  }
+  const objective = currentObjective(quest)
+  if (objective?.targetCode === 'OLD_TOWN') {
+    return 'Old Town'
+  }
+  if (objective?.type === 'TALK_TO_NPC' || objective?.targetCode === 'MILITIA_OFFICER') {
+    return 'City Square'
+  }
+  return null
+}
+
+function objectiveLine(quest: QuestResponse): string | null {
+  const objective = currentObjective(quest)
+  if (!objective || quest.status === 'AVAILABLE') {
+    return null
+  }
+  if (quest.status === 'COMPLETED') {
+    return null
+  }
+  if (objective.requiredAmount <= 1) {
+    return objective.displayText
+  }
+  return `${objective.displayText} ${objective.currentAmount}/${objective.requiredAmount}`
+}
+
 export function QuestLogPanel() {
   const queryClient = useQueryClient()
-  const [tab, setTab] = useState<Tab>('AVAILABLE')
+  const [tabOverride, setTabOverride] = useState<Tab | null>(null)
   const questsQuery = useQuery({
     queryKey: ['quests'],
     queryFn: fetchQuests,
@@ -67,6 +98,8 @@ export function QuestLogPanel() {
   }
 
   const quests = questsQuery.data?.quests ?? []
+  const hasActive = quests.some((quest) => quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN')
+  const tab = tabOverride ?? (hasActive ? 'ACTIVE' : 'AVAILABLE')
   const visible = quests.filter((quest) => {
     if (tab === 'ACTIVE') {
       return quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN'
@@ -81,7 +114,7 @@ export function QuestLogPanel() {
         label="Quest status"
         testId="quest-log-tabs"
         value={tab}
-        onChange={setTab}
+        onChange={setTabOverride}
         tabs={[
           { id: 'AVAILABLE', label: 'Available' },
           { id: 'ACTIVE', label: 'Active' },
@@ -93,7 +126,8 @@ export function QuestLogPanel() {
       ) : (
         <ul className="quest-log-list" data-testid="quest-log-list">
           {visible.map((quest) => {
-            const objective = currentObjective(quest)
+            const place = recommendedLocation(quest)
+            const line = objectiveLine(quest)
             return (
               <li key={quest.code} data-testid={`quest-${quest.code}`}>
                 <div>
@@ -108,9 +142,16 @@ export function QuestLogPanel() {
                   {quest.status === 'READY_TO_TURN_IN' && quest.turnInNpcName ? (
                     <p data-testid={`quest-hint-${quest.code}`}>Return to {quest.turnInNpcName}</p>
                   ) : null}
-                  {objective && quest.status !== 'AVAILABLE' ? (
-                    <p data-testid={`quest-objective-${quest.code}`}>
-                      {objective.displayText} {objective.currentAmount}/{objective.requiredAmount}
+                  {quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN' ? (
+                    <p data-testid={`quest-description-${quest.code}`}>{quest.description}</p>
+                  ) : null}
+                  {quest.status === 'COMPLETED' && quest.completeText ? (
+                    <p data-testid={`quest-complete-text-${quest.code}`}>{quest.completeText}</p>
+                  ) : null}
+                  {line ? <p data-testid={`quest-objective-${quest.code}`}>{line}</p> : null}
+                  {place ? (
+                    <p className="muted" data-testid={`quest-recommended-${quest.code}`}>
+                      Recommended: {place}
                     </p>
                   ) : null}
                   <p className="muted">{rewardPreview(quest)}</p>

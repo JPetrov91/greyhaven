@@ -45,7 +45,9 @@ public class NpcController {
 			@PathVariable("code") String code,
 			@RequestBody(required = false) NpcTalkRequest request) {
 		String questCode = request == null ? null : request.questCode();
-		return toTalkResponse(npcApplicationService.talk(principal.getAccountId(), code, questCode));
+		String action = request == null ? null : request.action();
+		String kitFamily = request == null ? null : request.kitFamily();
+		return toTalkResponse(npcApplicationService.talk(principal.getAccountId(), code, questCode, action, kitFamily));
 	}
 
 	private static NpcResponse toResponse(NpcView view) {
@@ -74,6 +76,12 @@ public class NpcController {
 	}
 
 	private static NpcTalkActionResponse toAction(NpcTalkActionView view) {
-		return new NpcTalkActionResponse(view.type(), view.questCode(), view.merchantCode(), view.label());
+		return new NpcTalkActionResponse(
+				view.type(),
+				view.questCode(),
+				view.merchantCode(),
+				view.label(),
+				view.hint(),
+				view.action());
 	}
 }

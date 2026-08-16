@@ -24,6 +24,8 @@ import com.example.game.combat.infrastructure.LocationEncounterWeightEntity;
 import com.example.game.combat.infrastructure.LocationEncounterWeightRepository;
 import com.example.game.combat.infrastructure.MonsterDefinitionEntity;
 import com.example.game.combat.infrastructure.MonsterDefinitionRepository;
+import com.example.game.quest.application.IssuedSteelKitService;
+import com.example.game.quest.domain.IssuedSteelCopy;
 import com.example.game.shared.domain.RandomProvider;
 import com.example.game.world.application.LocationView;
 import com.example.game.world.application.WorldApplicationService;
@@ -47,6 +49,7 @@ public class EncounterApplicationService {
 	private final RandomProvider randomProvider;
 	private final Clock clock;
 	private final ApplicationEventPublisher eventPublisher;
+	private final IssuedSteelKitService issuedSteelKitService;
 
 	public EncounterApplicationService(
 			CharacterLocationService characterLocationService,
@@ -59,7 +62,8 @@ public class EncounterApplicationService {
 			CombatApplicationService combatApplicationService,
 			RandomProvider randomProvider,
 			Clock clock,
-			ApplicationEventPublisher eventPublisher) {
+			ApplicationEventPublisher eventPublisher,
+			IssuedSteelKitService issuedSteelKitService) {
 		this.characterLocationService = characterLocationService;
 		this.characterVitalsService = characterVitalsService;
 		this.worldApplicationService = worldApplicationService;
@@ -71,6 +75,7 @@ public class EncounterApplicationService {
 		this.randomProvider = randomProvider;
 		this.clock = clock;
 		this.eventPublisher = eventPublisher;
+		this.issuedSteelKitService = issuedSteelKitService;
 	}
 
 	@Transactional(readOnly = true)
@@ -112,7 +117,8 @@ public class EncounterApplicationService {
 		List<LocationEncounterWeightEntity> weights = locationEncounterWeightRepository
 				.findByLocationId(location.id());
 		if (weights.isEmpty()) {
-			return EncounterSearchView.nothing();
+			issuedSteelKitService.recordSearch(vitals.characterId(), location.code(), false);
+			return withSearchFlavour(EncounterSearchView.nothing(), location.code());
 		}
 
 		List<WeightedPicker.WeightedOption<UUID>> options = weights.stream()
@@ -120,7 +126,8 @@ public class EncounterApplicationService {
 				.toList();
 		UUID monsterId = WeightedPicker.pick(options, randomProvider);
 		if (monsterId == null) {
-			return EncounterSearchView.nothing();
+			issuedSteelKitService.recordSearch(vitals.characterId(), location.code(), false);
+			return withSearchFlavour(EncounterSearchView.nothing(), location.code());
 		}
 
 		MonsterDefinitionEntity monster = monsterDefinitionRepository.findById(monsterId)
@@ -135,7 +142,15 @@ public class EncounterApplicationService {
 				now,
 				now);
 		encounterRepository.saveAndFlush(encounter);
-		return EncounterSearchView.found(encounter.getId(), toMonsterView(monster));
+		issuedSteelKitService.recordSearch(vitals.characterId(), location.code(), true);
+		return withSearchFlavour(EncounterSearchView.found(encounter.getId(), toMonsterView(monster)), location.code());
+	}
+
+	private EncounterSearchView withSearchFlavour(EncounterSearchView view, String locationCode) {
+		if (!com.example.game.world.domain.LocationCodes.OLD_TOWN.equals(locationCode)) {
+			return view;
+		}
+		return view.withFlavour(IssuedSteelCopy.searchFlavour(clock));
 	}
 
 	@Transactional
@@ -159,6 +174,8 @@ public class EncounterApplicationService {
 		}
 		encounter.resolve(Instant.now(clock));
 		encounterRepository.saveAndFlush(encounter);
+		LocationView current = worldApplicationService.currentLocation(accountId);
+		issuedSteelKitService.recordIgnoredEncounter(vitals.characterId(), current.code());
 		if (encounter.isDungeonEncounter()) {
 			eventPublisher.publishEvent(new EncounterClosedEvent(
 					vitals.characterId(), encounter.getId(), EncounterCloseReason.IGNORED));

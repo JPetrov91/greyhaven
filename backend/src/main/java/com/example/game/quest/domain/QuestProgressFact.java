@@ -3,6 +3,7 @@ package com.example.game.quest.domain;
 public sealed interface QuestProgressFact
 		permits CombatVictoryFact,
 		LocationVisitedFact,
+		LocationSearchedFact,
 		ItemsGrantedFact,
 		InventoryChangedFact,
 		TalkFact,

@@ -13,6 +13,7 @@ import com.example.game.character.application.CharacterApplicationService;
 import com.example.game.character.application.EquippedBonusProvider;
 import com.example.game.character.application.EquippedBonuses;
 import com.example.game.character.domain.CharacterStatCalculator;
+import com.example.game.character.domain.CombatBalance;
 import com.example.game.character.domain.DerivedCombatStats;
 import com.example.game.combat.domain.CombatantStats;
 import com.example.game.inventory.application.EquippedWeaponQuery;
@@ -120,7 +121,12 @@ public class PvpSnapshotFactory {
 						derived.dodge(),
 						derived.criticalChance(),
 						derived.armor(),
-						core.agility() + bonuses.agility()),
+						core.agility() + bonuses.agility(),
+						bonuses.weaponDamageMin(),
+						bonuses.weaponDamageMax(),
+						(core.strength() + bonuses.strength()) * CombatBalance.PHYSICAL_DAMAGE_PER_STRENGTH,
+						bonuses.blockSoakMin(),
+						bonuses.blockSoakMax()),
 				family,
 				bonuses.staminaCostReduction(),
 				codes,

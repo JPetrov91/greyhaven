@@ -29,6 +29,7 @@ import com.example.game.quest.domain.QuestObjectiveSpec;
 import com.example.game.quest.domain.QuestProgressFact;
 import com.example.game.quest.domain.QuestProgressSourceKind;
 import com.example.game.quest.domain.QuestStatus;
+import com.example.game.quest.domain.SearchLocationObjectiveHandler;
 import com.example.game.quest.domain.TalkObjectiveHandler;
 import com.example.game.quest.domain.VisitLocationObjectiveHandler;
 import com.example.game.quest.domain.WinArenaMatchObjectiveHandler;
@@ -63,7 +64,8 @@ public class QuestProgressService implements QuestProgressSink {
 			new CraftItemObjectiveHandler(),
 			new CompleteExpeditionObjectiveHandler(),
 			new CompleteDungeonObjectiveHandler(),
-			new WinArenaMatchObjectiveHandler());
+			new WinArenaMatchObjectiveHandler(),
+			new SearchLocationObjectiveHandler());
 
 	public QuestProgressService(
 			CharacterQuestRepository characterQuestRepository,

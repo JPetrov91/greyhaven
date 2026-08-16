@@ -74,7 +74,7 @@ class QuestIntegrationTest {
 	}
 
 	@Test
-	void militiaNoticeAcceptTravelKillTurnInIsExactOnceAndUnlocksChain() throws Exception {
+	void issuedSteelAutoStartsKitSearchAndTurnInUnlocksChain() throws Exception {
 		String email = "quest-e2e-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
@@ -84,48 +84,72 @@ class QuestIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/quests").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.quests[?(@.code=='QST_MILITIA_NOTICE')].status").value("AVAILABLE"))
+				.andExpect(jsonPath("$.quests[?(@.code=='QST_MILITIA_NOTICE')].status").value("ACTIVE"))
+				.andExpect(jsonPath("$.quests[?(@.code=='QST_MILITIA_NOTICE')].tracked").value(true))
+				.andExpect(jsonPath("$.quests[?(@.code=='QST_MILITIA_NOTICE')].name").value("Issued Steel"))
 				.andExpect(jsonPath("$.quests[?(@.code=='QST_ARM_THE_WATCH')]").isEmpty());
 
 		mockMvc.perform(get("/api/v1/world/npcs").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.npcs[?(@.code=='MILITIA_OFFICER')].questBadges[0]").value("AVAILABLE_QUEST"));
+				.andExpect(jsonPath("$.npcs[?(@.code=='MILITIA_OFFICER')].questBadges[0]").value("ACTIVE"));
 
 		mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.actions[?(@.type=='ACCEPT')].questCode").value(QuestCodes.MILITIA_NOTICE));
+				.andExpect(jsonPath("$.actions[?(@.type=='ACCEPT')]").isEmpty())
+				.andExpect(jsonPath("$.actions[?(@.action=='WALK_OLD_TOWN')].type").value("DIALOGUE"));
 
-		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE + "/accept")).session(session))
+		talk(session, "WALK_OLD_TOWN", null)
+				.andExpect(jsonPath("$.text").value("What can you hold?"))
+				.andExpect(jsonPath("$.actions[?(@.type=='CHOOSE_KIT')].action", org.hamcrest.Matchers.hasItems(
+						"SWORD", "AXE", "MACE", "DAGGERS")))
+				.andExpect(jsonPath("$.actions[?(@.action=='BOW')]").isEmpty());
+
+		talk(session, "CHOOSE_KIT", "SWORD").andExpect(status().isOk());
+		talk(session, "CHOOSE_KIT", "AXE").andExpect(status().isOk());
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(1);
+		assertThat(equippedCount(characterId, ItemCodes.RUSTY_SHIELD)).isEqualTo(1);
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_AXE)).isZero();
+		assertThat(itemCount(characterId, ItemCodes.HUNTING_BOW)).isZero();
+
+		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("ACTIVE"))
-				.andExpect(jsonPath("$.tracked").value(true));
+				.andExpect(jsonPath("$.kitFamily").value("SWORD"))
+				.andExpect(jsonPath("$.objectives[0].completed").value(true));
 
 		moveTo(session, LocationCodes.OLD_TOWN);
 		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.objectives[0].currentAmount").value(1))
-				.andExpect(jsonPath("$.objectives[0].completed").value(true));
-		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
-				.andExpect(jsonPath("$.objectives[0].currentAmount").value(1));
+				.andExpect(jsonPath("$.objectives[1].completed").value(true));
 
-		winStreetThug(session);
+		searchAndIgnore(session);
 		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("READY_TO_TURN_IN"))
-				.andExpect(jsonPath("$.objectives[1].completed").value(true));
+				.andExpect(jsonPath("$.objectives[2].completed").value(true))
+				.andExpect(jsonPath("$.lastSearchOutcome").value("NO_COMBAT"));
 
 		moveTo(session, LocationCodes.CITY_SQUARE);
+		mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("You walked it and came back")));
+
+		int swordsBeforeTurnIn = itemCount(characterId, ItemCodes.RUSTY_SWORD);
 		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE + "/turn-in")).session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.status").value("COMPLETED"))
 				.andExpect(jsonPath("$.startNpcName").value("Watch-Sergeant Bren"))
 				.andExpect(jsonPath("$.nextQuestName").value("Arm the Watch"))
-				.andExpect(jsonPath("$.rewards[?(@.kind=='ITEM')].itemName").value("Healing Potion"))
+				.andExpect(jsonPath("$.rewards[?(@.kind=='ITEM')].itemName", org.hamcrest.Matchers.hasItems(
+						"Healing Potion", "Rusty Sword", "Rusty Shield")))
+				.andExpect(jsonPath("$.completeText").value(org.hamcrest.Matchers.containsString("The rust is yours")))
 				.andExpect(jsonPath("$.unlocks").isEmpty());
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(swordsBeforeTurnIn);
 
-		assertThat(xpOf(characterId)).isEqualTo(xpBefore + 40 + 20);
+		assertThat(xpOf(characterId)).isEqualTo(xpBefore + 40);
 		assertThat(goldOf(characterId)).isGreaterThanOrEqualTo(goldBefore + 15);
 		assertThat(inventoryApplicationService.unreservedQuantityByCode(characterId, ItemCodes.HEALING_POTION))
 				.isEqualTo(potionsBefore + 1);
@@ -142,13 +166,62 @@ class QuestIntegrationTest {
 	}
 
 	@Test
-	void acceptRejectedWhenNotAvailableOrWrongLocation() throws Exception {
+	void issuedSteelDaggersNeverGrantShield() throws Exception {
+		String email = "quest-daggers-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+		talk(session, "WALK_OLD_TOWN", null);
+		talk(session, "CHOOSE_KIT", "DAGGERS").andExpect(status().isOk());
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_DAGGER)).isEqualTo(1);
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_SHIELD)).isZero();
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_SWORD)).isZero();
+	}
+
+	@Test
+	void issuedSteelVictorySearchBranchesCopy() throws Exception {
+		String email = "quest-victory-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		talk(session, "WALK_OLD_TOWN", null);
+		talk(session, "CHOOSE_KIT", "AXE").andExpect(status().isOk());
+		moveTo(session, LocationCodes.OLD_TOWN);
+		winStreetThug(session);
+		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
+				.andExpect(jsonPath("$.status").value("READY_TO_TURN_IN"))
+				.andExpect(jsonPath("$.lastSearchOutcome").value("VICTORY"));
+		moveTo(session, LocationCodes.CITY_SQUARE);
+		mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("You came back louder")));
+	}
+
+	@Test
+	void issuedSteelRetreatSearchCompletesAndBranchesCopy() throws Exception {
+		String email = "quest-retreat-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		talk(session, "WALK_OLD_TOWN", null);
+		talk(session, "CHOOSE_KIT", "MACE").andExpect(status().isOk());
+		moveTo(session, LocationCodes.OLD_TOWN);
+		retreatSearch(session);
+		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
+				.andExpect(jsonPath("$.status").value("READY_TO_TURN_IN"))
+				.andExpect(jsonPath("$.lastSearchOutcome").value("RETREAT"));
+		moveTo(session, LocationCodes.CITY_SQUARE);
+		mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("Alive is a report")));
+	}
+
+	@Test
+	void acceptRejectedWhenAlreadyActiveOrNotAvailable() throws Exception {
 		MockHttpSession session = registerWithCharacter("quest-loc-" + System.nanoTime() + "@greyhaven.test");
-		moveTo(session, LocationCodes.MARKET);
 		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE + "/accept")).session(session))
 				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.code").value("QUEST_WRONG_LOCATION"));
-
+				.andExpect(jsonPath("$.code").value("QUEST_ALREADY_ACCEPTED"));
+		moveTo(session, LocationCodes.MARKET);
 		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.ARM_THE_WATCH + "/accept")).session(session))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.code").value("QUEST_NOT_AVAILABLE"));
@@ -292,8 +365,6 @@ class QuestIntegrationTest {
 		String email = "quest-race-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
-		mockMvc.perform(withCsrf(post("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE + "/accept")).session(session))
-				.andExpect(status().isOk());
 		jdbcTemplate.update(
 				"""
 						update character_quest_objective o
@@ -379,6 +450,83 @@ class QuestIntegrationTest {
 				.andExpect(jsonPath("$.unlocks[0]").value(UnlockCodes.TRAINING_GROUNDS));
 	}
 
+	private org.springframework.test.web.servlet.ResultActions talk(
+			MockHttpSession session,
+			String action,
+			String kitFamily) throws Exception {
+		String body = kitFamily == null
+				? """
+						{"questCode":"%s","action":"%s"}
+						""".formatted(QuestCodes.MILITIA_NOTICE, action)
+				: """
+						{"questCode":"%s","action":"%s","kitFamily":"%s"}
+						""".formatted(QuestCodes.MILITIA_NOTICE, action, kitFamily);
+		return mockMvc.perform(withCsrf(post("/api/v1/world/npcs/MILITIA_OFFICER/talk")).session(session)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(body));
+	}
+
+	private void searchAndIgnore(MockHttpSession session) throws Exception {
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.found").value(true))
+				.andExpect(jsonPath("$.flavour").value(org.hamcrest.Matchers.anyOf(
+						org.hamcrest.Matchers.containsString("A shutter slams"),
+						org.hamcrest.Matchers.containsString("dropped cap"),
+						org.hamcrest.Matchers.containsString("Boots at the corner"))))
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/ignore")).session(session))
+				.andExpect(status().isOk());
+	}
+
+	private void retreatSearch(MockHttpSession session) throws Exception {
+		mutableRandomProvider.queue(1);
+		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID encounterId = UUID.fromString(JsonPath.read(search.getResponse().getContentAsString(), "$.encounterId"));
+		MvcResult fight = mockMvc.perform(withCsrf(post("/api/v1/encounters/" + encounterId + "/fight")).session(session))
+				.andExpect(status().isOk())
+				.andReturn();
+		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
+		mutableRandomProvider.queue(0);
+		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"action\":\"RETREAT\",\"expectedRoundNumber\":0}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("PLAYER_ESCAPED"));
+	}
+
+	private int itemCount(UUID characterId, String code) {
+		Integer count = jdbcTemplate.queryForObject(
+				"""
+						select coalesce(sum(i.quantity), 0) from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = ?
+						""",
+				Integer.class,
+				characterId,
+				code);
+		return count == null ? 0 : count;
+	}
+
+	private int equippedCount(UUID characterId, String code) {
+		Integer count = jdbcTemplate.queryForObject(
+				"""
+						select count(*) from equipment e
+						join item_instances i on i.id = e.item_instance_id
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = ?
+						""",
+				Integer.class,
+				characterId,
+				code);
+		return count == null ? 0 : count;
+	}
+
 	private void winStreetThug(MockHttpSession session) throws Exception {
 		mutableRandomProvider.queue(1);
 		MvcResult search = mockMvc.perform(withCsrf(post("/api/v1/encounters/search")).session(session))
@@ -391,7 +539,7 @@ class QuestIntegrationTest {
 				.andReturn();
 		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
 		jdbcTemplate.update("update combat_sessions set enemy_health = 1 where id = ?", combatId);
-		mutableRandomProvider.queue(5, 90);
+		mutableRandomProvider.queue(5, 6, 90);
 		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)

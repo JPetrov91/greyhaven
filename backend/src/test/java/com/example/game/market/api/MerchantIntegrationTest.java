@@ -69,7 +69,7 @@ class MerchantIntegrationTest {
 		Integer merchants = jdbcTemplate.queryForObject("select count(*) from merchant_definitions", Integer.class);
 		Integer stock = jdbcTemplate.queryForObject("select count(*) from merchant_stock", Integer.class);
 		assertThat(merchants).isEqualTo(4);
-		assertThat(stock).isEqualTo(19);
+		assertThat(stock).isEqualTo(18);
 	}
 
 	@Test
@@ -82,9 +82,8 @@ class MerchantIntegrationTest {
 				.andExpect(jsonPath("$.merchants[0].code").value(MerchantCodes.WEAPONSMITH))
 				.andExpect(jsonPath("$.merchants[0].name").value("Edric Varn"))
 				.andExpect(jsonPath("$.merchants[0].title").value("Weaponsmith"))
-				.andExpect(jsonPath("$.merchants[0].stock[0].itemCode").value(ItemCodes.RUSTY_SWORD))
-				.andExpect(jsonPath("$.merchants[0].stock[0].sellPrice").value(7))
-				.andExpect(jsonPath("$.merchants[0].stock[0].rarity").value("COMMON"))
+				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='RUSTY_SWORD')]").isEmpty())
+				.andExpect(jsonPath("$.merchants[0].stock[0].itemCode").value(ItemCodes.OLD_DAGGER))
 				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='WOODSMAN_AXE')].rarity", hasItem("COMMON")))
 				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='KNOBBED_CLUB')].rarity", hasItem("COMMON")))
 				.andExpect(jsonPath("$.merchants[0].stock[?(@.itemCode=='MILITIA_SHORTSWORD')].weaponDamage", hasItem(7)))
@@ -110,8 +109,8 @@ class MerchantIntegrationTest {
 		moveToMarket(session);
 
 		UUID merchantId = merchantId(MerchantCodes.WEAPONSMITH);
-		UUID swordDefinitionId = itemDefinitionId(ItemCodes.RUSTY_SWORD);
-		int swordsBefore = itemQuantity(characterId, ItemCodes.RUSTY_SWORD);
+		UUID swordDefinitionId = itemDefinitionId(ItemCodes.MILITIA_SHORTSWORD);
+		int swordsBefore = itemQuantity(characterId, ItemCodes.MILITIA_SHORTSWORD);
 
 		MvcResult bought = mockMvc.perform(withCsrf(post("/api/v1/market/merchants/" + merchantId + "/purchases"))
 						.session(session)
@@ -120,21 +119,21 @@ class MerchantIntegrationTest {
 								{"itemDefinitionId":"%s","quantity":1}
 								""".formatted(swordDefinitionId)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.itemCode").value(ItemCodes.RUSTY_SWORD))
+				.andExpect(jsonPath("$.itemCode").value(ItemCodes.MILITIA_SHORTSWORD))
 				.andExpect(jsonPath("$.quantity").value(1))
-				.andExpect(jsonPath("$.pricePaid").value(7))
-				.andExpect(jsonPath("$.goldRemaining").value(93))
+				.andExpect(jsonPath("$.pricePaid").value(10))
+				.andExpect(jsonPath("$.goldRemaining").value(90))
 				.andReturn();
 		refreshCsrfCookie(bought);
 
-		assertThat(goldOf(characterId)).isEqualTo(93);
-		assertThat(itemQuantity(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(swordsBefore + 1);
-		assertThat(itemInstanceCount(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(swordsBefore + 1);
+		assertThat(goldOf(characterId)).isEqualTo(90);
+		assertThat(itemQuantity(characterId, ItemCodes.MILITIA_SHORTSWORD)).isEqualTo(swordsBefore + 1);
+		assertThat(itemInstanceCount(characterId, ItemCodes.MILITIA_SHORTSWORD)).isEqualTo(swordsBefore + 1);
 
 		mockMvc.perform(get("/api/v1/activity").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].type").value("MARKET_BOUGHT"))
-				.andExpect(jsonPath("$[0].message").value("You bought Rusty Sword for 7 Gold."));
+				.andExpect(jsonPath("$[0].message").value("You bought Militia Shortsword for 10 Gold."));
 	}
 
 	@Test
@@ -145,7 +144,7 @@ class MerchantIntegrationTest {
 		moveToMarket(session);
 
 		UUID weaponsmith = merchantId(MerchantCodes.WEAPONSMITH);
-		UUID swordDefinitionId = itemDefinitionId(ItemCodes.RUSTY_SWORD);
+		UUID swordDefinitionId = itemDefinitionId(ItemCodes.MILITIA_SHORTSWORD);
 		UUID potionDefinitionId = itemDefinitionId(ItemCodes.HEALING_POTION);
 
 		jdbcTemplate.update("update characters set gold = 0 where id = ?", characterId);
@@ -157,7 +156,7 @@ class MerchantIntegrationTest {
 								""".formatted(swordDefinitionId)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("INSUFFICIENT_GOLD"));
-		assertThat(itemQuantity(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(1);
+		assertThat(itemQuantity(characterId, ItemCodes.MILITIA_SHORTSWORD)).isEqualTo(0);
 
 		jdbcTemplate.update("update characters set gold = 100 where id = ?", characterId);
 		mockMvc.perform(withCsrf(post("/api/v1/market/merchants/" + UUID.randomUUID() + "/purchases"))
@@ -197,7 +196,7 @@ class MerchantIntegrationTest {
 		inventoryApplicationService.grantItems(characterId, ItemCodes.WOLF_PELT, 1);
 		UUID peltId = itemInstanceId(characterId, ItemCodes.WOLF_PELT);
 		UUID merchantId = merchantId(MerchantCodes.WEAPONSMITH);
-		UUID swordDefinitionId = itemDefinitionId(ItemCodes.RUSTY_SWORD);
+		UUID swordDefinitionId = itemDefinitionId(ItemCodes.MILITIA_SHORTSWORD);
 
 		mockMvc.perform(withCsrf(post("/api/v1/market/merchants/" + merchantId + "/purchases"))
 						.session(session)
@@ -218,7 +217,7 @@ class MerchantIntegrationTest {
 				.andExpect(jsonPath("$.code").value("LOCATION_CANNOT_USE_MARKET"));
 
 		assertThat(goldOf(characterId)).isEqualTo(100);
-		assertThat(itemQuantity(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(1);
+		assertThat(itemQuantity(characterId, ItemCodes.MILITIA_SHORTSWORD)).isEqualTo(0);
 		assertThat(itemQuantity(characterId, ItemCodes.WOLF_PELT)).isEqualTo(1);
 	}
 
@@ -299,7 +298,7 @@ class MerchantIntegrationTest {
 		String email = "mrc-full-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
-		int remaining = 40 - 3;
+		int remaining = 40 - 2;
 		inventoryApplicationService.grantItems(characterId, ItemCodes.OLD_DAGGER, remaining);
 		moveToMarket(session);
 
@@ -383,7 +382,7 @@ class MerchantIntegrationTest {
 		assertThat(goldOf(characterId)).isEqualTo(103);
 		mockMvc.perform(get("/api/v1/inventory").session(session))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.items[?(@.code=='RUSTY_SWORD')].merchantBuyPrice", hasItem(3)));
+				.andExpect(jsonPath("$.items[?(@.code=='HEALING_POTION')].merchantBuyPrice", hasItem(6)));
 
 		mockMvc.perform(withCsrf(post("/api/v1/market/merchant-sales"))
 						.session(session)
@@ -402,7 +401,9 @@ class MerchantIntegrationTest {
 		MockHttpSession owner = registerWithCharacter(ownerEmail);
 		MockHttpSession other = registerWithCharacter(otherEmail);
 		UUID ownerId = characterIdForEmail(ownerEmail);
+		inventoryApplicationService.grantCatalogExact(ownerId, ItemCodes.RUSTY_SWORD, 1);
 		UUID swordId = itemInstanceId(ownerId, ItemCodes.RUSTY_SWORD);
+		inventoryApplicationService.equipOwnedItem(ownerId, swordId);
 		inventoryApplicationService.grantItems(ownerId, ItemCodes.WOLF_PELT, 3);
 		UUID peltId = itemInstanceId(ownerId, ItemCodes.WOLF_PELT);
 		moveToMarket(owner);

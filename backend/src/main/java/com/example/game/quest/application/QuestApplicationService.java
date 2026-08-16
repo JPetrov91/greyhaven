@@ -24,6 +24,7 @@ import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
 import com.example.game.quest.domain.QuestAvailability;
+import com.example.game.quest.domain.QuestCodes;
 import com.example.game.quest.domain.QuestListStatus;
 import com.example.game.quest.domain.QuestRewardKind;
 import com.example.game.quest.domain.QuestStatus;
@@ -189,6 +190,46 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 	}
 
 	@Transactional
+	public void activateForNewCharacter(UUID characterId) {
+		QuestDefinitionEntity definition = questCatalog.requireByCode(QuestCodes.MILITIA_NOTICE);
+		if (characterQuestRepository.findByCharacterIdAndQuestId(characterId, definition.getId()).isPresent()) {
+			return;
+		}
+		CharacterQuestEntity characterQuest;
+		try {
+			characterQuest = characterQuestRepository.saveAndFlush(new CharacterQuestEntity(
+					UUID.randomUUID(),
+					characterId,
+					definition.getId(),
+					Instant.now(clock)));
+		}
+		catch (DataIntegrityViolationException exception) {
+			return;
+		}
+		for (QuestObjectiveDefinitionEntity objective : questCatalog.objectivesOf(definition.getId())) {
+			characterQuestObjectiveRepository.save(new CharacterQuestObjectiveEntity(
+					UUID.randomUUID(),
+					characterQuest.getId(),
+					objective.getId()));
+		}
+		characterQuestObjectiveRepository.flush();
+		if (characterQuestTrackRepository.findByCharacterIdAndQuestId(characterId, definition.getId()).isEmpty()
+				&& characterQuestTrackRepository.countByCharacterId(characterId) < MAX_TRACKED) {
+			characterQuestTrackRepository.save(new CharacterQuestTrackEntity(
+					UUID.randomUUID(),
+					characterId,
+					definition.getId(),
+					(int) characterQuestTrackRepository.countByCharacterId(characterId) + 1));
+		}
+		activityApplicationService.record(
+				characterId,
+				ActivityType.QUEST_ACCEPTED,
+				"Accepted: " + definition.getName() + ".");
+		questProgressSink.onLocationVisited(characterId, com.example.game.world.domain.LocationCodes.CITY_SQUARE);
+		questProgressSink.onInventoryChanged(characterId);
+	}
+
+	@Transactional
 	public QuestView turnIn(UUID accountId, String code) {
 		CharacterVitalsView vitals = characterVitalsService.lockVitalsOf(accountId);
 		QuestDefinitionEntity definition = questCatalog.requireByCode(code);
@@ -281,6 +322,11 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				.map(QuestRewardDefinitionEntity::getItemCode)
 				.filter(code -> code != null && !code.isBlank())
 				.collect(Collectors.toSet());
+		itemCodes.add(com.example.game.item.domain.ItemCodes.RUSTY_SWORD);
+		itemCodes.add(com.example.game.item.domain.ItemCodes.RUSTY_AXE);
+		itemCodes.add(com.example.game.item.domain.ItemCodes.RUSTY_MACE);
+		itemCodes.add(com.example.game.item.domain.ItemCodes.RUSTY_DAGGER);
+		itemCodes.add(com.example.game.item.domain.ItemCodes.RUSTY_SHIELD);
 		Map<String, ItemDefinitionView> items = itemCatalogService.findByCodes(itemCodes);
 		List<QuestView> views = new ArrayList<>();
 		for (QuestDefinitionEntity definition : definitions) {
@@ -368,7 +414,7 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 							objective.isConsumeOnTurnIn());
 				})
 				.toList();
-		List<QuestRewardView> rewardViews = rewards.getOrDefault(definition.getId(), List.of()).stream()
+		List<QuestRewardView> rewardViews = new ArrayList<>(rewards.getOrDefault(definition.getId(), List.of()).stream()
 				.map(reward -> {
 					String itemName = reward.getItemCode() == null
 							? null
@@ -380,7 +426,10 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 							itemName,
 							reward.getUnlockCode());
 				})
-				.toList();
+				.toList());
+		if (QuestCodes.MILITIA_NOTICE.equals(definition.getCode())) {
+			appendIssuedSteelRewards(rewardViews, state, items);
+		}
 		List<String> unlocks = status != QuestListStatus.COMPLETED
 				? List.of()
 				: rewards.getOrDefault(definition.getId(), List.of()).stream()
@@ -404,7 +453,39 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				tracked.contains(definition.getId()),
 				objectiveViews,
 				rewardViews,
-				unlocks);
+				unlocks,
+				state == null || state.getKitFamily() == null ? null : state.getKitFamily().name(),
+				state == null || state.getLastSearchOutcome() == null ? null : state.getLastSearchOutcome().name(),
+				definition.getCompleteText());
+	}
+
+	private static void appendIssuedSteelRewards(
+			List<QuestRewardView> rewardViews,
+			CharacterQuestEntity state,
+			Map<String, ItemDefinitionView> items) {
+		if (state == null || state.getKitFamily() == null) {
+			rewardViews.add(QuestRewardView.of(
+					QuestRewardKind.ITEM,
+					1,
+					null,
+					com.example.game.quest.domain.IssuedSteelCopy.KIT_PREVIEW,
+					null));
+			return;
+		}
+		String weaponCode = com.example.game.quest.domain.IssuedSteelCopy.weaponCode(state.getKitFamily());
+		String weaponName = items.containsKey(weaponCode) ? items.get(weaponCode).name() : weaponCode;
+		rewardViews.add(QuestRewardView.of(QuestRewardKind.ITEM, 1, weaponCode, weaponName, null));
+		if (state.getKitFamily() != com.example.game.quest.domain.IssuedSteelKitFamily.DAGGERS) {
+			String shieldName = items.containsKey(com.example.game.item.domain.ItemCodes.RUSTY_SHIELD)
+					? items.get(com.example.game.item.domain.ItemCodes.RUSTY_SHIELD).name()
+					: "Rusty Shield";
+			rewardViews.add(QuestRewardView.of(
+					QuestRewardKind.ITEM,
+					1,
+					com.example.game.item.domain.ItemCodes.RUSTY_SHIELD,
+					shieldName,
+					null));
+		}
 	}
 
 	private static String npcName(Map<String, NpcDefinitionEntity> npcs, String code) {

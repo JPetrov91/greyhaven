@@ -61,6 +61,9 @@ class CombatIntegrationTest {
 	@Autowired
 	private CombatApplicationService combatApplicationService;
 
+	@Autowired
+	private com.example.game.inventory.application.InventoryApplicationService inventoryApplicationService;
+
 	private MutableRandomProvider mutableRandomProvider;
 	private Cookie csrfCookie;
 
@@ -917,6 +920,16 @@ class CombatIntegrationTest {
 		String email = "combat2-tech-" + System.nanoTime() + "@greyhaven.test";
 		MockHttpSession session = registerWithCharacter(email);
 		UUID characterId = characterIdForEmail(email);
+		inventoryApplicationService.grantCatalogExact(characterId, com.example.game.item.domain.ItemCodes.RUSTY_SWORD, 1);
+		UUID rustyId = jdbcTemplate.queryForObject(
+				"""
+						select i.id from item_instances i
+						join item_definitions d on d.id = i.item_definition_id
+						where i.owner_character_id = ? and d.code = 'RUSTY_SWORD'
+						""",
+				UUID.class,
+				characterId);
+		inventoryApplicationService.equipOwnedItem(characterId, rustyId);
 		mockMvc.perform(get("/api/v1/character/techniques").session(session))
 				.andExpect(status().isOk());
 		jdbcTemplate.update(
@@ -939,7 +952,7 @@ class CombatIntegrationTest {
 				.andReturn();
 		UUID combatId = UUID.fromString(JsonPath.read(fight.getResponse().getContentAsString(), "$.id"));
 
-		mutableRandomProvider.queue(1, 99, 99, 5);
+		mutableRandomProvider.queue(1, 6, 99, 99, 5);
 		mockMvc.perform(withCsrf(post("/api/v1/combat/" + combatId + "/actions"))
 						.session(session)
 						.contentType(MediaType.APPLICATION_JSON)
