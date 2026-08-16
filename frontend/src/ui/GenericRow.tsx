@@ -4,7 +4,7 @@ import { classNames } from './classNames'
 export type RowTone = 'default' | 'important' | 'secondary'
 
 export type GenericRowProps = Omit<HTMLAttributes<HTMLElement>, 'title'> & {
-  as?: 'div' | 'li' | 'article'
+  as?: 'div' | 'li' | 'article' | 'button'
   icon?: ReactNode
   primary: ReactNode
   secondary?: ReactNode
@@ -45,6 +45,7 @@ export function GenericRow({
       )}
       data-testid={testId}
       aria-selected={selected || undefined}
+      {...(Tag === 'button' ? { type: 'button' as const } : {})}
       {...rest}
     >
       {icon != null ? <span className="ui-row-icon">{icon}</span> : null}

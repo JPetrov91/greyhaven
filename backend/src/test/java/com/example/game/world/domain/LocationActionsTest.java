@@ -14,7 +14,8 @@ class LocationActionsTest {
 						LocationAction.INSPECT,
 						LocationAction.MOVE,
 						LocationAction.VIEW_NEARBY,
-						LocationAction.TALK_NPCS);
+						LocationAction.TALK_NPCS,
+						LocationAction.NOTICE_BOARD);
 	}
 
 	@Test

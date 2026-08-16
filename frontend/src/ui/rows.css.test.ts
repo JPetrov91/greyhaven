@@ -67,4 +67,10 @@ describe('row engine', () => {
     expect(rows).toContain('var(--type-compact-family)')
     expect(rows).toContain('var(--type-meta-family)')
   })
+
+  it('resets native button chrome when a row is clickable', () => {
+    expect(rows).toContain('button.ui-row')
+    expect(rows).toContain('appearance: none')
+    expect(rows).toContain('text-align: left')
+  })
 })

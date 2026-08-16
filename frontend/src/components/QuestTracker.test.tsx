@@ -62,6 +62,8 @@ describe('QuestTracker', () => {
     )
     expect(await screen.findByTestId('tracked-quest-QST_MILITIA_NOTICE')).toBeTruthy()
     expect(screen.getByText('Speak with Watch-Sergeant Bren')).toBeTruthy()
+    expect(screen.getByText('Active')).toBeTruthy()
+    expect(screen.getAllByTestId('tracked-quest-empty')).toHaveLength(2)
     expect(screen.queryByText('0/1')).toBeNull()
   })
 
@@ -96,6 +98,8 @@ describe('QuestTracker', () => {
           ],
           rewards: [],
           unlocks: [],
+          actionHint: 'TALK',
+          actionLocationCode: 'CITY_SQUARE',
         },
       ],
     })
@@ -108,7 +112,10 @@ describe('QuestTracker', () => {
         </QueryClientProvider>
       </MemoryRouter>,
     )
-    ;(await screen.findByTestId('tracked-talk-QST_MILITIA_NOTICE')).click()
+    const talk = await screen.findByTestId('tracked-talk-QST_MILITIA_NOTICE')
+    expect(talk.className).toContain('ui-row')
+    expect(talk.tagName).toBe('BUTTON')
+    talk.click()
     expect(onOpenTalk).toHaveBeenCalled()
   })
 
@@ -145,6 +152,8 @@ describe('QuestTracker', () => {
       </MemoryRouter>,
     )
     expect(await screen.findByTestId('tracked-return-QST_MILITIA_NOTICE')).toBeTruthy()
-    expect(screen.getByText('Return to Watch-Sergeant Bren')).toBeTruthy()
+    expect(screen.getByTestId('tracked-return-QST_MILITIA_NOTICE').textContent).toContain(
+      'Return to Watch-Sergeant Bren',
+    )
   })
 })

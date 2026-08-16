@@ -3,6 +3,7 @@ import type {
   DestinationsResponse,
   LocationResponse,
   NearbyCharactersResponse,
+  QuestBoardResponse,
 } from './types'
 
 export function fetchCurrentLocation(): Promise<LocationResponse> {
@@ -15,6 +16,10 @@ export function fetchDestinations(): Promise<DestinationsResponse> {
 
 export function fetchNearbyCharacters(): Promise<NearbyCharactersResponse> {
   return apiRequest<NearbyCharactersResponse>('/api/v1/world/nearby')
+}
+
+export function fetchQuestBoard(locationCode: string): Promise<QuestBoardResponse> {
+  return apiRequest<QuestBoardResponse>(`/api/v1/world/locations/${locationCode}/quest-board`)
 }
 
 export function moveToLocation(destinationLocationId: string): Promise<LocationResponse> {

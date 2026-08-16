@@ -14,7 +14,11 @@ public final class QuestErrors {
 	}
 
 	public static ApiException questNotAvailable() {
-		return new ApiException("QUEST_NOT_AVAILABLE", "That quest is not available.", HttpStatus.CONFLICT);
+		return new ApiException("QUEST_NOT_AVAILABLE", "This quest is no longer available.", HttpStatus.CONFLICT);
+	}
+
+	public static ApiException wrongBoardLocation() {
+		return new ApiException("QUEST_WRONG_LOCATION", "You must be at the notice board.", HttpStatus.CONFLICT);
 	}
 
 	public static ApiException questAlreadyAccepted() {

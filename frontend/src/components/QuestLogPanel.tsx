@@ -4,6 +4,7 @@ import { fetchQuests, trackQuest, untrackQuest } from '../api/quests'
 import { ApiError } from '../api/client'
 import type { QuestResponse } from '../api/types'
 import { Button } from '../ui/Button'
+import { GenericRow } from '../ui/GenericRow'
 import { EmptyState } from '../ui/EmptyState'
 import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
@@ -38,6 +39,9 @@ export function recommendedLocation(quest: QuestResponse): string | null {
   if (quest.status === 'COMPLETED' || quest.status === 'AVAILABLE') {
     return null
   }
+  if (quest.locationName) {
+    return quest.locationName
+  }
   if (quest.status === 'READY_TO_TURN_IN') {
     return 'City Square'
   }
@@ -48,7 +52,7 @@ export function recommendedLocation(quest: QuestResponse): string | null {
   if (objective?.type === 'TALK_TO_NPC' || objective?.targetCode === 'MILITIA_OFFICER') {
     return 'City Square'
   }
-  return null
+  return quest.actionLocationCode ?? null
 }
 
 function objectiveLine(quest: QuestResponse): string | null {
@@ -124,50 +128,53 @@ export function QuestLogPanel() {
       {visible.length === 0 ? (
         <EmptyState>No quests in this list.</EmptyState>
       ) : (
-        <ul className="quest-log-list" data-testid="quest-log-list">
+        <ul className="ui-row-list quest-log-list" data-testid="quest-log-list">
           {visible.map((quest) => {
             const place = recommendedLocation(quest)
             const line = objectiveLine(quest)
+            const canTrack = quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN'
             return (
-              <li key={quest.code} data-testid={`quest-${quest.code}`}>
-                <div>
-                  <strong>{quest.name}</strong>
-                  <p className="muted">
-                    Lv {quest.recommendedLevel}
-                    {quest.startNpcName ? ` · ${quest.startNpcName}` : ''}
-                  </p>
-                  {quest.status === 'AVAILABLE' && quest.startNpcName ? (
-                    <p data-testid={`quest-hint-${quest.code}`}>Talk to {quest.startNpcName} to accept</p>
-                  ) : null}
-                  {quest.status === 'READY_TO_TURN_IN' && quest.turnInNpcName ? (
-                    <p data-testid={`quest-hint-${quest.code}`}>Return to {quest.turnInNpcName}</p>
-                  ) : null}
-                  {quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN' ? (
-                    <p data-testid={`quest-description-${quest.code}`}>{quest.description}</p>
-                  ) : null}
-                  {quest.status === 'COMPLETED' && quest.completeText ? (
-                    <p data-testid={`quest-complete-text-${quest.code}`}>{quest.completeText}</p>
-                  ) : null}
-                  {line ? <p data-testid={`quest-objective-${quest.code}`}>{line}</p> : null}
-                  {place ? (
-                    <p className="muted" data-testid={`quest-recommended-${quest.code}`}>
-                      Recommended: {place}
-                    </p>
-                  ) : null}
-                  <p className="muted">{rewardPreview(quest)}</p>
-                </div>
-                <div className="quest-log-actions">
-                  {quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN' ? (
+              <GenericRow
+                key={quest.code}
+                as="li"
+                testId={`quest-${quest.code}`}
+                primary={quest.name}
+                action={
+                  canTrack ? (
                     <Button
                       type="button"
+                      variant="ghost"
                       data-testid={`track-quest-${quest.code}`}
                       onClick={() => trackMutation.mutate({ code: quest.code, tracked: quest.tracked })}
                     >
                       {quest.tracked ? 'Untrack' : 'Track'}
                     </Button>
-                  ) : null}
-                </div>
-              </li>
+                  ) : null
+                }
+                secondary={
+                  <>
+                    <span>
+                      Lv {quest.recommendedLevel}
+                      {quest.startNpcName ? ` · ${quest.startNpcName}` : ''}
+                    </span>
+                    {quest.status === 'AVAILABLE' && quest.startNpcName ? (
+                      <span data-testid={`quest-hint-${quest.code}`}>Talk to {quest.startNpcName} to accept</span>
+                    ) : null}
+                    {quest.status === 'READY_TO_TURN_IN' && quest.turnInNpcName ? (
+                      <span data-testid={`quest-hint-${quest.code}`}>Return to {quest.turnInNpcName}</span>
+                    ) : null}
+                    {quest.status === 'ACTIVE' || quest.status === 'READY_TO_TURN_IN' ? (
+                      <span data-testid={`quest-description-${quest.code}`}>{quest.description}</span>
+                    ) : null}
+                    {quest.status === 'COMPLETED' && quest.completeText ? (
+                      <span data-testid={`quest-complete-text-${quest.code}`}>{quest.completeText}</span>
+                    ) : null}
+                    {line ? <span data-testid={`quest-objective-${quest.code}`}>{line}</span> : null}
+                    {place ? <span data-testid={`quest-recommended-${quest.code}`}>Recommended: {place}</span> : null}
+                    <span>{rewardPreview(quest)}</span>
+                  </>
+                }
+              />
             )
           })}
         </ul>

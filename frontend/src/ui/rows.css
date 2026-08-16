@@ -28,6 +28,15 @@
   box-shadow: none;
 }
 
+button.ui-row {
+  width: 100%;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .ui-row + .ui-row {
   border-top: var(--border-subtle);
 }

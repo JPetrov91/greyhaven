@@ -38,6 +38,11 @@ public class QuestCatalog {
 	}
 
 	@Transactional(readOnly = true)
+	public List<QuestDefinitionEntity> boardQuests(String locationCode) {
+		return questDefinitionRepository.findByBoardLocationCodeAndEnabledTrueOrderBySortOrderAsc(locationCode);
+	}
+
+	@Transactional(readOnly = true)
 	public QuestDefinitionEntity requireByCode(String code) {
 		return questDefinitionRepository.findByCode(code).orElseThrow(QuestErrors::questNotFound);
 	}

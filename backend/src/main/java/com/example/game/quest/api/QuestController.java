@@ -86,7 +86,18 @@ public class QuestController {
 				view.unlocks(),
 				view.kitFamily(),
 				view.lastSearchOutcome(),
-				view.completeText());
+				view.completeText(),
+				view.presentation() == null ? null : view.presentation().shortDescription(),
+				view.presentation() == null ? null : view.presentation().questType(),
+				view.presentation() == null ? null : view.presentation().difficulty(),
+				view.presentation() == null ? null : view.presentation().artworkKey(),
+				view.presentation() == null ? null : view.presentation().boardLocationCode(),
+				view.presentation() == null ? null : view.presentation().objectiveLocationCode(),
+				view.presentation() == null ? null : view.presentation().locationName(),
+				view.presentation() == null ? null : view.presentation().regionName(),
+				view.presentation() == null ? null : view.presentation().actionHint(),
+				view.presentation() == null ? null : view.presentation().actionTargetCode(),
+				view.presentation() == null ? null : view.presentation().actionLocationCode());
 	}
 
 	private static QuestObjectiveResponse toObjective(QuestObjectiveView view) {
@@ -97,7 +108,8 @@ public class QuestController {
 				view.currentAmount(),
 				view.completed(),
 				view.displayText(),
-				view.consumeOnTurnIn());
+				view.consumeOnTurnIn(),
+				view.actionHint());
 	}
 
 	private static QuestRewardResponse toReward(QuestRewardView view) {

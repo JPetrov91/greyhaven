@@ -23,6 +23,8 @@ import {
 } from '../ui/locationMedia'
 import type { LocationActionIconName } from '../ui/locationMedia'
 import { DungeonPanel } from './DungeonPanel'
+import { LocationQuestAction } from './LocationQuestAction'
+import { NoticeBoard } from './noticeBoard/NoticeBoard'
 import { NpcDialogue } from './NpcDialogue'
 import { SparringYardPanel } from './SparringYardPanel'
 
@@ -48,6 +50,7 @@ const ACTION_LABELS: Record<LocationAction, string> = {
   CREATE_BUY_ORDER: 'Create buy order',
   FULFILL_BUY_ORDER: 'Fulfill buy order',
   TALK_NPCS: 'Talk to people',
+  NOTICE_BOARD: 'Notice Board',
 }
 
 /** Actions already represented by dedicated UI sections on this screen. */
@@ -61,6 +64,7 @@ const IMPLIED_ACTIONS = new Set<LocationAction>([
   'START_SPARRING_DRILL',
   'CREATE_BUY_ORDER',
   'FULFILL_BUY_ORDER',
+  'NOTICE_BOARD',
 ])
 
 type Props = {
@@ -79,6 +83,9 @@ type Props = {
   talkOpen?: boolean
   onTalkOpen?: () => void
   onTalkClose?: () => void
+  noticeOpen?: boolean
+  onNoticeOpen?: () => void
+  onNoticeClose?: () => void
 }
 
 function formatGreyhavenTime(date: Date): string {
@@ -116,6 +123,9 @@ export function LocationPanel({
   talkOpen: talkOpenProp,
   onTalkOpen,
   onTalkClose,
+  noticeOpen = false,
+  onNoticeOpen,
+  onNoticeClose,
 }: Props) {
   const queryClient = useQueryClient()
   const [moveError, setMoveError] = useState<string | null>(null)
@@ -229,7 +239,23 @@ export function LocationPanel({
             showYard={showYard}
             onOpenCrafting={onOpenCrafting}
             onOpenTalk={openTalk}
+            onOpenNotice={onNoticeOpen}
+            noticeOpen={noticeOpen}
             onMove={(id) => void handleMove(id)}
+          />
+          {onNoticeOpen ? (
+            <NoticeBoard
+              locationCode={location.code}
+              open={noticeOpen}
+              onClose={() => onNoticeClose?.()}
+              onOpenTalk={openTalk}
+            />
+          ) : null}
+          <LocationQuestAction
+            locationCode={location.code}
+            onOpenTalk={openTalk}
+            onSearchEncounter={onSearchEncounter}
+            onOpenWorld={onOpenWorld}
           />
           <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
         </div>
@@ -464,6 +490,25 @@ export function LocationPanel({
               </Button>
             </aside>
           ) : null}
+          {onNoticeOpen && location.actions.includes('NOTICE_BOARD') ? (
+            <Button type="button" data-testid="hero-notice" onClick={onNoticeOpen}>
+              Notice Board
+            </Button>
+          ) : null}
+          {onNoticeOpen ? (
+            <NoticeBoard
+              locationCode={location.code}
+              open={noticeOpen}
+              onClose={() => onNoticeClose?.()}
+              onOpenTalk={openTalk}
+            />
+          ) : null}
+          <LocationQuestAction
+            locationCode={location.code}
+            onOpenTalk={openTalk}
+            onSearchEncounter={onSearchEncounter}
+            onOpenWorld={onOpenWorld}
+          />
           <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
     </div>
   )
@@ -488,6 +533,8 @@ export type LocationHeroProps = {
   showYard?: boolean
   onOpenCrafting?: () => void
   onOpenTalk?: () => void
+  onOpenNotice?: () => void
+  noticeOpen?: boolean
   onMove: (destinationLocationId: string) => void
 }
 
@@ -517,6 +564,8 @@ function heroActionTiles({
   showYard = false,
   onOpenCrafting,
   onOpenTalk,
+  onOpenNotice,
+  noticeOpen = false,
   onMove,
 }: Pick<
   LocationHeroProps,
@@ -534,6 +583,8 @@ function heroActionTiles({
   | 'showYard'
   | 'onOpenCrafting'
   | 'onOpenTalk'
+  | 'onOpenNotice'
+  | 'noticeOpen'
   | 'onMove'
 >): HeroTileModel[] {
   const actions = new Set(location.actions)
@@ -667,7 +718,18 @@ function heroActionTiles({
         subtitle: 'Talk here',
         onClick: () => onOpenTalk?.(),
       })
-    } else {
+    }
+    if (actions.has('NOTICE_BOARD')) {
+      tiles.push({
+        testId: 'hero-notice',
+        icon: 'notice',
+        title: 'Notice Board',
+        subtitle: 'Quests & tasks',
+        selected: noticeOpen,
+        disabled: !onOpenNotice,
+        onClick: () => onOpenNotice?.(),
+      })
+    } else if (!actions.has('TALK_NPCS')) {
       tiles.push({
         testId: 'hero-notice',
         icon: 'notice',
@@ -685,7 +747,7 @@ function heroActionTiles({
     })
   }
 
-  return tiles.slice(0, 5)
+  return tiles.slice(0, 6)
 }
 
 export function LocationHero({
@@ -706,6 +768,8 @@ export function LocationHero({
   showYard = false,
   onOpenCrafting,
   onOpenTalk,
+  onOpenNotice,
+  noticeOpen = false,
   onMove,
 }: LocationHeroProps) {
   const liveClock = useGreyhavenClock()
@@ -727,6 +791,8 @@ export function LocationHero({
     showYard,
     onOpenCrafting,
     onOpenTalk,
+    onOpenNotice,
+    noticeOpen,
     onMove,
   })
 

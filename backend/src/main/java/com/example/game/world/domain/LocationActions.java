@@ -12,7 +12,8 @@ public final class LocationActions {
 			LocationAction.INSPECT,
 			LocationAction.MOVE,
 			LocationAction.VIEW_NEARBY,
-			LocationAction.TALK_NPCS);
+			LocationAction.TALK_NPCS,
+			LocationAction.NOTICE_BOARD);
 
 	private static final List<LocationAction> TAVERN_ACTIONS = List.of(
 			LocationAction.INSPECT,

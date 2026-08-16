@@ -11,4 +11,6 @@ public interface QuestDefinitionRepository extends JpaRepository<QuestDefinition
 	Optional<QuestDefinitionEntity> findByCode(String code);
 
 	List<QuestDefinitionEntity> findAllByOrderBySortOrderAsc();
+
+	List<QuestDefinitionEntity> findByBoardLocationCodeAndEnabledTrueOrderBySortOrderAsc(String boardLocationCode);
 }

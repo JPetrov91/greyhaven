@@ -24,5 +24,6 @@ public enum LocationAction {
 	SALVAGE,
 	CREATE_BUY_ORDER,
 	FULFILL_BUY_ORDER,
-	TALK_NPCS
+	TALK_NPCS,
+	NOTICE_BOARD
 }

@@ -4166,14 +4166,95 @@ html[data-ui-mode='compact'] .game-shell-body-combat {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: grid;
-  gap: 0.75rem;
 }
 
 .quest-log-list li,
 .quest-tracker-list li {
+  min-width: 0;
+}
+
+.quest-log-list .ui-row-secondary,
+.quest-tracker-list .ui-row-secondary {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
+}
+
+.quest-tracker-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.quest-tracker-card .panel-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 14rem;
+}
+
+.quest-tracker-list {
+  display: grid;
+  gap: var(--space-2);
+  flex: 1;
+  align-content: start;
+}
+
+.quest-tracker-entry.ui-row {
+  align-items: start;
+  padding: 0.7rem 0.75rem;
+  box-shadow: var(--surface-highlight), var(--surface-metal), var(--surface-inner),
+    inset 2px 0 0 var(--color-bronze-normal);
+}
+
+.quest-tracker-entry .ui-row-primary {
+  font-family: var(--type-item-family);
+  font-size: var(--type-item-size);
+  font-weight: var(--type-item-weight);
+  line-height: var(--type-item-line);
+  letter-spacing: var(--type-item-tracking);
+  color: var(--color-text-bright);
+}
+
+.quest-tracker-entry .ui-row-secondary {
+  color: var(--color-text-secondary);
+}
+
+.quest-tracker-entry .ui-row-meta {
+  align-self: start;
+  padding-top: 0.15rem;
+  color: var(--color-gold-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.quest-tracker-entry.ui-row-interactive:hover,
+.quest-tracker-entry.ui-row-interactive.is-force-hover {
+  background-color: var(--color-surface-raised);
+  background-image: var(--surface-plate-finish), var(--surface-raised-veil), var(--surface-texture-raised);
+}
+
+.quest-tracker-empty {
+  display: grid;
+  place-items: center start;
+  min-height: 2.6rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--color-bronze-dim) 55%, transparent);
+  border-radius: var(--radius-2);
+  color: var(--color-text-disabled);
+}
+
+.quest-tracker-log {
+  margin-top: auto;
+  padding-top: 0.55rem;
+  border-top: var(--border-subtle);
+  font-family: var(--type-meta-family);
+  font-size: var(--type-meta-size);
+  color: var(--color-gold-normal);
+  text-decoration: none;
+}
+
+.quest-tracker-log:hover {
+  color: var(--color-text-bright);
 }
 
 .quest-log-actions,
@@ -4203,4 +4284,155 @@ html[data-ui-mode='compact'] .game-shell-body-combat {
   html[data-ui-mode='compact'] .game-shell-body {
     grid-template-columns: 1fr;
   }
+}
+
+.notice-board {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  background: rgba(16, 13, 10, 0.94);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35), var(--shadow);
+  transition: left 200ms ease, width 200ms ease;
+}
+
+.notice-board-list {
+  left: 42%;
+  width: auto;
+}
+
+.notice-board-preview {
+  left: 8%;
+}
+
+.notice-board-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem 0.65rem;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+}
+
+.notice-board-header h3 {
+  margin: 0.15rem 0 0;
+}
+
+.notice-board-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.notice-board-filter select {
+  min-width: 8rem;
+}
+
+.notice-board-workspace {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.notice-board-list .notice-board-workspace {
+  flex: 1;
+}
+
+.notice-board-preview .notice-preview-body {
+  flex: 1.6;
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  overflow: auto;
+  animation: notice-preview-in 220ms ease;
+}
+
+.notice-board-list-pane {
+  flex: 1;
+  min-width: 14rem;
+  padding: 0.75rem;
+  overflow: auto;
+  border-left: 1px solid rgba(201, 162, 39, 0.16);
+}
+
+.notice-board-list .notice-board-list-pane {
+  border-left: 0;
+}
+
+.notice-board-blurb {
+  display: block;
+}
+
+.notice-preview-art {
+  height: 7.5rem;
+  margin: 0.6rem 0;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid rgba(201, 162, 39, 0.22);
+}
+
+.notice-preview-giver {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0.7rem 0;
+}
+
+.notice-preview-giver img {
+  width: 3rem;
+  height: 3rem;
+  object-fit: cover;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+}
+
+.notice-preview-objectives,
+.notice-preview-rewards {
+  margin: 0.35rem 0 0.8rem;
+  padding-left: 1.1rem;
+}
+
+.notice-preview-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.notice-preview-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.notice-preview-error {
+  color: var(--color-danger, #c45c4a);
+}
+
+@keyframes notice-preview-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.location-quest-action {
+  position: absolute;
+  left: 1.15rem;
+  bottom: 5.6rem;
+  z-index: 2;
+  max-width: 16rem;
+  padding: 0.7rem 0.8rem;
+  background: rgba(16, 13, 10, 0.9);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+}
+
+.location-hero {
+  isolation: isolate;
 }

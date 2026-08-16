@@ -30,11 +30,17 @@ export function questBadgeMark(badge: string): string {
 export function QuestCompleteSummary({ quest }: { quest: QuestResponse }) {
   const rewards = rewardPreview(quest)
   return (
-    <div data-testid="quest-complete">
+    <div className="quest-turn-in-preview" data-testid="quest-complete">
+      <p className="type-micro">Quest Complete</p>
       <p>
-        <strong>Quest Complete</strong> — {quest.name}
+        <strong>{quest.name}</strong>
       </p>
-      {rewards ? <p className="muted">{rewards}</p> : null}
+      {quest.completeText ? <p>{quest.completeText}</p> : null}
+      {rewards ? (
+        <p className="muted" data-testid="quest-complete-rewards">
+          Rewards: {rewards}
+        </p>
+      ) : null}
       {quest.unlocks.length > 0 ? <p className="muted">Unlocked: {quest.unlocks.join(', ')}</p> : null}
       {quest.nextQuestName ? <p className="muted">Next: {quest.nextQuestName}</p> : null}
     </div>

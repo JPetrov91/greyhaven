@@ -41,6 +41,7 @@ export function GameLayout() {
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [talkOpen, setTalkOpen] = useState(false)
+  const [noticeOpen, setNoticeOpen] = useState(false)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const showMarket = searchParams.get('panel') === MARKET_PANEL
@@ -166,6 +167,9 @@ export function GameLayout() {
     talkOpen,
     onTalkOpen: () => setTalkOpen(true),
     onTalkClose: () => setTalkOpen(false),
+    noticeOpen,
+    onNoticeOpen: () => setNoticeOpen(true),
+    onNoticeClose: () => setNoticeOpen(false),
   }
 
   let mainContent

@@ -7,6 +7,7 @@ public record QuestObjectiveResponse(
 		int currentAmount,
 		boolean completed,
 		String displayText,
-		boolean consumeOnTurnIn
+		boolean consumeOnTurnIn,
+		String actionHint
 ) {
 }

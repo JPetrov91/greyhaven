@@ -23,9 +23,14 @@ import com.example.game.character.application.CharacterVitalsService;
 import com.example.game.character.application.CharacterVitalsView;
 import com.example.game.item.application.ItemCatalogService;
 import com.example.game.item.application.ItemDefinitionView;
+import com.example.game.quest.domain.QuestActionHint;
 import com.example.game.quest.domain.QuestAvailability;
+import com.example.game.quest.domain.QuestBoardListState;
+import com.example.game.quest.domain.QuestBoardRules;
 import com.example.game.quest.domain.QuestCodes;
 import com.example.game.quest.domain.QuestListStatus;
+import com.example.game.quest.domain.QuestObjectiveHints;
+import com.example.game.quest.domain.QuestObjectiveType;
 import com.example.game.quest.domain.QuestRewardKind;
 import com.example.game.quest.domain.QuestStatus;
 import com.example.game.quest.infrastructure.CharacterQuestEntity;
@@ -132,7 +137,7 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 			}
 			throw QuestErrors.questNotAvailable();
 		}
-		assertAtNpc(location.currentLocationId(), definition.getStartNpcCode());
+		assertCanAcceptHere(location.currentLocationId(), definition);
 		CharacterQuestEntity characterQuest = characterQuestRepository
 				.findWithLockByCharacterIdAndQuestId(vitals.characterId(), definition.getId())
 				.orElse(null);
@@ -283,6 +288,78 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 		return list(accountId).stream().filter(QuestView::tracked).toList();
 	}
 
+	@Transactional(readOnly = true)
+	public List<QuestBoardEntryView> board(UUID accountId, String locationCode) {
+		if (!locationRepository.existsByCode(locationCode)) {
+			throw new com.example.game.shared.api.ApiException(
+					"LOCATION_NOT_FOUND",
+					"That location does not exist.",
+					org.springframework.http.HttpStatus.NOT_FOUND);
+		}
+		CharacterLocationView location = characterLocationService.locationOf(accountId);
+		LocationEntity current = locationRepository.findById(location.currentLocationId())
+				.orElseThrow(QuestErrors::wrongBoardLocation);
+		if (!current.getCode().equals(locationCode)) {
+			throw QuestErrors.wrongBoardLocation();
+		}
+		CharacterVitalsView vitals = characterVitalsService.vitalsOf(accountId);
+		List<QuestDefinitionEntity> definitions = questCatalog.boardQuests(locationCode);
+		List<UUID> questIds = definitions.stream().map(QuestDefinitionEntity::getId).toList();
+		Map<UUID, List<QuestRewardDefinitionEntity>> rewards = questCatalog.rewardsByQuestId(questIds);
+		Map<UUID, CharacterQuestEntity> states = characterQuestRepository.findByCharacterId(vitals.characterId())
+				.stream()
+				.collect(Collectors.toMap(CharacterQuestEntity::getQuestId, quest -> quest));
+		Set<String> completedCodes = completedCodes(vitals.characterId());
+		Set<String> itemCodes = rewards.values().stream()
+				.flatMap(List::stream)
+				.map(QuestRewardDefinitionEntity::getItemCode)
+				.filter(code -> code != null && !code.isBlank())
+				.collect(Collectors.toSet());
+		Map<String, ItemDefinitionView> items = itemCatalogService.findByCodes(itemCodes);
+		List<QuestBoardEntryView> entries = new ArrayList<>();
+		for (QuestDefinitionEntity definition : definitions) {
+			CharacterQuestEntity state = states.get(definition.getId());
+			QuestStatus persisted = state == null ? null : state.getStatus();
+			if (!QuestBoardRules.visibleOnBoard(
+					definition.isEnabled(),
+					definition.isRepeatable(),
+					persisted,
+					definition.getPrerequisiteQuestCode(),
+					completedCodes)) {
+				continue;
+			}
+			QuestBoardListState listState = QuestBoardRules.listState(vitals.level(), definition.getMinLevel(), persisted);
+			List<QuestRewardView> rewardViews = rewards.getOrDefault(definition.getId(), List.of()).stream()
+					.map(reward -> {
+						String itemName = reward.getItemCode() == null
+								? null
+								: items.containsKey(reward.getItemCode())
+										? items.get(reward.getItemCode()).name()
+										: reward.getItemCode();
+						return QuestRewardView.of(
+								reward.getKind(),
+								reward.getAmount(),
+								reward.getItemCode(),
+								itemName,
+								reward.getUnlockCode());
+					})
+					.toList();
+			String shortDescription = definition.getShortDescription() == null
+					? definition.getDescription()
+					: definition.getShortDescription();
+			entries.add(new QuestBoardEntryView(
+					definition.getCode(),
+					definition.getName(),
+					shortDescription,
+					definition.getQuestType() == null ? definition.getCategory().name() : definition.getQuestType(),
+					listState.name(),
+					definition.getRecommendedLevel(),
+					definition.getDifficulty() == null ? "NORMAL" : definition.getDifficulty().name(),
+					rewardViews));
+		}
+		return entries;
+	}
+
 	private QuestView requireView(CharacterVitalsView vitals, String code) {
 		return listForCharacter(vitals).stream()
 				.filter(quest -> quest.code().equals(code))
@@ -375,6 +452,24 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				blocked);
 	}
 
+	private Set<String> completedCodes(UUID characterId) {
+		return characterQuestRepository.findByCharacterId(characterId).stream()
+				.filter(quest -> quest.getStatus() == QuestStatus.COMPLETED || quest.getCompletedAt() != null)
+				.map(quest -> questCatalog.requireById(quest.getQuestId()).getCode())
+				.collect(Collectors.toSet());
+	}
+
+	private void assertCanAcceptHere(UUID locationId, QuestDefinitionEntity definition) {
+		if (definition.getBoardLocationCode() != null && !definition.getBoardLocationCode().isBlank()) {
+			LocationEntity location = locationRepository.findById(locationId).orElseThrow(QuestErrors::wrongBoardLocation);
+			if (!definition.getBoardLocationCode().equals(location.getCode())) {
+				throw QuestErrors.wrongBoardLocation();
+			}
+			return;
+		}
+		assertAtNpc(locationId, definition.getStartNpcCode());
+	}
+
 	private void assertAtNpc(UUID locationId, String npcCode) {
 		if (npcCode == null || npcCode.isBlank()) {
 			return;
@@ -456,7 +551,56 @@ public class QuestApplicationService implements CharacterUnlockQuery {
 				unlocks,
 				state == null || state.getKitFamily() == null ? null : state.getKitFamily().name(),
 				state == null || state.getLastSearchOutcome() == null ? null : state.getLastSearchOutcome().name(),
-				definition.getCompleteText());
+				definition.getCompleteText(),
+				presentationOf(definition, status, objectiveViews, npcs));
+	}
+
+	private static QuestPresentation presentationOf(
+			QuestDefinitionEntity definition,
+			QuestListStatus status,
+			List<QuestObjectiveView> objectives,
+			Map<String, NpcDefinitionEntity> npcs) {
+		String actionHint = null;
+		String actionTarget = null;
+		String actionLocation = definition.getObjectiveLocationCode();
+		if (status == QuestListStatus.READY_TO_TURN_IN && definition.getTurnInNpcCode() != null) {
+			actionHint = QuestActionHint.TALK.name();
+			actionTarget = definition.getTurnInNpcCode();
+			NpcDefinitionEntity turnIn = npcs.get(definition.getTurnInNpcCode());
+			actionLocation = turnIn == null ? actionLocation : turnIn.getLocationCode();
+		}
+		else {
+			QuestObjectiveView current = objectives.stream()
+					.filter(objective -> !objective.completed())
+					.findFirst()
+					.orElse(null);
+			if (current != null) {
+				QuestObjectiveType type = QuestObjectiveType.valueOf(current.type());
+				actionHint = current.actionHint();
+				actionTarget = current.targetCode();
+				NpcDefinitionEntity npc = npcs.get(current.targetCode());
+				actionLocation = QuestObjectiveHints.locationCodeOf(
+						type,
+						current.targetCode(),
+						definition.getObjectiveLocationCode(),
+						npc == null ? null : npc.getLocationCode());
+			}
+		}
+		String shortDescription = definition.getShortDescription() == null
+				? definition.getDescription()
+				: definition.getShortDescription();
+		return new QuestPresentation(
+				shortDescription,
+				definition.getQuestType() == null ? definition.getCategory().name() : definition.getQuestType(),
+				definition.getDifficulty() == null ? "NORMAL" : definition.getDifficulty().name(),
+				definition.getArtworkKey(),
+				definition.getBoardLocationCode(),
+				definition.getObjectiveLocationCode(),
+				definition.getLocationName(),
+				definition.getRegionName(),
+				actionHint,
+				actionTarget,
+				actionLocation);
 	}
 
 	private static void appendIssuedSteelRewards(

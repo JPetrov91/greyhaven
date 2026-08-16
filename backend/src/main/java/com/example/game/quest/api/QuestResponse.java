@@ -22,6 +22,17 @@ public record QuestResponse(
 		List<String> unlocks,
 		String kitFamily,
 		String lastSearchOutcome,
-		String completeText
+		String completeText,
+		String shortDescription,
+		String questType,
+		String difficulty,
+		String artworkKey,
+		String boardLocationCode,
+		String objectiveLocationCode,
+		String locationName,
+		String regionName,
+		String actionHint,
+		String actionTargetCode,
+		String actionLocationCode
 ) {
 }

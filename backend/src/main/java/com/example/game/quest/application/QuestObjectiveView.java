@@ -9,7 +9,8 @@ public record QuestObjectiveView(
 		int currentAmount,
 		boolean completed,
 		String displayText,
-		boolean consumeOnTurnIn
+		boolean consumeOnTurnIn,
+		String actionHint
 ) {
 
 	public static QuestObjectiveView of(
@@ -27,6 +28,7 @@ public record QuestObjectiveView(
 				currentAmount,
 				completed,
 				displayText,
-				consumeOnTurnIn);
+				consumeOnTurnIn,
+				com.example.game.quest.domain.QuestObjectiveHints.hintOf(type).name());
 	}
 }

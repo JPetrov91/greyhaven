@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Persistable;
 
 import com.example.game.quest.domain.QuestCategory;
+import com.example.game.quest.domain.QuestDifficulty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -68,6 +69,34 @@ public class QuestDefinitionEntity implements Persistable<UUID> {
 
 	@Column(name = "complete_text", nullable = false, columnDefinition = "TEXT")
 	private String completeText;
+
+	@Column(name = "short_description", columnDefinition = "TEXT")
+	private String shortDescription;
+
+	@Column(name = "quest_type", nullable = false, length = 32)
+	private String questType;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 16)
+	private QuestDifficulty difficulty;
+
+	@Column(name = "artwork_key", length = 64)
+	private String artworkKey;
+
+	@Column(name = "board_location_code", length = 64)
+	private String boardLocationCode;
+
+	@Column(name = "objective_location_code", length = 64)
+	private String objectiveLocationCode;
+
+	@Column(name = "location_name", length = 128)
+	private String locationName;
+
+	@Column(name = "region_name", length = 128)
+	private String regionName;
+
+	@Column(nullable = false)
+	private boolean enabled;
 
 	@Transient
 	private boolean unsaved;
@@ -185,5 +214,41 @@ public class QuestDefinitionEntity implements Persistable<UUID> {
 
 	public String getCompleteText() {
 		return completeText;
+	}
+
+	public String getShortDescription() {
+		return shortDescription;
+	}
+
+	public String getQuestType() {
+		return questType;
+	}
+
+	public QuestDifficulty getDifficulty() {
+		return difficulty;
+	}
+
+	public String getArtworkKey() {
+		return artworkKey;
+	}
+
+	public String getBoardLocationCode() {
+		return boardLocationCode;
+	}
+
+	public String getObjectiveLocationCode() {
+		return objectiveLocationCode;
+	}
+
+	public String getLocationName() {
+		return locationName;
+	}
+
+	public String getRegionName() {
+		return regionName;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
 	}
 }

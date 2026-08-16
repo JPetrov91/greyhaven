@@ -338,6 +338,7 @@ export type LocationAction =
   | 'CREATE_BUY_ORDER'
   | 'FULFILL_BUY_ORDER'
   | 'TALK_NPCS'
+  | 'NOTICE_BOARD'
 
 export type LocationResponse = {
   id: string
@@ -741,6 +742,7 @@ export type QuestObjectiveResponse = {
   completed: boolean
   displayText: string
   consumeOnTurnIn: boolean
+  actionHint?: string | null
 }
 
 export type QuestRewardResponse = {
@@ -772,6 +774,35 @@ export type QuestResponse = {
   kitFamily?: string | null
   lastSearchOutcome?: string | null
   completeText?: string | null
+  shortDescription?: string | null
+  questType?: string | null
+  difficulty?: string | null
+  artworkKey?: string | null
+  boardLocationCode?: string | null
+  objectiveLocationCode?: string | null
+  locationName?: string | null
+  regionName?: string | null
+  actionHint?: string | null
+  actionTargetCode?: string | null
+  actionLocationCode?: string | null
+}
+
+export type QuestBoardListState = 'AVAILABLE' | 'UNAVAILABLE' | 'ACTIVE' | 'READY_TO_TURN_IN' | 'COMPLETED'
+
+export type QuestBoardEntryResponse = {
+  code: string
+  name: string
+  shortDescription: string
+  questType: string
+  listState: QuestBoardListState
+  recommendedLevel: number
+  difficulty: string
+  rewards: QuestRewardResponse[]
+}
+
+export type QuestBoardResponse = {
+  locationCode: string
+  quests: QuestBoardEntryResponse[]
 }
 
 export type QuestListResponse = {

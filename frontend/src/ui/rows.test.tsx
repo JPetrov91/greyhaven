@@ -34,6 +34,14 @@ describe('GenericRow', () => {
     expect(screen.getByRole('button', { name: 'Buy' })).toBeTruthy()
   })
 
+  it('can render as a transparent row button', () => {
+    render(<GenericRow as="button" testId="row" primary="Issued Steel" interactive />)
+    const row = screen.getByTestId('row')
+    expect(row.tagName).toBe('BUTTON')
+    expect(row.getAttribute('type')).toBe('button')
+    expect(row.className.split(' ')).toEqual(expect.arrayContaining(['ui-row', 'ui-row-interactive']))
+  })
+
   it('omits empty slots and can render as a list item', () => {
     render(<GenericRow as="li" testId="row" primary="Only title" />)
     const row = screen.getByTestId('row')
