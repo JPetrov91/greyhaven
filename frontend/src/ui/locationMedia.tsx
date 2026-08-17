@@ -24,6 +24,10 @@ export function locationArtUrl(code: string): string {
   return '/locations/city_square.webp'
 }
 
+export function noticeBoardArtUrl(): string {
+  return '/locations/notice_board.png'
+}
+
 const ACTION_ART: Partial<Record<LocationActionIconName, string>> = {
   compass: '/icons/actions/travel.webp',
   arena: '/icons/actions/arena.webp',

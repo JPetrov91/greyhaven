@@ -4,6 +4,8 @@ import java.util.List;
 
 public record NearbyCharactersResponse(
 		List<NearbyCharacterResponse> characters,
-		boolean truncated
+		boolean truncated,
+		int limit,
+		long totalCount
 ) {
 }

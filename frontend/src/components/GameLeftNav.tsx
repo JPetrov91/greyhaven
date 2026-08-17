@@ -4,7 +4,7 @@ import { fetchCurrentExpedition } from '../api/expedition'
 import { fetchCurrentLocation } from '../api/world'
 import { ComingLaterButton } from '../ui/ComingLater'
 import { ChromeIcon, type ChromeIconName } from '../ui/chromeIcons'
-import { gameLink, isGameNavActive, type GameNavItem } from '../ui/gameNav'
+import { gameLink, gameTravelLink, isGameNavActive, type GameNavItem } from '../ui/gameNav'
 import { persistUiMode, readStoredUiMode, applyUiMode, type UiMode } from '../ui/uiMode'
 import { persistNavCollapsed, readStoredNavCollapsed } from '../ui/navCollapse'
 import { useState } from 'react'
@@ -153,7 +153,7 @@ export function GameLeftNav() {
             </Link>
           </li>
           <li>
-            <Link to={gameLink('world')} data-testid="quick-travel" title={collapsed ? 'Travel' : undefined}>
+            <Link to={gameTravelLink()} data-testid="quick-travel" title={collapsed ? 'Travel' : undefined}>
               <ChromeIcon name="travel" />
               <span className="quick-action-copy">
                 <span>Travel</span>

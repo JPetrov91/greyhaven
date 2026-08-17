@@ -146,4 +146,41 @@ describe('NpcDialogue', () => {
     expect(screen.getByTestId('quest-complete').textContent).toContain('Rusty Shield')
     expect(screen.getByTestId('quest-complete').textContent).toContain('Arm the Watch')
   })
+
+  it('opens talk for a targeted NPC without listing people', async () => {
+    vi.mocked(fetchNpcs).mockResolvedValue({
+      npcs: [
+        {
+          code: 'MILITIA_OFFICER',
+          name: 'Watch-Sergeant Bren',
+          title: 'Militia officer',
+          description: 'Posts notices.',
+          greeting: 'The watch has work.',
+          portraitCode: 'militia-officer',
+          locationCode: 'CITY_SQUARE',
+          merchantCode: null,
+          interactions: ['TALK', 'QUEST'],
+          questBadges: ['ACTIVE'],
+        },
+      ],
+    })
+    vi.mocked(talkToNpc).mockResolvedValue({
+      code: 'MILITIA_OFFICER',
+      name: 'Watch-Sergeant Bren',
+      title: 'Militia officer',
+      portraitCode: 'militia-officer',
+      text: 'Old Town is restless.',
+      merchantCode: null,
+      actions: [{ type: 'CLOSE', questCode: null, merchantCode: null, label: 'Not now' }],
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NpcDialogue open onClose={() => undefined} initialNpcCode="MILITIA_OFFICER" />
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByTestId('npc-talk-text')).toHaveProperty('textContent', 'Old Town is restless.')
+    expect(screen.queryByTestId('talk-npc-MILITIA_OFFICER')).toBeNull()
+    expect(talkToNpc).toHaveBeenCalledWith('MILITIA_OFFICER', undefined, undefined, undefined)
+  })
 })

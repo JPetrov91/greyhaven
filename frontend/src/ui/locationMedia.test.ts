@@ -1,7 +1,7 @@
 import { createElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { LocationIcon, locationActionArtUrl, locationArtUrl, locationWeather } from './locationMedia'
+import { LocationIcon, locationActionArtUrl, locationArtUrl, locationWeather, noticeBoardArtUrl } from './locationMedia'
 
 describe('locationArtUrl', () => {
   it('maps known location codes to compressed banners', () => {
@@ -13,6 +13,7 @@ describe('locationArtUrl', () => {
     expect(locationArtUrl('ARENA')).toBe('/locations/arena.webp')
     expect(locationArtUrl('SPARRING_YARD')).toBe('/locations/sparring_yard.webp')
     expect(locationArtUrl('CRAFTSMEN_WARD')).toBe('/locations/craftsmen_ward.webp')
+    expect(noticeBoardArtUrl()).toBe('/locations/notice_board.png')
   })
 })
 

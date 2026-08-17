@@ -6,7 +6,7 @@
 **NPC:** Watch-Sergeant Bren (`MILITIA_OFFICER`), City Square  
 **Follow-up (out of this file’s copy):** `QST_ARM_THE_WATCH` becomes the Edric **upgrade** beat, not the first family choice  
 **Governs:** first-quest start, kit grant, objectives, copy, **first-iteration UI**, acceptance  
-**Related:** `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md`  
+**Related:** `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md`, `docs/game-design/LOCATIONS_SCREEN.md` (where Bren’s host plate lives)  
 **Journey:** `docs/game-design/LEVEL_1_10_PLAYER_JOURNEY.md` (chapter spine; this file owns Level 1 quest copy and rules)
 
 Copy language: **English** (matches live NPC/quest strings).  
@@ -111,7 +111,7 @@ If a given Search in Old Town does not start combat, Search still counts. Do not
 1. Quest log / tracker use the **tracker strings** in §4.8, not raw `KILL 0/1`.  
 2. Weapon choice is in-world (Bren Talk), with the four lines in §4.4.  
 3. Combat log does not need to quote Bren.  
-4. Binding first-iteration UI: **§5**.
+4. Binding first-iteration UI: **§5**. Bren as Square **host** on Locations: `LOCATIONS_SCREEN.md`.
 
 ---
 

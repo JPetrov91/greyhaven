@@ -48,6 +48,14 @@ export function gameLink(item: GameNavItem): { pathname: '/game'; search: string
   return { pathname: '/game', search: '', hash: item }
 }
 
+export function gameTravelLink(): { pathname: '/game'; search: string; hash: string } {
+  return { pathname: '/game', search: '?travel=1', hash: 'world' }
+}
+
+export function isTravelSheetOpen(location: GameLocation): boolean {
+  return gameViewFromLocation(location) === 'world' && new URLSearchParams(location.search).get('travel') === '1'
+}
+
 export function isGameNavActive(item: GameNavItem, location: GameLocation): boolean {
   if (!location.pathname.startsWith('/game')) {
     return false

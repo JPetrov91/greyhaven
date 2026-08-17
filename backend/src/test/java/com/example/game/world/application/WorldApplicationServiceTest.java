@@ -123,6 +123,9 @@ class WorldApplicationServiceTest {
 
 		assertThat(nearby.characters()).hasSize(WorldApplicationService.NEARBY_CHARACTER_LIMIT);
 		assertThat(nearby.truncated()).isFalse();
+		assertThat(nearby.limit()).isEqualTo(WorldApplicationService.NEARBY_CHARACTER_LIMIT);
+		assertThat(nearby.totalCount()).isEqualTo(WorldApplicationService.NEARBY_CHARACTER_LIMIT);
+		assertThat(nearby.characters().getFirst().avatarCode()).isEqualTo("male_unyielding");
 	}
 
 	@Test
@@ -134,17 +137,24 @@ class WorldApplicationServiceTest {
 				CHARACTER_ID,
 				WorldApplicationService.NEARBY_CHARACTER_LIMIT + 1))
 				.thenReturn(companions(WorldApplicationService.NEARBY_CHARACTER_LIMIT + 1));
+		when(characterLocationService.countOthersAt(CITY_SQUARE_ID, CHARACTER_ID)).thenReturn(80L);
 
 		NearbyCharactersView nearby = worldApplicationService.nearbyCharacters(ACCOUNT_ID);
 
 		assertThat(nearby.characters()).hasSize(WorldApplicationService.NEARBY_CHARACTER_LIMIT);
 		assertThat(nearby.truncated()).isTrue();
+		assertThat(nearby.limit()).isEqualTo(WorldApplicationService.NEARBY_CHARACTER_LIMIT);
+		assertThat(nearby.totalCount()).isEqualTo(80);
 	}
 
 	private static List<CharacterAtLocationView> companions(int count) {
 		List<CharacterAtLocationView> companions = new ArrayList<>(count);
 		for (int index = 0; index < count; index++) {
-			companions.add(new CharacterAtLocationView(UUID.randomUUID(), "Traveler" + index, 1));
+			companions.add(new CharacterAtLocationView(
+					UUID.randomUUID(),
+					"Traveler" + index,
+					1,
+					"male_unyielding"));
 		}
 		return companions;
 	}

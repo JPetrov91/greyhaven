@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.example.game.TestcontainersConfiguration;
 import com.example.game.character.application.CharacterLocationService;
 import com.example.game.world.domain.LocationCodes;
+import com.example.game.world.domain.NpcCodes;
 
 import jakarta.servlet.http.Cookie;
 
@@ -38,6 +39,7 @@ class WorldLocationIntegrationTest {
 	private static final UUID FOREST_ID = UUID.fromString("a0000000-0000-4000-8000-000000000005");
 	private static final UUID TAVERN_ID = UUID.fromString("a0000000-0000-4000-8000-000000000002");
 	private static final UUID OLD_TOWN_ID = UUID.fromString("a0000000-0000-4000-8000-000000000004");
+	private static final UUID SPARRING_YARD_ID = UUID.fromString("a0000000-0000-4000-8000-00000000000e");
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -320,7 +322,10 @@ class WorldLocationIntegrationTest {
 				.andExpect(jsonPath("$.characters.length()").value(1))
 				.andExpect(jsonPath("$.characters[0].name").value(nameC))
 				.andExpect(jsonPath("$.characters[0].level").value(1))
-				.andExpect(jsonPath("$.truncated").value(false));
+				.andExpect(jsonPath("$.characters[0].avatarCode").value("male_unyielding"))
+				.andExpect(jsonPath("$.truncated").value(false))
+				.andExpect(jsonPath("$.limit").value(50))
+				.andExpect(jsonPath("$.totalCount").value(1));
 
 		mockMvc.perform(get("/api/v1/world/nearby").session(sessionC))
 				.andExpect(status().isOk())
@@ -344,6 +349,29 @@ class WorldLocationIntegrationTest {
 
 		assertThat(characterLocationService.othersAt(CITY_SQUARE_ID, noSuchCharacter, 1)).hasSize(1);
 		assertThat(characterLocationService.othersAt(CITY_SQUARE_ID, noSuchCharacter, 100)).hasSizeGreaterThan(1);
+	}
+
+	@Test
+	void sparringYardListsTheYardInstructor() throws Exception {
+		MockHttpSession session = registerWithCharacter("yard-npc-" + System.nanoTime() + "@greyhaven.test");
+
+		MvcResult move = mockMvc.perform(withCsrf(post("/api/v1/world/move"))
+						.session(session)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"destinationLocationId":"%s"}
+								""".formatted(SPARRING_YARD_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.code").value(LocationCodes.SPARRING_YARD))
+				.andReturn();
+		refreshCsrfCookie(move);
+
+		mockMvc.perform(get("/api/v1/world/npcs").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.npcs.length()").value(1))
+				.andExpect(jsonPath("$.npcs[0].code").value(NpcCodes.YARD_INSTRUCTOR))
+				.andExpect(jsonPath("$.npcs[0].name").value("Drill-Master Vesk"))
+				.andExpect(jsonPath("$.npcs[0].locationCode").value(LocationCodes.SPARRING_YARD));
 	}
 
 	@Test

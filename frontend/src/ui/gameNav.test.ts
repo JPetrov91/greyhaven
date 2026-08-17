@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gameLink, gameViewFromLocation, isGameNavActive } from './gameNav'
+import { gameLink, gameTravelLink, gameViewFromLocation, isGameNavActive, isTravelSheetOpen } from './gameNav'
 
 describe('isGameNavActive', () => {
   it('marks Home on /game without hash or market panel', () => {
@@ -53,5 +53,9 @@ describe('gameLink', () => {
     expect(gameLink('home')).toEqual({ pathname: '/game', search: '', hash: '' })
     expect(gameLink('sparring')).toEqual({ pathname: '/game', search: '', hash: 'sparring' })
     expect(gameViewFromLocation({ pathname: '/game', search: '', hash: '#sparring' })).toBe('home')
+    expect(gameTravelLink()).toEqual({ pathname: '/game', search: '?travel=1', hash: 'world' })
+    expect(gameViewFromLocation({ pathname: '/game', search: '?travel=1', hash: '#world' })).toBe('world')
+    expect(isTravelSheetOpen({ pathname: '/game', search: '?travel=1', hash: '#world' })).toBe(true)
+    expect(isTravelSheetOpen({ pathname: '/game', search: '', hash: '#world' })).toBe(false)
   })
 })

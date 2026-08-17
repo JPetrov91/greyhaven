@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { acceptQuest, turnInQuest } from '../api/quests'
 import { fetchNpcs, talkToNpc } from '../api/npcs'
 import { ApiError } from '../api/client'
@@ -12,6 +12,7 @@ type Props = {
   open: boolean
   onClose: () => void
   onOpenMarket?: () => void
+  initialNpcCode?: string
 }
 
 export function questBadgeMark(badge: string): string {
@@ -47,7 +48,7 @@ export function QuestCompleteSummary({ quest }: { quest: QuestResponse }) {
   )
 }
 
-export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
+export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Props) {
   const queryClient = useQueryClient()
   const [completion, setCompletion] = useState<QuestResponse | null>(null)
   const npcsQuery = useQuery({
@@ -72,6 +73,7 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
       await queryClient.invalidateQueries({ queryKey: ['quests'] })
       await queryClient.invalidateQueries({ queryKey: ['inventory'] })
       await queryClient.invalidateQueries({ queryKey: ['character'] })
+      await queryClient.invalidateQueries({ queryKey: ['npcs'] })
     },
   })
   const acceptMutation = useMutation({
@@ -90,8 +92,22 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
       await queryClient.invalidateQueries({ queryKey: ['activity'] })
       await queryClient.invalidateQueries({ queryKey: ['character'] })
       await queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      await queryClient.invalidateQueries({ queryKey: ['npcs'] })
     },
   })
+
+  useEffect(() => {
+    if (!open) {
+      talkMutation.reset()
+      setCompletion(null)
+      return
+    }
+    if (initialNpcCode) {
+      talkMutation.mutate({ code: initialNpcCode })
+    }
+    // Talk is opened for a specific NPC from the Locations strip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialNpcCode])
 
   if (!open) {
     return null
@@ -140,25 +156,29 @@ export function NpcDialogue({ open, onClose, onOpenMarket }: Props) {
 
   return (
     <div className="npc-dialogue" data-testid="npc-dialogue">
-      <h3>People here</h3>
-      {npcs.length === 0 ? <p className="muted">No one to talk to.</p> : null}
-      <ul>
-        {npcs.map((npc) => {
-          const mark = questBadgeMark(npc.questBadges[0] ?? '')
-          return (
-            <li key={npc.code}>
-              <Button
-                type="button"
-                data-testid={`talk-npc-${npc.code}`}
-                onClick={() => talkMutation.mutate({ code: npc.code })}
-              >
-                {npc.name}
-                {mark ? ` (${mark})` : ''}
-              </Button>
-            </li>
-          )
-        })}
-      </ul>
+      {initialNpcCode ? null : (
+        <>
+          <h3>People here</h3>
+          {npcs.length === 0 ? <p className="muted">No one to talk to.</p> : null}
+          <ul>
+            {npcs.map((npc) => {
+              const mark = questBadgeMark(npc.questBadges[0] ?? '')
+              return (
+                <li key={npc.code}>
+                  <Button
+                    type="button"
+                    data-testid={`talk-npc-${npc.code}`}
+                    onClick={() => talkMutation.mutate({ code: npc.code })}
+                  >
+                    {npc.name}
+                    {mark ? ` (${mark})` : ''}
+                  </Button>
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
       {talk ? (
         <div data-testid="npc-talk">
           {npcPortraitUrl(talk.portraitCode) ? (

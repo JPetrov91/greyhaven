@@ -79,8 +79,14 @@ public class CharacterLocationService {
 				.map(character -> new CharacterAtLocationView(
 						character.getId(),
 						character.getName(),
-						character.getLevel()))
+						character.getLevel(),
+						character.getAvatarCode()))
 				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public long countOthersAt(UUID locationId, UUID excludedCharacterId) {
+		return characterRepository.countByCurrentLocationIdAndIdNot(locationId, excludedCharacterId);
 	}
 
 	private static CharacterLocationView toView(CharacterEntity character) {

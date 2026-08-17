@@ -41,8 +41,10 @@ function renderYard() {
 describe('SparringYardPanel', () => {
   it('challenges a nearby low-level fighter', async () => {
     vi.mocked(fetchNearbyCharacters).mockResolvedValue({
-      characters: [{ id: 'opp-1', name: 'Pip', level: 3 }],
+      characters: [{ id: 'opp-1', name: 'Pip', level: 3, avatarCode: 'male_unyielding' }],
       truncated: false,
+      limit: 50,
+      totalCount: 1,
     })
     vi.mocked(fetchSparringBots).mockResolvedValue([{ level: 1, name: 'Green Recruit', code: 'SPARRING_BOT_L01' }])
     vi.mocked(challengeDuel).mockResolvedValue({} as never)
@@ -55,7 +57,12 @@ describe('SparringYardPanel', () => {
   })
 
   it('starts a drill against the selected bot level', async () => {
-    vi.mocked(fetchNearbyCharacters).mockResolvedValue({ characters: [], truncated: false })
+    vi.mocked(fetchNearbyCharacters).mockResolvedValue({
+      characters: [],
+      truncated: false,
+      limit: 50,
+      totalCount: 0,
+    })
     vi.mocked(fetchSparringBots).mockResolvedValue([
       { level: 1, name: 'Green Recruit', code: 'SPARRING_BOT_L01' },
       { level: 4, name: 'Yard Regular', code: 'SPARRING_BOT_L04' },

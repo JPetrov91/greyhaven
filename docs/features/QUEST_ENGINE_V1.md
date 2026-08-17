@@ -93,7 +93,47 @@ Notice Board
 
 Не выполнять navigation на отдельный `/quests` screen.
 
-Открыть Notice Board внутри текущего Location Screen.
+Не открывать Market-style overlay, который заменяет весь main content и прячет Chat.
+
+Открыть Notice Board как **состояние Location workspace** внутри текущего Location Screen.
+Левая навигация остается на Home. URL не меняется.
+
+### Home dashboard vs Notice Board workspace
+
+Это разные композиции одного Location Screen. Их нельзя смешивать.
+
+**Стандартный Home / Location Screen** (`quest-step-3` / обычный Home):
+
+```text
+Location hero (площадь, плитки действий)
+Character / Equipment / Tracker / Expeditions
+Chat
+```
+
+Кнопка `Notice Board` живет в Location hero. Это trigger, не сама доска.
+
+**Notice Board workspace** (`quest-step-1-notice-board` / `docs/mockups/quests/quest2.png`):
+
+```text
+[ NOTICE BOARD SCENE ART ][ NOTICE BOARD PANEL ][ ACTIVITY ]
+Chat
+```
+
+Обязательно:
+
+- заменить содержимое Location workspace, а не рисовать модалку поверх Home-дашборда;
+- скрыть Home mid-row (character overview, equipment, tracker, expeditions);
+- сменить artwork на сцену у физической доски объявлений, а не оставить обычный City Square hero;
+- справа поставить docked-панель `NOTICE BOARD` / `AVAILABLE QUESTS` — обычный panel в сетке workspace, не popup и не `position: absolute` поверх плиток Home;
+- Chat, Activity, Top Bar, Left Nav остаются.
+
+Запрещено:
+
+- всплывающее окно поверх Home hero + mid-row;
+- оставлять видимыми плитки Travel / People / Market под доской;
+- считать это отдельной страницей `#quests` или `?panel=`.
+
+Source of truth для этой композиции: **смотри картинки: `quest-step-1-notice-board.png`** и `docs/mockups/quests/quest2.png`.
 
 ### Layout
 
@@ -101,20 +141,19 @@ Notice Board
 
 ```text
 Top Bar
-Left Navigation
-Location artwork
+Left Navigation (Home активен)
 Activity & Notifications
 Chat
 ```
 
-Поверх правой части Location workspace появляется:
+В Location workspace:
 
 ```text
-NOTICE BOARD
-AVAILABLE QUESTS
+слева  — artwork сцены у доски
+справа — панель NOTICE BOARD / AVAILABLE QUESTS
 ```
 
-Location artwork остается видимым слева.
+Artwork сцены остается видимым слева. Это не тот же кадр, что стандартный Home hero.
 
 Это важно для ощущения:
 
@@ -204,7 +243,9 @@ selectedQuestId = null
 
 ## 5. STEP 1 → STEP 2 TRANSITION
 
-Это принципиально важная часть workflow.
+Это переход **внутри уже открытой панели Notice Board**, не переход Home → Board.
+
+Home → Board описан в §4. Здесь только клик по квесту в списке.
 
 При клике на:
 
@@ -538,8 +579,8 @@ Accepted ✓
 
 1. показать небольшой `Quest Accepted` feedback;
 2. обновить active quest state;
-3. закрыть / collapse Notice Board;
-4. вернуть стандартный Location Screen;
+3. закрыть Notice Board workspace;
+4. вернуть стандартный Home / Location Screen (обычный hero + mid-row);
 5. показать Quest Tracker.
 
 Пример последовательности:
@@ -1087,7 +1128,7 @@ Step 1 и Step 2 — **два состояния одного component**, а н
 Location
 ```
 
-Notice Board является contextual UI.
+Notice Board является contextual **состоянием Location workspace**, не отдельным route и не modal над Home.
 
 В будущем можно поддержать deep-link через query state:
 
@@ -1261,10 +1302,20 @@ Chat
 Использовать как source of truth для:
 
 - global shell;
-- location + board composition;
+- Notice Board workspace (сцена у доски + docked panel справа);
 - quest list;
 - chat placement;
 - Activity placement.
+
+Не читать этот кадр как popup над Home-дашбордом.
+
+Реализационные ассеты сцены (не заменяют mockup):
+
+```text
+frontend/public/locations/notice_board.png
+docs/ui/reference/quests/notice-board-scene.png
+frontend/public/quests/abandoned_caravan.png
+```
 
 ### Quest Preview
 
@@ -1377,13 +1428,15 @@ Transactional tests обязательны.
 Реализовать только:
 
 ```text
-open/close Board
-quest list
+open/close Board workspace
+dedicated board scene art
+docked quest list panel
 filters
 availability states
 loading/error/empty
 ```
 
+Не рисовать Board как popup над Home-дашбордом.
 Не реализовывать Preview заранее.
 
 ### Task 7 — Expanded Preview / Step 2

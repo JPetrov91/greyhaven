@@ -66,7 +66,9 @@ public class WorldController {
 				nearby.characters().stream()
 						.map(WorldController::toNearbyResponse)
 						.toList(),
-				nearby.truncated());
+				nearby.truncated(),
+				nearby.limit(),
+				nearby.totalCount());
 	}
 
 	@PostMapping("/move")
@@ -117,6 +119,10 @@ public class WorldController {
 	}
 
 	private static NearbyCharacterResponse toNearbyResponse(NearbyCharacterView character) {
-		return new NearbyCharacterResponse(character.id(), character.name(), character.level());
+		return new NearbyCharacterResponse(
+				character.id(),
+				character.name(),
+				character.level(),
+				character.avatarCode());
 	}
 }

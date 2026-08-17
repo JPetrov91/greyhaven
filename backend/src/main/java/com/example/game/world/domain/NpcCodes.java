@@ -9,6 +9,7 @@ public final class NpcCodes {
 	public static final String TOMAS_REED = "TOMAS_REED";
 	public static final String PATROL_SERGEANT = "PATROL_SERGEANT";
 	public static final String DRILL_INSTRUCTOR = "DRILL_INSTRUCTOR";
+	public static final String YARD_INSTRUCTOR = "YARD_INSTRUCTOR";
 
 	private NpcCodes() {
 	}

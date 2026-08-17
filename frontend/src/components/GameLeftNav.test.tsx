@@ -68,6 +68,7 @@ describe('GameLeftNav', () => {
     expect((screen.getByTestId('nav-rankings') as HTMLButtonElement).disabled).toBe(true)
     expect(await screen.findByTestId('quick-claim-expedition')).toBeTruthy()
     expect(screen.getByTestId('quick-tavern').getAttribute('href')).toContain('expeditions')
+    expect(screen.getByTestId('quick-travel').getAttribute('href')).toContain('travel=1')
     expect(screen.getByTestId('ui-mode-toggle')).toBeTruthy()
   })
 

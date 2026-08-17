@@ -36,6 +36,8 @@ public interface CharacterRepository extends JpaRepository<CharacterEntity, UUID
 			UUID excludedCharacterId,
 			Limit limit);
 
+	long countByCurrentLocationIdAndIdNot(UUID currentLocationId, UUID excludedCharacterId);
+
 	@Query("""
 			select c from CharacterEntity c
 			where c.id <> :excludedId

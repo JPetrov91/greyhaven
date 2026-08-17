@@ -1,14 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
-import {
-  fetchCurrentLocation,
-  fetchDestinations,
-  fetchNearbyCharacters,
-  moveToLocation,
-} from '../api/world'
+import { fetchCurrentLocation, fetchDestinations, fetchNearbyCharacters, moveToLocation } from '../api/world'
+import { fetchNpcs } from '../api/npcs'
 import { fetchPublicCharacter, type PublicCharacterResponse } from '../api/pvp'
-import type { DestinationResponse, LocationAction, LocationResponse } from '../api/types'
+import type { DestinationResponse, LocationResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { ComingLaterButton } from '../ui/ComingLater'
 import { EmptyState } from '../ui/EmptyState'
@@ -20,52 +16,16 @@ import {
   locationActionArtUrl,
   locationArtUrl,
   locationWeather,
+  noticeBoardArtUrl,
 } from '../ui/locationMedia'
 import type { LocationActionIconName } from '../ui/locationMedia'
 import { DungeonPanel } from './DungeonPanel'
+import { HereNowList } from './HereNowList'
 import { LocationQuestAction } from './LocationQuestAction'
 import { NoticeBoard } from './noticeBoard/NoticeBoard'
 import { NpcDialogue } from './NpcDialogue'
+import { NpcStrip } from './NpcStrip'
 import { SparringYardPanel } from './SparringYardPanel'
-
-const ACTION_LABELS: Record<LocationAction, string> = {
-  INSPECT: 'Inspect location',
-  MOVE: 'Travel',
-  VIEW_NEARBY: 'View nearby characters',
-  VIEW_CHAT: 'Global chat',
-  START_EXPEDITION: 'Start expedition',
-  INSPECT_EXPEDITIONS: 'Inspect expeditions',
-  BROWSE_MARKET: 'Browse market listings',
-  CREATE_LISTING: 'Create listing',
-  BUY_ITEM: 'Buy item',
-  CANCEL_LISTING: 'Cancel own listing',
-  SEARCH_ENCOUNTER: 'Search for encounter',
-  ENTER_DUNGEON: 'Enter dungeon',
-  ENTER_ARENA: 'Enter Arena',
-  CHALLENGE_DUEL: 'Challenge to a duel',
-  START_SPARRING_DRILL: 'Start a yard drill',
-  CRAFT: 'Craft',
-  CLAIM_CRAFT: 'Claim finished craft',
-  SALVAGE: 'Salvage equipment',
-  CREATE_BUY_ORDER: 'Create buy order',
-  FULFILL_BUY_ORDER: 'Fulfill buy order',
-  TALK_NPCS: 'Talk to people',
-  NOTICE_BOARD: 'Notice Board',
-}
-
-/** Actions already represented by dedicated UI sections on this screen. */
-const IMPLIED_ACTIONS = new Set<LocationAction>([
-  'INSPECT',
-  'MOVE',
-  'VIEW_NEARBY',
-  'ENTER_DUNGEON',
-  'ENTER_ARENA',
-  'CHALLENGE_DUEL',
-  'START_SPARRING_DRILL',
-  'CREATE_BUY_ORDER',
-  'FULFILL_BUY_ORDER',
-  'NOTICE_BOARD',
-])
 
 type Props = {
   onSearchEncounter?: () => void
@@ -75,6 +35,9 @@ type Props = {
   onOpenMarket?: () => void
   onOpenChat?: () => void
   onOpenWorld?: () => void
+  onOpenTravel?: () => void
+  onTravelClose?: () => void
+  travelOpen?: boolean
   onOpenArena?: () => void
   onOpenSparring?: () => void
   onOpenCrafting?: () => void
@@ -115,6 +78,9 @@ export function LocationPanel({
   onOpenMarket,
   onOpenChat,
   onOpenWorld,
+  onOpenTravel,
+  onTravelClose,
+  travelOpen = false,
   onOpenArena,
   onOpenSparring,
   onOpenCrafting,
@@ -132,9 +98,20 @@ export function LocationPanel({
   const [movingToId, setMovingToId] = useState<string | null>(null)
   const [inspected, setInspected] = useState<PublicCharacterResponse | null>(null)
   const [internalTalkOpen, setInternalTalkOpen] = useState(false)
+  const [talkNpcCode, setTalkNpcCode] = useState<string | undefined>()
   const talkOpen = talkOpenProp ?? internalTalkOpen
   const openTalk = onTalkOpen ?? (() => setInternalTalkOpen(true))
   const closeTalk = onTalkClose ?? (() => setInternalTalkOpen(false))
+
+  function openTalkWith(code?: string) {
+    setTalkNpcCode(code)
+    openTalk()
+  }
+
+  function closeTalkPanel() {
+    setTalkNpcCode(undefined)
+    closeTalk()
+  }
 
   const locationQuery = useQuery({
     queryKey: ['location'],
@@ -154,6 +131,13 @@ export function LocationPanel({
     retry: false,
   })
 
+  const npcsQuery = useQuery({
+    queryKey: ['npcs'],
+    queryFn: fetchNpcs,
+    retry: false,
+    enabled: variant !== 'hero',
+  })
+
   async function handleMove(destinationLocationId: string) {
     setMoveError(null)
     setMovingToId(destinationLocationId)
@@ -167,6 +151,7 @@ export function LocationPanel({
         queryClient.invalidateQueries({ queryKey: ['quests'] }),
         queryClient.invalidateQueries({ queryKey: ['npcs'] }),
       ])
+      onTravelClose?.()
     } catch (error) {
       if (error instanceof ApiError) {
         setMoveError(error.message)
@@ -201,10 +186,12 @@ export function LocationPanel({
     return null
   }
 
-  const listedActions = location.actions.filter((action) => !IMPLIED_ACTIONS.has(action))
   const destinations = destinationsQuery.data?.destinations ?? []
   const nearby = nearbyQuery.data?.characters ?? []
   const nearbyTruncated = nearbyQuery.data?.truncated ?? false
+  const nearbyLimit = nearbyQuery.data?.limit ?? nearby.length
+  const nearbyTotal = nearbyQuery.data?.totalCount ?? nearby.length
+  const npcs = npcsQuery.data?.npcs ?? []
 
   async function inspectNearby(id: string) {
     try {
@@ -217,6 +204,22 @@ export function LocationPanel({
   const hero = variant === 'hero'
   const atYard = location.actions.includes('CHALLENGE_DUEL') || location.actions.includes('START_SPARRING_DRILL')
   const yard = showYard && atYard ? <SparringYardPanel /> : null
+
+  if (hero && noticeOpen) {
+    return (
+      <>
+        <div
+          className="game-column location-hero location-hero-board"
+          data-testid="location-panel"
+          data-workspace="notice-board"
+        >
+          <LocationBoardScene location={location} />
+          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalk} />
+        </div>
+        {yard}
+      </>
+    )
+  }
 
   if (hero) {
     return (
@@ -231,6 +234,7 @@ export function LocationPanel({
             searchError={searchError}
             onSearchEncounter={onSearchEncounter}
             onOpenWorld={onOpenWorld}
+            onOpenTravel={onOpenTravel}
             onOpenMarket={onOpenMarket}
             onOpenChat={onOpenChat}
             onOpenExpedition={onOpenExpedition}
@@ -243,36 +247,44 @@ export function LocationPanel({
             noticeOpen={noticeOpen}
             onMove={(id) => void handleMove(id)}
           />
-          {onNoticeOpen ? (
-            <NoticeBoard
-              locationCode={location.code}
-              open={noticeOpen}
-              onClose={() => onNoticeClose?.()}
-              onOpenTalk={openTalk}
-            />
-          ) : null}
           <LocationQuestAction
             locationCode={location.code}
             onOpenTalk={openTalk}
             onSearchEncounter={onSearchEncounter}
             onOpenWorld={onOpenWorld}
           />
-          <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
+          <NpcDialogue
+            open={talkOpen}
+            onClose={closeTalkPanel}
+            onOpenMarket={onOpenMarket}
+            initialNpcCode={talkNpcCode}
+          />
         </div>
         {yard}
       </>
     )
   }
 
+  const openTravel = onOpenTravel ?? (() => undefined)
+  const closeTravel = onTravelClose ?? (() => undefined)
+  const safe = location.safety === 'SAFE'
+
   return (
-    <div className="game-column game-column-center" data-testid="location-panel" id="world">
-          <div className="location-hero location-page-banner">
+    <div className="locations-workspace" data-testid="location-panel" id="world">
+      {noticeOpen ? (
+        <div className="location-hero location-hero-board" data-workspace="notice-board">
+          <LocationBoardScene location={location} />
+          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalk} />
+        </div>
+      ) : (
+        <div className="locations-split">
+          <div className="locations-hero-well">
             <div
               className="location-hero-art"
               aria-hidden="true"
               style={{ backgroundImage: `url(${locationArtUrl(location.code)})` }}
             />
-            <div className="location-hero-body">
+            <div className="locations-hero-overlay">
               <div className="location-hero-identity">
                 <LocationCrest />
                 <div>
@@ -294,226 +306,180 @@ export function LocationPanel({
               <p className="location-hero-pills">
                 <span
                   className={
-                    location.safety === 'SAFE'
-                      ? 'location-hero-pill location-hero-pill-safe'
-                      : 'location-hero-pill location-hero-pill-danger'
+                    safe ? 'location-hero-pill location-hero-pill-safe' : 'location-hero-pill location-hero-pill-danger'
                   }
                   data-testid="location-safety"
                 >
-                  <LocationIcon name={location.safety === 'SAFE' ? 'spark' : 'danger'} />
-                  {location.safety === 'SAFE' ? 'Safe Zone' : 'Dangerous'}
+                  <LocationIcon name={safe ? 'spark' : 'danger'} />
+                  {safe ? 'Safe Zone' : 'Dangerous'}
                 </span>
                 <span className="location-hero-pill location-hero-pill-muted" data-testid="location-pvp">
-                  <LocationIcon name={location.safety === 'SAFE' ? 'nopvp' : 'pve'} />
-                  {location.safety === 'SAFE' ? 'No PvP' : 'PvE'}
+                  <LocationIcon name={safe ? 'nopvp' : 'pve'} />
+                  {safe ? 'No PvP' : 'PvE'}
                 </span>
                 <span className="muted" data-testid="location-code">
                   {location.code}
                 </span>
               </p>
-            </div>
-          </div>
-          {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
-          {location.actions.includes('ENTER_ARENA') ? (
-            <Button type="button" data-testid="enter-arena-action" onClick={() => onOpenArena?.()}>
-              Open Arena
-            </Button>
-          ) : null}
-          {atYard ? (
-            <Button type="button" data-testid="enter-sparring-action" onClick={() => onOpenSparring?.()}>
-              {showYard ? 'Back to location' : 'Open duels'}
-            </Button>
-          ) : null}
-          {yard}
-
-          <section className="location-section" aria-labelledby="destinations-heading">
-            <h3 id="destinations-heading">Travel</h3>
-            {destinationsQuery.isLoading ? (
-              <LoadingState>Loading destinations…</LoadingState>
-            ) : destinations.length === 0 ? (
-              <EmptyState>No connected destinations.</EmptyState>
-            ) : (
-              <ul className="destination-list" data-testid="destination-list">
-                {destinations.map((destination) => (
-                  <li key={destination.id}>
-                    <div>
-                      <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
-                      <span className="muted">
-                        {' '}
-                        · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
-                        {destination.recommendedLevelMin != null
-                          ? ` · Lv ${destination.recommendedLevelMin}–${destination.recommendedLevelMax}`
-                          : ''}
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      data-testid={`destination-${destination.code}`}
-                      disabled={movingToId !== null}
-                      onClick={() => void handleMove(destination.id)}
-                    >
-                      {movingToId === destination.id ? 'Traveling…' : 'Travel'}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {moveError ? (
-              <p className="form-error" role="alert" data-testid="move-error">
-                {moveError}
-              </p>
-            ) : null}
-          </section>
-
-          {listedActions.length > 0 ? (
-            <section className="location-section" aria-labelledby="actions-heading">
-              <h3 id="actions-heading">Available actions</h3>
-              <ul className="action-list" data-testid="location-actions">
-                {listedActions.map((action) => (
-                  <li key={action} data-testid={`action-${action}`}>
-                    <span>{ACTION_LABELS[action]}</span>
-                    {action === 'SEARCH_ENCOUNTER' ? (
-                      <Button
-                        type="button"
-                        data-testid="search-encounter-button"
-                        disabled={searchBusy || !onSearchEncounter}
-                        onClick={() => onSearchEncounter?.()}
-                      >
-                        {searchBusy ? 'Searching…' : 'Search'}
-                      </Button>
-                    ) : action === 'START_EXPEDITION' || action === 'INSPECT_EXPEDITIONS' ? (
-                      <Button
-                        type="button"
-                        data-testid={
-                          action === 'START_EXPEDITION' ? 'start-expedition-action' : 'inspect-expedition-action'
-                        }
-                        disabled={!onOpenExpedition}
-                        onClick={() => onOpenExpedition?.()}
-                      >
-                        Open
-                      </Button>
-                    ) : action === 'BROWSE_MARKET' ||
-                      action === 'CREATE_LISTING' ||
-                      action === 'BUY_ITEM' ||
-                      action === 'CANCEL_LISTING' ||
-                      action === 'CREATE_BUY_ORDER' ||
-                      action === 'FULFILL_BUY_ORDER' ? (
-                      <Button
-                        type="button"
-                        data-testid={`open-market-${action}`}
-                        disabled={!onOpenMarket}
-                        onClick={() => onOpenMarket?.()}
-                      >
-                        Open
-                      </Button>
-                    ) : action === 'CRAFT' || action === 'CLAIM_CRAFT' || action === 'SALVAGE' ? (
-                      <Button
-                        type="button"
-                        data-testid={action === 'CRAFT' ? 'open-crafting-action' : `open-crafting-${action}`}
-                        disabled={!onOpenCrafting}
-                        onClick={() => onOpenCrafting?.()}
-                      >
-                        Open
-                      </Button>
-                    ) : action === 'TALK_NPCS' ? (
-                      <Button type="button" data-testid="talk-npcs-action" onClick={openTalk}>
-                        Talk
-                      </Button>
-                    ) : action === 'VIEW_CHAT' ? (
-                      <Button
-                        type="button"
-                        data-testid="open-chat-action"
-                        disabled={!onOpenChat}
-                        onClick={() => onOpenChat?.()}
-                      >
-                        Show
-                      </Button>
-                    ) : (
-                      <span className="action-status available">Available</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              {location.actions.includes('ENTER_DUNGEON') ? <DungeonPanel atEntrance /> : null}
+              <nav className="location-place-verbs" aria-label="Place actions">
+                <HeroTile
+                  testId="hero-travel"
+                  icon="compass"
+                  title="Travel"
+                  subtitle="Change location"
+                  onClick={() => openTravel()}
+                />
+                {location.actions.includes('SEARCH_ENCOUNTER') ? (
+                  <HeroTile
+                    testId="search-encounter-button"
+                    icon="search"
+                    title={searchBusy ? 'Searching…' : 'Search'}
+                    subtitle="Hunt nearby"
+                    disabled={searchBusy || !onSearchEncounter}
+                    onClick={() => onSearchEncounter?.()}
+                  />
+                ) : null}
+                {onNoticeOpen && location.actions.includes('NOTICE_BOARD') ? (
+                  <HeroTile
+                    testId="hero-notice"
+                    icon="notice"
+                    title="Notice"
+                    subtitle="Quest board"
+                    selected={noticeOpen}
+                    onClick={() => onNoticeOpen()}
+                  />
+                ) : null}
+                {location.actions.includes('ENTER_ARENA') ? (
+                  <HeroTile
+                    testId="enter-arena-action"
+                    icon="arena"
+                    title="Arena"
+                    subtitle="Challenge defenders"
+                    onClick={() => onOpenArena?.()}
+                  />
+                ) : null}
+                {atYard ? (
+                  <HeroTile
+                    testId="enter-sparring-action"
+                    icon="arena"
+                    title={showYard ? 'Back' : 'Duels'}
+                    subtitle="Live spars & drills"
+                    selected={showYard}
+                    onClick={() => onOpenSparring?.()}
+                  />
+                ) : null}
+              </nav>
               {searchError ? (
                 <p className="form-error" role="alert" data-testid="search-encounter-error">
                   {searchError}
                 </p>
               ) : null}
-            </section>
-          ) : null}
-
-          <section className="location-section" aria-labelledby="nearby-heading">
-            <h3 id="nearby-heading">Nearby characters</h3>
-            {nearbyQuery.isLoading ? (
-              <LoadingState>Looking around…</LoadingState>
-            ) : nearby.length === 0 ? (
-              <EmptyState testId="nearby-empty">No other characters are here.</EmptyState>
-            ) : (
-              <>
-                <ul className="nearby-list" data-testid="nearby-characters">
-                  {nearby.map((character) => (
-                    <li key={character.id} data-testid={`nearby-${character.name}`}>
-                      <button type="button" onClick={() => void inspectNearby(character.id)}>
-                        <strong>{character.name}</strong>
-                      </button>
-                      <span className="muted">Level {character.level}</span>
+            </div>
+            {yard}
+          </div>
+          <aside className="locations-people">
+            <NpcStrip npcs={npcs} onTalk={(code) => openTalkWith(code)} />
+            <HereNowList
+              locationName={location.name}
+              characters={nearby}
+              loading={nearbyQuery.isLoading}
+              truncated={nearbyTruncated}
+              totalCount={nearbyTotal}
+              limit={nearbyLimit}
+              onInspect={(id) => void inspectNearby(id)}
+            />
+            {inspected ? (
+              <aside data-testid="public-inspect">
+                <h3>{inspected.name}</h3>
+                <p>
+                  Level {inspected.level} · Rating {inspected.arenaRating}
+                </p>
+                <p>
+                  STR {inspected.strength} AGI {inspected.agility} END {inspected.endurance} PER {inspected.perception}
+                </p>
+                <ul>
+                  {inspected.equipment.map((item) => (
+                    <li key={item.slot}>
+                      {item.slot}: {item.displayName}
                     </li>
                   ))}
                 </ul>
-                {nearbyTruncated ? (
-                  <p className="muted" data-testid="nearby-truncated">
-                    Showing the first {nearby.length} characters here.
-                  </p>
-                ) : null}
-              </>
-            )}
-          </section>
-          {inspected ? (
-            <aside data-testid="public-inspect">
-              <h3>{inspected.name}</h3>
-              <p>
-                Level {inspected.level} · Rating {inspected.arenaRating}
-              </p>
-              <p>
-                STR {inspected.strength} AGI {inspected.agility} END {inspected.endurance} PER{' '}
-                {inspected.perception}
-              </p>
-              <ul>
-                {inspected.equipment.map((item) => (
-                  <li key={item.slot}>
-                    {item.slot}: {item.displayName}
-                  </li>
-                ))}
-              </ul>
-              <Button type="button" onClick={() => setInspected(null)}>
-                Close
-              </Button>
-            </aside>
-          ) : null}
-          {onNoticeOpen && location.actions.includes('NOTICE_BOARD') ? (
-            <Button type="button" data-testid="hero-notice" onClick={onNoticeOpen}>
-              Notice Board
+                <Button type="button" onClick={() => setInspected(null)}>
+                  Close
+                </Button>
+              </aside>
+            ) : null}
+          </aside>
+        </div>
+      )}
+      {travelOpen ? (
+        <div
+          className="locations-travel-sheet"
+          data-testid="travel-sheet"
+          role="dialog"
+          aria-labelledby="destinations-heading"
+        >
+          <div className="locations-travel-sheet-head">
+            <h3 id="destinations-heading">Travel</h3>
+            <Button type="button" data-testid="travel-sheet-close" onClick={() => closeTravel()}>
+              Close
             </Button>
+          </div>
+          {destinationsQuery.isLoading ? (
+            <LoadingState>Loading destinations…</LoadingState>
+          ) : destinations.length === 0 ? (
+            <EmptyState>No connected destinations.</EmptyState>
+          ) : (
+            <ul className="destination-list" data-testid="destination-list">
+              {destinations.map((destination) => (
+                <li key={destination.id}>
+                  <div>
+                    <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
+                    <span className="muted">
+                      {' '}
+                      · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
+                      {destination.recommendedLevelMin != null
+                        ? ` · Lv ${destination.recommendedLevelMin}–${destination.recommendedLevelMax}`
+                        : ''}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    data-testid={`destination-${destination.code}`}
+                    disabled={movingToId !== null}
+                    onClick={() => void handleMove(destination.id)}
+                  >
+                    {movingToId === destination.id ? 'Traveling…' : 'Travel'}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {moveError ? (
+            <p className="form-error" role="alert" data-testid="move-error">
+              {moveError}
+            </p>
           ) : null}
-          {onNoticeOpen ? (
-            <NoticeBoard
-              locationCode={location.code}
-              open={noticeOpen}
-              onClose={() => onNoticeClose?.()}
-              onOpenTalk={openTalk}
-            />
-          ) : null}
-          <LocationQuestAction
-            locationCode={location.code}
-            onOpenTalk={openTalk}
-            onSearchEncounter={onSearchEncounter}
-            onOpenWorld={onOpenWorld}
-          />
-          <NpcDialogue open={talkOpen} onClose={closeTalk} onOpenMarket={onOpenMarket} />
+        </div>
+      ) : null}
+      {noticeOpen ? null : (
+        <LocationQuestAction
+          locationCode={location.code}
+          onOpenTalk={openTalk}
+          onSearchEncounter={onSearchEncounter}
+          onOpenWorld={onOpenWorld}
+        />
+      )}
+      <NpcDialogue
+        open={talkOpen}
+        onClose={closeTalkPanel}
+        onOpenMarket={onOpenMarket}
+        initialNpcCode={talkNpcCode}
+      />
     </div>
   )
 }
-
 export type LocationHeroProps = {
   location: LocationResponse
   destinations: DestinationResponse[]
@@ -525,6 +491,7 @@ export type LocationHeroProps = {
   clock?: string
   onSearchEncounter?: () => void
   onOpenWorld?: () => void
+  onOpenTravel?: () => void
   onOpenMarket?: () => void
   onOpenChat?: () => void
   onOpenExpedition?: () => void
@@ -556,6 +523,7 @@ function heroActionTiles({
   searchBusy,
   onSearchEncounter,
   onOpenWorld,
+  onOpenTravel,
   onOpenMarket,
   onOpenChat,
   onOpenExpedition,
@@ -575,6 +543,7 @@ function heroActionTiles({
   | 'searchBusy'
   | 'onSearchEncounter'
   | 'onOpenWorld'
+  | 'onOpenTravel'
   | 'onOpenMarket'
   | 'onOpenChat'
   | 'onOpenExpedition'
@@ -596,7 +565,7 @@ function heroActionTiles({
       icon: 'compass',
       title: 'Travel',
       subtitle: 'Change location',
-      onClick: () => onOpenWorld?.(),
+      onClick: () => (onOpenTravel ?? onOpenWorld)?.(),
     },
   ]
 
@@ -750,6 +719,38 @@ function heroActionTiles({
   return tiles.slice(0, 6)
 }
 
+function LocationBoardScene({ location }: { location: LocationResponse }) {
+  return (
+    <div className="location-board-scene" data-testid="notice-board-scene">
+      <span className="location-board-corner location-board-corner-bl" aria-hidden="true" />
+      <span className="location-board-corner location-board-corner-br" aria-hidden="true" />
+      <div
+        className="location-hero-art location-board-art"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(${noticeBoardArtUrl()})` }}
+      />
+      <div className="location-board-identity">
+        <p className="location-hero-kicker">Current location</p>
+        <h2 className="location-hero-region">{location.region}</h2>
+        <p className="location-board-district" data-testid="current-location">
+          {location.name}
+        </p>
+        <p className="location-hero-pills">
+          <span
+            className={
+              location.safety === 'SAFE'
+                ? 'location-hero-pill location-hero-pill-safe'
+                : 'location-hero-pill location-hero-pill-danger'
+            }
+          >
+            {location.safety === 'SAFE' ? 'Safe Zone' : 'Dangerous'}
+          </span>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export function LocationHero({
   location,
   destinations,
@@ -760,6 +761,7 @@ export function LocationHero({
   clock: clockOverride,
   onSearchEncounter,
   onOpenWorld,
+  onOpenTravel,
   onOpenMarket,
   onOpenChat,
   onOpenExpedition,
@@ -783,6 +785,7 @@ export function LocationHero({
     searchBusy,
     onSearchEncounter,
     onOpenWorld,
+    onOpenTravel,
     onOpenMarket,
     onOpenChat,
     onOpenExpedition,

@@ -95,18 +95,20 @@ export function NoticeBoard({ locationCode, open, onClose }: Props) {
 
   return (
     <aside
-      className={`notice-board notice-board-${mode.toLowerCase()}`}
+      className={`notice-board notice-board--${mode.toLowerCase()}`}
       data-testid="notice-board"
       data-mode={mode}
     >
+      <span className="notice-board-corner notice-board-corner-bl" aria-hidden="true" />
+      <span className="notice-board-corner notice-board-corner-br" aria-hidden="true" />
       <header className="notice-board-header">
-        <div>
-          <p className="type-micro">Notice Board</p>
-          <h3>Available Quests</h3>
+        <div className="notice-board-titleblock">
+          <h3>Notice Board</h3>
+          <p>Available Quests</p>
         </div>
         <div className="notice-board-toolbar">
           <label className="notice-board-filter">
-            <span className="visually-hidden">Filter</span>
+            <span>Filter</span>
             <select
               data-testid="notice-board-filter"
               value={filter}
@@ -119,7 +121,7 @@ export function NoticeBoard({ locationCode, open, onClose }: Props) {
               ))}
             </select>
           </label>
-          <button type="button" className="btn btn-ghost" data-testid="notice-board-close" onClick={onClose}>
+          <button type="button" className="notice-board-close" data-testid="notice-board-close" onClick={onClose}>
             Close
           </button>
         </div>

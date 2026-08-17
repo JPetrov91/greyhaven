@@ -2,7 +2,7 @@ import type { QuestResponse } from '../../api/types'
 import { Button } from '../../ui/Button'
 import { LoadingState } from '../../ui/LoadingState'
 import { npcPortraitUrl } from '../../ui/npcMedia'
-import { formatDifficulty, formatQuestType, questArtworkUrl, rewardChips } from './questBoardUtils'
+import { formatDifficulty, formatQuestType, questArtworkUrl, questTypeArtUrl, questTypeTone, rewardChips } from './questBoardUtils'
 
 type Props = {
   quest: QuestResponse | undefined
@@ -25,16 +25,21 @@ export function QuestPreview({ quest, loading, accepting, acceptError, onAccept,
   const artwork = questArtworkUrl(quest)
   const available = quest.status === 'AVAILABLE'
   const rewards = rewardChips(quest.rewards)
+  const typeKey = quest.questType ?? quest.category
+  const tone = questTypeTone(typeKey)
 
   return (
-    <div className="notice-preview-body" data-testid={`notice-preview-${quest.code}`}>
+    <div className={`notice-preview-body notice-preview-body--${tone}`} data-testid={`notice-preview-${quest.code}`}>
       <header className="notice-preview-header">
-        <h3>{quest.name}</h3>
-        <p className="muted">
-          {formatQuestType(quest.questType ?? quest.category)}
-          {' · '}
-          Recommended Level: {quest.recommendedLevel}
-        </p>
+        <img className="notice-preview-type-art" src={questTypeArtUrl(typeKey)} alt="" />
+        <div>
+          <h3>{quest.name}</h3>
+          <p className="muted">
+            {formatQuestType(typeKey)}
+            {' · '}
+            Recommended Level: {quest.recommendedLevel}
+          </p>
+        </div>
       </header>
       {artwork ? (
         <div
@@ -87,7 +92,10 @@ export function QuestPreview({ quest, loading, accepting, acceptError, onAccept,
         <h4>Rewards</h4>
         <ul className="notice-preview-rewards">
           {rewards.map((reward) => (
-            <li key={reward}>{reward}</li>
+            <li key={reward.key} className="notice-board-chip" aria-label={`${reward.label} ${reward.kind === 'GOLD' ? 'Gold' : reward.kind}`}>
+              {reward.iconUrl ? <img src={reward.iconUrl} alt="" /> : null}
+              <strong>{reward.label}</strong>
+            </li>
           ))}
         </ul>
       </section>

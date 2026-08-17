@@ -76,11 +76,19 @@ public class WorldApplicationService {
 				character.characterId(),
 				NEARBY_CHARACTER_LIMIT + 1);
 
+		boolean truncated = found.size() > NEARBY_CHARACTER_LIMIT;
 		List<NearbyCharacterView> characters = found.stream()
 				.limit(NEARBY_CHARACTER_LIMIT)
-				.map(other -> new NearbyCharacterView(other.characterId(), other.name(), other.level()))
+				.map(other -> new NearbyCharacterView(
+						other.characterId(),
+						other.name(),
+						other.level(),
+						other.avatarCode()))
 				.toList();
-		return new NearbyCharactersView(characters, found.size() > NEARBY_CHARACTER_LIMIT);
+		long totalCount = truncated
+				? characterLocationService.countOthersAt(character.currentLocationId(), character.characterId())
+				: characters.size();
+		return new NearbyCharactersView(characters, truncated, NEARBY_CHARACTER_LIMIT, totalCount);
 	}
 
 	@Transactional

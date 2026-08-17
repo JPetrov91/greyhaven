@@ -369,11 +369,14 @@ export type NearbyCharacterResponse = {
   id: string
   name: string
   level: number
+  avatarCode: string
 }
 
 export type NearbyCharactersResponse = {
   characters: NearbyCharacterResponse[]
   truncated: boolean
+  limit: number
+  totalCount: number
 }
 
 export type ExpeditionStrategy = 'CAUTIOUS' | 'BALANCED' | 'AGGRESSIVE'

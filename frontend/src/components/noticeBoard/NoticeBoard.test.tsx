@@ -68,7 +68,8 @@ describe('NoticeBoard', () => {
     expect(await screen.findByTestId('notice-quest-QST_RAT_PROBLEM')).toBeTruthy()
     expect(screen.getByTestId('notice-board').getAttribute('data-mode')).toBe('LIST')
     expect(screen.getByTestId('notice-quest-QST_MISSING_CARAVAN')).toHaveProperty('disabled', true)
-    expect(screen.getByTestId('notice-rewards-QST_RAT_PROBLEM').textContent).toContain('80 XP')
+    expect(screen.getByTestId('notice-rewards-QST_RAT_PROBLEM').textContent).toContain('80')
+    expect(screen.getByLabelText('80 XP')).toBeTruthy()
   })
 
   it('expands left into preview and accepts without leaving the board route', async () => {
@@ -132,7 +133,9 @@ describe('NoticeBoard', () => {
     fireEvent.click(await screen.findByTestId('notice-quest-QST_RAT_PROBLEM'))
     expect(screen.getByTestId('notice-board').getAttribute('data-mode')).toBe('PREVIEW')
     expect(screen.getByTestId('notice-board-list')).toBeTruthy()
-    expect((await screen.findByTestId('notice-preview-difficulty')).textContent).toBe('Easy')
+    const preview = await screen.findByTestId('notice-preview-QST_RAT_PROBLEM')
+    expect(screen.getByTestId('notice-board').contains(preview)).toBe(true)
+    expect(screen.getByTestId('notice-preview-difficulty').textContent).toBe('Easy')
     fireEvent.click(screen.getByTestId('notice-accept'))
     await waitFor(() => {
       expect(acceptQuest).toHaveBeenCalledWith('QST_RAT_PROBLEM')

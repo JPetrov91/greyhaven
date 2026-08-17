@@ -28,7 +28,7 @@ import { MasteryPanel } from './MasteryPanel'
 import { ArenaPanel } from './ArenaPanel'
 import { PvpCombatPanel } from './PvpCombatPanel'
 import { ErrorState } from '../ui/ErrorState'
-import { gameLink, gameViewFromLocation } from '../ui/gameNav'
+import { gameLink, gameTravelLink, gameViewFromLocation, isTravelSheetOpen } from '../ui/gameNav'
 import { LoadingState } from '../ui/LoadingState'
 
 const MARKET_PANEL = 'market'
@@ -160,6 +160,9 @@ export function GameLayout() {
     onOpenMarket: () => toggleMarket(true),
     onOpenChat: () => document.getElementById('global-chat')?.scrollIntoView({ block: 'nearest' }),
     onOpenWorld: () => navigate(gameLink('world')),
+    onOpenTravel: () => navigate(gameTravelLink()),
+    onTravelClose: () => navigate(gameLink('world')),
+    travelOpen: isTravelSheetOpen(location),
     onOpenArena: () => navigate(gameLink('pvp')),
     onOpenSparring: () => navigate(showYard ? gameLink('home') : gameLink('sparring')),
     onOpenCrafting: () => navigate(gameLink('crafting')),
@@ -244,14 +247,21 @@ export function GameLayout() {
   } else if (view === 'crafting') {
     mainContent = <CraftingPanel />
   } else if (view === 'world') {
-    mainContent = <LocationPanel variant="full" {...locationHandlers} />
+    mainContent = (
+      <div className={`locations-dashboard${noticeOpen ? ' locations-dashboard-board' : ''}`}>
+        <LocationPanel variant="full" {...locationHandlers} />
+        <div id="global-chat" className="locations-chat">
+          <ChatPanel />
+        </div>
+      </div>
+    )
   } else if (view === 'quests') {
     mainContent = <QuestLogPanel />
   } else {
     mainContent = (
-      <div className="home-dashboard">
+      <div className={`home-dashboard${noticeOpen ? ' home-dashboard-board' : ''}`}>
         <LocationPanel variant="hero" {...locationHandlers} />
-        {showYard ? null : (
+        {showYard || noticeOpen ? null : (
           <div className="home-mid-row">
             <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
             <EquipmentOverviewCard />

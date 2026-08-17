@@ -5,6 +5,7 @@ import java.util.UUID;
 public record NearbyCharacterResponse(
 		UUID id,
 		String name,
-		int level
+		int level,
+		String avatarCode
 ) {
 }

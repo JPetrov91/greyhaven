@@ -70,10 +70,11 @@ vi.mock('./MasteryPanel', () => ({
 }))
 
 vi.mock('./LocationPanel', () => ({
-  LocationPanel: ({ showYard }: { showYard?: boolean }) => (
+  LocationPanel: ({ showYard, travelOpen }: { showYard?: boolean; travelOpen?: boolean }) => (
     <div>
       location
       {showYard ? <div data-testid="sparring-yard-panel">yard</div> : null}
+      {travelOpen ? <div data-testid="travel-sheet">travel</div> : null}
     </div>
   ),
 }))
@@ -224,5 +225,34 @@ describe('GameLayout', () => {
     expect(screen.getByTestId('chat-panel')).toBeTruthy()
     expect(screen.getByText('activity')).toBeTruthy()
     expect(screen.getByText('nav')).toBeTruthy()
+  })
+
+  it('shows chat on Locations without the Home dashboard mid-row', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
+
+    renderGame('/game#world')
+
+    expect(await screen.findByTestId('chat-panel')).toBeTruthy()
+    expect(screen.getByText('location')).toBeTruthy()
+    expect(screen.queryByTestId('guild-placeholder')).toBeNull()
+    expect(screen.queryByText('character')).toBeNull()
+    expect(screen.queryByText('equipment-overview')).toBeNull()
+    expect(screen.queryByText('expedition')).toBeNull()
+    expect(screen.queryByTestId('travel-sheet')).toBeNull()
+  })
+
+  it('opens the Locations travel sheet from the travel query', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
+
+    renderGame('/game?travel=1#world')
+
+    expect(await screen.findByTestId('travel-sheet')).toBeTruthy()
+    expect(screen.getByTestId('chat-panel')).toBeTruthy()
   })
 })

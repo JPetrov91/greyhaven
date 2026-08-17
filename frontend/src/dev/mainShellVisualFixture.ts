@@ -129,9 +129,9 @@ export const mainShellDestinations: DestinationResponse[] = [
 ]
 
 export const mainShellNearby: NearbyCharacterResponse[] = [
-  { id: 'near-mira', name: 'Mira Calden', level: 44 },
-  { id: 'near-osric', name: 'Osric Vale', level: 51 },
-  { id: 'near-brann', name: 'Brann Holt', level: 39 },
+  { id: 'near-mira', name: 'Mira Calden', level: 44, avatarCode: 'female_veiled' },
+  { id: 'near-osric', name: 'Osric Vale', level: 51, avatarCode: 'male_unyielding' },
+  { id: 'near-brann', name: 'Brann Holt', level: 39, avatarCode: 'male_iron_vow' },
 ]
 
 const equippedItems: InventoryItemResponse[] = [
