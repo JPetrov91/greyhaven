@@ -161,7 +161,7 @@ public class NpcApplicationService {
 			return issuedSteelView(
 					npc,
 					IssuedSteelCopy.confirm(family) + "\n" + IssuedSteelCopy.AFTER_GRANT,
-					List.of(new NpcTalkActionView("CLOSE", null, null, "Close")));
+					afterGrantActions(quest.code()));
 		}
 		if ("READY_TO_TURN_IN".equals(quest.status())) {
 			IssuedSteelSearchOutcome outcome = quest.lastSearchOutcome() == null
@@ -186,13 +186,18 @@ public class NpcApplicationService {
 				new NpcTalkActionView("CLOSE", null, null, "Not now")));
 	}
 
+	private static List<NpcTalkActionView> afterGrantActions(String questCode) {
+		return List.of(
+				new NpcTalkActionView("OPEN_TRAVEL", questCode, null, "I’ll walk", null, "ILL_WALK"),
+				new NpcTalkActionView("CLOSE", null, null, "Close"));
+	}
+
 	private static List<NpcTalkActionView> kitChoiceActions(String questCode) {
 		return List.of(
 				new NpcTalkActionView("CHOOSE_KIT", questCode, null, "Sword", IssuedSteelCopy.HINT_SHIELD, "SWORD"),
 				new NpcTalkActionView("CHOOSE_KIT", questCode, null, "Axe", IssuedSteelCopy.HINT_SHIELD, "AXE"),
 				new NpcTalkActionView("CHOOSE_KIT", questCode, null, "Mace", IssuedSteelCopy.HINT_SHIELD, "MACE"),
-				new NpcTalkActionView("CHOOSE_KIT", questCode, null, "Daggers", IssuedSteelCopy.HINT_DAGGERS, "DAGGERS"),
-				new NpcTalkActionView("CLOSE", null, null, "Not now"));
+				new NpcTalkActionView("CHOOSE_KIT", questCode, null, "Daggers", IssuedSteelCopy.HINT_DAGGERS, "DAGGERS"));
 	}
 
 	private static NpcTalkView issuedSteelView(NpcDefinitionEntity npc, String text, List<NpcTalkActionView> actions) {
@@ -207,22 +212,6 @@ public class NpcApplicationService {
 	}
 
 	private static NpcView toView(NpcDefinitionEntity npc, List<QuestView> quests) {
-		List<String> badges = new ArrayList<>();
-		for (QuestView quest : quests) {
-			if ("AVAILABLE".equals(quest.status()) && npc.getCode().equals(quest.startNpcCode())) {
-				badges.add("AVAILABLE_QUEST");
-			}
-			if ("COMPLETED".equals(quest.status()) && quest.repeatable() && npc.getCode().equals(quest.startNpcCode())) {
-				badges.add("AVAILABLE_QUEST");
-			}
-			if ("READY_TO_TURN_IN".equals(quest.status()) && npc.getCode().equals(quest.turnInNpcCode())) {
-				badges.add("TURN_IN");
-			}
-			if ("ACTIVE".equals(quest.status())
-					&& (npc.getCode().equals(quest.startNpcCode()) || npc.getCode().equals(quest.turnInNpcCode()))) {
-				badges.add("ACTIVE");
-			}
-		}
 		return new NpcView(
 				npc.getCode(),
 				npc.getName(),
@@ -233,7 +222,37 @@ public class NpcApplicationService {
 				npc.getLocationCode(),
 				npc.getMerchantCode(),
 				parseInteractions(npc.getInteractions()),
-				badges.stream().distinct().toList());
+				questBadge(npc.getCode(), quests));
+	}
+
+	static List<String> questBadge(String npcCode, List<QuestView> quests) {
+		boolean turnIn = false;
+		boolean active = false;
+		boolean available = false;
+		for (QuestView quest : quests) {
+			if ("READY_TO_TURN_IN".equals(quest.status()) && npcCode.equals(quest.turnInNpcCode())) {
+				turnIn = true;
+			}
+			if ("ACTIVE".equals(quest.status())
+					&& (npcCode.equals(quest.startNpcCode()) || npcCode.equals(quest.turnInNpcCode()))) {
+				active = true;
+			}
+			if (("AVAILABLE".equals(quest.status())
+					|| ("COMPLETED".equals(quest.status()) && quest.repeatable()))
+					&& npcCode.equals(quest.startNpcCode())) {
+				available = true;
+			}
+		}
+		if (turnIn) {
+			return List.of("TURN_IN");
+		}
+		if (active) {
+			return List.of("ACTIVE");
+		}
+		if (available) {
+			return List.of("AVAILABLE_QUEST");
+		}
+		return List.of();
 	}
 
 	private QuestView resolveFocusedQuest(NpcDefinitionEntity npc, List<QuestView> quests, String questCode) {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchCurrentCombat } from '../api/combat'
@@ -69,15 +69,56 @@ vi.mock('./MasteryPanel', () => ({
   MasteryPanel: () => <div>mastery</div>,
 }))
 
-vi.mock('./LocationPanel', () => ({
-  LocationPanel: ({ showYard, travelOpen }: { showYard?: boolean; travelOpen?: boolean }) => (
-    <div>
-      location
-      {showYard ? <div data-testid="sparring-yard-panel">yard</div> : null}
-      {travelOpen ? <div data-testid="travel-sheet">travel</div> : null}
+vi.mock('./NpcDialogue', () => ({
+  NpcDialogue: ({ open }: { open: boolean }) => (open ? <div data-testid="home-talk-plate">talk plate</div> : null),
+}))
+
+vi.mock('./Chapter1Prologue', () => ({
+  Chapter1Prologue: ({ name, onFinished }: { name: string; onFinished: () => void }) => (
+    <div data-testid="chapter1-prologue">
+      <span>{name}</span>
+      <button type="button" onClick={onFinished}>
+        skip
+      </button>
     </div>
   ),
 }))
+
+vi.mock('./LocationPanel', async () => {
+  const { useNavigate } = await import('react-router-dom')
+  return {
+    LocationPanel: ({
+      showYard,
+      travelOpen,
+      talkOpen,
+      variant,
+      onTalkOpen,
+    }: {
+      showYard?: boolean
+      travelOpen?: boolean
+      talkOpen?: boolean
+      variant?: string
+      onTalkOpen?: (code?: string) => void
+    }) => {
+      const navigate = useNavigate()
+      return (
+        <div>
+          location
+          {variant ? <span data-testid="location-variant">{variant}</span> : null}
+          <button type="button" data-testid="mock-open-talk" onClick={() => onTalkOpen?.('MILITIA_OFFICER')}>
+            open talk
+          </button>
+          <button type="button" data-testid="mock-go-home" onClick={() => navigate('/game')}>
+            home
+          </button>
+          {talkOpen ? <div data-testid="npc-dialogue">talk</div> : null}
+          {showYard ? <div data-testid="sparring-yard-panel">yard</div> : null}
+          {travelOpen ? <div data-testid="travel-sheet">travel</div> : null}
+        </div>
+      )
+    },
+  }
+})
 
 vi.mock('./MarketPanel', () => ({
   MarketPanel: () => <section data-testid="market-panel">Marketplace</section>,
@@ -136,12 +177,15 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function renderGame(path: string) {
+function renderGame(path: string, state?: object) {
+  const url = new URL(path, 'http://localhost')
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter
+      initialEntries={[{ pathname: url.pathname, search: url.search, hash: url.hash, state }]}
+    >
       <QueryClientProvider client={queryClient}>
         <GameLayout />
       </QueryClientProvider>
@@ -254,5 +298,53 @@ describe('GameLayout', () => {
 
     expect(await screen.findByTestId('travel-sheet')).toBeTruthy()
     expect(screen.getByTestId('chat-panel')).toBeTruthy()
+  })
+
+  it('does not carry Locations talk onto Home', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
+
+    renderGame('/game#world')
+
+    expect(await screen.findByTestId('location-variant')).toHaveProperty('textContent', 'full')
+    fireEvent.click(screen.getByTestId('mock-open-talk'))
+    expect(screen.getByTestId('npc-dialogue')).toBeTruthy()
+    fireEvent.click(screen.getByTestId('mock-go-home'))
+    expect(await screen.findByTestId('location-variant')).toHaveProperty('textContent', 'hero')
+    expect(screen.queryByTestId('npc-dialogue')).toBeNull()
+  })
+
+  it('plays the chapter prologue from create state and then shows Locations', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
+
+    renderGame('/game#world', { chapter1Prologue: true, characterName: 'Thorne' })
+
+    expect(screen.getByTestId('chapter1-prologue')).toBeTruthy()
+    expect(screen.getByText('Thorne')).toBeTruthy()
+    expect(screen.queryByTestId('game-layout')).toBeNull()
+    fireEvent.click(screen.getByText('skip'))
+    expect(await screen.findByTestId('location-variant')).toHaveProperty('textContent', 'full')
+    expect(screen.queryByTestId('chapter1-prologue')).toBeNull()
+  })
+
+  it('opens Home People Talk on the dashboard without leaving Home', async () => {
+    vi.mocked(fetchCurrentCombat).mockResolvedValue(null)
+    vi.mocked(fetchCurrentEncounter).mockResolvedValue(null)
+    vi.mocked(fetchCurrentExpedition).mockResolvedValue(null)
+    vi.mocked(fetchCurrentLocation).mockResolvedValue(CITY_SQUARE)
+
+    renderGame('/game')
+
+    expect(await screen.findByTestId('location-variant')).toHaveProperty('textContent', 'hero')
+    expect(screen.queryByTestId('npc-dialogue')).toBeNull()
+    fireEvent.click(screen.getByTestId('mock-open-talk'))
+    expect(screen.getByTestId('location-variant')).toHaveProperty('textContent', 'hero')
+    expect(screen.getByTestId('npc-dialogue')).toBeTruthy()
+    expect(screen.getByTestId('home-talk-plate')).toBeTruthy()
   })
 })

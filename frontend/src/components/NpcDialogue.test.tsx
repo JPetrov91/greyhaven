@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { NpcDialogue } from './NpcDialogue'
+import { NpcDialogue, talkParagraphs } from './NpcDialogue'
 
 vi.mock('../api/npcs', () => ({
   fetchNpcs: vi.fn(),
@@ -182,5 +182,73 @@ describe('NpcDialogue', () => {
     expect(await screen.findByTestId('npc-talk-text')).toHaveProperty('textContent', 'Old Town is restless.')
     expect(screen.queryByTestId('talk-npc-MILITIA_OFFICER')).toBeNull()
     expect(talkToNpc).toHaveBeenCalledWith('MILITIA_OFFICER', undefined, undefined, undefined)
+  })
+
+  it('renders dock talk without a people directory', async () => {
+    vi.mocked(talkToNpc).mockResolvedValue({
+      code: 'MILITIA_OFFICER',
+      name: 'Watch-Sergeant Bren',
+      title: 'Militia officer',
+      portraitCode: 'militia-officer',
+      text: 'First line.\nSecond line.',
+      merchantCode: null,
+      actions: [
+        {
+          type: 'CHOOSE_KIT',
+          questCode: 'QST_MILITIA_NOTICE',
+          merchantCode: null,
+          label: 'Sword',
+          hint: 'Rusty weapon + shield',
+          action: 'SWORD',
+        },
+      ],
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NpcDialogue variant="dock" open onClose={() => undefined} initialNpcCode="MILITIA_OFFICER" />
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByTestId('npc-dialogue')).toHaveProperty('dataset')
+    expect(screen.getByTestId('npc-dialogue').getAttribute('data-variant')).toBe('dock')
+    expect(screen.queryByRole('heading', { name: 'People here' })).toBeNull()
+    expect(screen.getByTestId('npc-talk-text').querySelectorAll('p')).toHaveLength(2)
+    expect(screen.getByTestId('npc-action-CHOOSE_KIT-SWORD').querySelector('.npc-talk-reply-hint')?.textContent).toBe(
+      'Rusty weapon + shield',
+    )
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
+  })
+
+  it('opens travel from I’ll walk without talking again', async () => {
+    const onOpenTravel = vi.fn()
+    const onClose = vi.fn()
+    vi.mocked(talkToNpc).mockResolvedValue({
+      code: 'MILITIA_OFFICER',
+      name: 'Watch-Sergeant Bren',
+      title: 'Militia officer',
+      portraitCode: 'militia-officer',
+      text: 'The Square is safe enough.',
+      merchantCode: null,
+      actions: [
+        { type: 'OPEN_TRAVEL', questCode: 'QST_MILITIA_NOTICE', merchantCode: null, label: 'I’ll walk', action: 'ILL_WALK' },
+        { type: 'CLOSE', questCode: null, merchantCode: null, label: 'Close' },
+      ],
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NpcDialogue variant="dock" open onClose={onClose} onOpenTravel={onOpenTravel} initialNpcCode="MILITIA_OFFICER" />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(await screen.findByTestId('npc-action-OPEN_TRAVEL-ILL_WALK'))
+    expect(onOpenTravel).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('splits spoken copy into one bubble per paragraph', () => {
+    expect(talkParagraphs('Greyhaven still opens the gates.\n\nOld Town has been eating drunks.')).toEqual([
+      'Greyhaven still opens the gates.',
+      'Old Town has been eating drunks.',
+    ])
   })
 })

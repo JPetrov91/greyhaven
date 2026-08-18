@@ -6,7 +6,7 @@
 **NPC:** Watch-Sergeant Bren (`MILITIA_OFFICER`), City Square  
 **Follow-up (out of this file’s copy):** `QST_ARM_THE_WATCH` becomes the Edric **upgrade** beat, not the first family choice  
 **Governs:** first-quest start, kit grant, objectives, copy, **first-iteration UI**, acceptance  
-**Related:** `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md`, `docs/game-design/LOCATIONS_SCREEN.md` (where Bren’s host plate lives)  
+**Related:** `docs/game-design/STARTING_EXPERIENCE_BUSINESS_SPEC.md` (first-session BR), `docs/game-design/FIRST_FIVE_MINUTES.md`, `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md`, `docs/game-design/LOCATIONS_SCREEN.md`, `docs/game-design/README.md`  
 **Journey:** `docs/game-design/LEVEL_1_10_PLAYER_JOURNEY.md` (chapter spine; this file owns Level 1 quest copy and rules)
 
 Copy language: **English** (matches live NPC/quest strings).  
@@ -47,7 +47,7 @@ It must **not** be a silent fetch (go, click, loot) and must **not** be a lore d
 
 ### FR-1 Quest start
 
-1. After character creation, on **first entry into the world**, `QST_MILITIA_NOTICE` (or its successor code) is **ACTIVE**.  
+1. After character creation and the Chapter 1 prologue (or Skip), on **first Square idle**, `QST_MILITIA_NOTICE` (or its successor code) is **ACTIVE**.  
 2. The player must not have to discover Bren by accident; tracker and Square UI point at him.  
 3. Relog / refresh must **not** replay the opening as a blocking modal. Tracker and Bren remain.  
 4. Weapon family is **not** chosen on character creation.
@@ -103,7 +103,7 @@ If a given Search in Old Town does not start combat, Search still counts. Do not
 
 1. Tone: local, grim, practical. Watch, alleys, rust, thin patrols.  
 2. One **foreshadow** of the north road / overdue wagons — a clause, not a briefing.  
-3. Forbidden: chosen one, ancient blood, continent war, mandatory moral dilemma, 800-word intro, class names on weapon choices.  
+3. Forbidden: chosen one, ancient blood, continent war, mandatory moral dilemma, 800-word intro, class names on weapon choices. Allowed: the Chapter 1 gate prologue (`FIRST_FIVE_MINUTES.md` §2.1).  
 4. Player may skip reading flavour; **location blurbs** still carry atmosphere if Talk is mashed through.
 
 ### FR-7 Presentation (summary)
@@ -139,7 +139,8 @@ Speaker is **Watch-Sergeant Bren** unless noted. Keep line breaks as playable pa
 
 **Bren:**
 
-> Greyhaven still opens the gates at dawn. That is habit, not safety.  
+*(Gates / habit / safety already ran on the Chapter 1 card. Do not repeat that sentence.)*
+
 > Old Town has been eating drunks and runners. We are thin. I am not asking for a hero. I am asking for a pair of eyes that come back.  
 > The north road has gone quiet again — wagons overdue, same as last week. That is tomorrow’s problem. Tonight I need the alleys walked.  
 > There is rust on the rack. Better rust in your hand than an empty one.
@@ -175,7 +176,20 @@ No other lore. Return to A1 / A3.
 
 **Bren, after grant (all families):**
 
-> Old Town. Search the alleys. If steel finds you, use it — or come home without pride. Alive is a report. Go.
+> The Square is safe enough. The watch still pretends it is morning.  
+> Old Town is not. You will know it when the noise dies.  
+> Steel in your hand does not move your feet. Travel from the Square.  
+> When you are in the lanes — Search. That is how the street answers. Do not Search the Square. It has nothing to hide.  
+> Alive is a report.
+
+**Player replies:**
+
+| Id | Label | Result |
+| --- | --- | --- |
+| B-go | I’ll walk | Close Talk. Open Travel sheet on Square. SAFE highlight off. Old Town offered. |
+| B-close | Close | Close Talk. Travel plate lead on Square (same sheet if they press Travel). |
+
+On the **I’ll walk** line, the **SAFE** chip on the Square hero **pulses** (status, not a click). See `STARTING_EXPERIENCE_BUSINESS_SPEC.md` §6.2.
 
 Quest objectives 2–3 become the tracker focus. Market is not mentioned.
 
@@ -255,27 +269,34 @@ Live pieces to extend, not replace: `NpcDialogue` (People here + Talk + `!` / `?
 | Item tooltip: weapon `min–max`; shield soak `1–2` | Combat-log “block rolled 2”; armour-rating fork |
 | Quest Complete with **granted** items | Showing all four rusties as rewards before choice |
 | Relog without blocking modal | Hiding Market / Arena / Craft from nav |
-| Tracker copy from §4.8; hide `1/1` noise | Click-to-pathfind / map ping (nice-to-have later) |
+| Tracker copy from §4.8; hide `1/1` noise | Click-to-pathfind / map ping; **Talk-from-tracker** |
 
 Office-first: Talk is the existing panel, not a fullscreen takeover. Skipping flavour = pressing the next action. No session-start modal.
 
 ### 5.2 First load (City Square)
 
-1. Issued Steel is **ACTIVE** and **tracked** without a player Track click.  
-2. No modal, toast wall, or forced Talk overlay on load or refresh (AC-2).  
-3. Tracker shows name **Issued Steel** and the current §4.8 line (first: speak with Bren / equivalent of objective 1).  
-4. On Square, Bren in People here shows badge **`…` (ACTIVE)** until kit+Search are done; then **`?` (TURN_IN)** when ready to report. Do not leave him with **`!` (AVAILABLE)** if the quest is already ACTIVE — that implies Accept of an unstarted quest.  
-5. Character creation UI unchanged (name only).
+Pace and click contracts: `FIRST_FIVE_MINUTES.md`. Binding here:
+
+1. After create: **Chapter 1 prologue once** (`FIRST_FIVE_MINUTES.md` §2.1), then **Locations · City Square · idle**. Not Home, not Talk. Relog skips the prologue.  
+2. Issued Steel is **ACTIVE** and **tracked** without a player Track click.  
+3. No modal, toast wall, or forced Talk overlay on load or refresh (AC-2).  
+4. Tracker / Quest Log click **aims at the current verb** (Bren before kit, Travel after kit, Search on first Old Town). It never starts Talk and never travels.  
+5. Tracker shows name **Issued Steel** and the current §4.8 line (first: speak with Bren / equivalent of objective 1).  
+6. On Square, Bren in the NPC strip shows badge **`…` (ACTIVE)** until kit+Search are done; then **`?` (TURN_IN)** when ready to report. Do not leave him with **`!` (AVAILABLE)** if the quest is already ACTIVE.  
+7. Character creation UI unchanged (name only).
 
 ### 5.3 Talk flow (Bren)
 
-Sequential nodes in **one** Talk panel (`npc-talk-text` + action buttons). Labels = §4.3–4.4.
+**Chrome:** `LOCATIONS_SCREEN.md` §5. On Locations, Talk is the **same screen**: People here strip unchanged (Bren selected), Here now replaced by dialogue. Do not open a second “People here” directory. Home People uses the same nodes in a plate over the dashboard.
+
+Sequential nodes in **one** Talk body. Labels = §4.3–4.4.
 
 | Node | Buttons | Notes |
 | --- | --- | --- |
 | A | I’ll walk Old Town · Why me? · Not now | Not now = CLOSE, quest stays ACTIVE, **no kit** |
 | A2 | I’ll walk Old Town · Not now | After Why me?; no extra lore button |
 | B | Sword · Axe · Mace · Daggers | Primary actions. **No Bow.** |
+| B-go | I’ll walk · Close | After grant. I’ll walk opens Travel sheet. SAFE chip glows during this speech. |
 
 Weapon row must communicate the off-hand **before** confirm (subtitle or muted line under the button is enough):
 
@@ -284,7 +305,7 @@ Weapon row must communicate the off-hand **before** confirm (subtitle or muted l
 
 Do not open Market from this Talk. No Shop action on Bren.
 
-After B grant: Talk shows Bren’s “Old Town. Search…” paragraph. Actions: Close (or equivalent). Equipment/inventory queries refresh so the slot fills without a full reload.
+After B grant: Talk shows Bren’s Safe / Travel / Search speech (`§4.4`). SAFE chip glows. **I’ll walk** closes Talk and opens the Travel sheet. Close leaves Travel-plate lead. Equipment/inventory queries refresh so the slot fills without a full reload.
 
 If the player Talks again before Old Town: do not replay Node B; short reminder (progress text) + Close.
 
@@ -350,6 +371,12 @@ If the player Talks again before Old Town: do not replay Node B; short reminder 
 | AC-UI-6 | Quest log does not list all four rusty weapons as rewards before choice. |
 | AC-UI-7 | Quest Complete lists the items actually granted. |
 | AC-UI-8 | Weapon tooltip shows a damage range; rusty shield shows block 1–2. |
+| AC-UI-9 | Locations Talk uses the idle Locations frame (same hero, NPC strip, chat, activity); only Here now becomes dialogue. |
+| AC-UI-10 | Closing Talk restores Here now. |
+| AC-UI-11 | Tracker / quest-log click aims at the current verb and never opens Talk. |
+| AC-UI-14 | Post-grant Talk glows SAFE only; first Travel sheet offers Dangerous Old Town; first Old Town glows DANGEROUS + Search. |
+| AC-UI-12 | After create: Chapter 1 prologue once (or Skip), then Locations Square idle (SX-1 / FTUE-1). |
+| AC-UI-13 | First Square lead matches §6.1 of the starting-experience BR (glow + TALK + coach; no auto-Talk). |
 
 ---
 

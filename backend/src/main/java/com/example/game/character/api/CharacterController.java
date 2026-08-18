@@ -158,7 +158,8 @@ public class CharacterController {
 				toProgression(character.progression()),
 				character.createdAt(),
 				character.updatedAt(),
-				character.unlocks());
+				character.unlocks(),
+				character.chapter1Prologue());
 	}
 
 	private static ProgressionResponse toProgression(ExperienceProgress progression) {

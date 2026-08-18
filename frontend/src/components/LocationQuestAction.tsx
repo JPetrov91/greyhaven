@@ -4,10 +4,11 @@ import { fetchQuests, turnInQuest } from '../api/quests'
 import type { QuestResponse } from '../api/types'
 import { Button } from '../ui/Button'
 import { useToast } from '../ui/ToastRegion'
+import { aimsAtBren } from '../quest/issuedSteel'
 
 type Props = {
   locationCode?: string
-  onOpenTalk?: () => void
+  onAimBren?: () => void
   onSearchEncounter?: () => void
   onOpenWorld?: () => void
 }
@@ -42,7 +43,7 @@ export function actionLabel(quest: QuestResponse): string {
   return 'Continue'
 }
 
-export function LocationQuestAction({ locationCode, onOpenTalk, onSearchEncounter, onOpenWorld }: Props) {
+export function LocationQuestAction({ locationCode, onAimBren, onSearchEncounter, onOpenWorld }: Props) {
   const queryClient = useQueryClient()
   const toast = useToast()
   const questsQuery = useQuery({
@@ -78,13 +79,13 @@ export function LocationQuestAction({ locationCode, onOpenTalk, onSearchEncounte
         await turnInMutation.mutateAsync(quest.code)
       } catch (error) {
         if (error instanceof ApiError && error.code === 'QUEST_WRONG_LOCATION') {
-          onOpenTalk?.()
+          onAimBren?.()
         }
       }
       return
     }
-    if (quest.actionHint === 'TALK') {
-      onOpenTalk?.()
+    if (quest.actionHint === 'TALK' || aimsAtBren(quest)) {
+      onAimBren?.()
       return
     }
     if (quest.actionHint === 'SEARCH' || quest.actionHint === 'FIGHT') {

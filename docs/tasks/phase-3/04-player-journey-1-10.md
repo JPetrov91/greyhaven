@@ -71,6 +71,8 @@ This document becomes an authoritative Phase 3 game-design source for Tasks 05â€
 
 Later implementation tasks must follow the approved journey unless explicitly changed through a documented game-design decision.
 
+Additional locked design in the same folder (index: `docs/game-design/README.md`): starting-experience BR, first-quest BR, weapon/starter kit, Locations/Talk chrome.
+
 ---
 
 # 3. Core Design Principle

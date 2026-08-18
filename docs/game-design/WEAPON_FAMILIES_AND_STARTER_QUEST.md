@@ -6,7 +6,9 @@
 **Governs:** first quest rewards, rusty itemization, melee family identity, per-hit weapon ranges, rusty shield block  
 **Does not:** implement Combat 3.0, bow/ammo, dual-wield resolution, extra weapon families, or a second combat RNG layer (glance/engine noise) beyond what this file specifies
 
-**Copy / first-quest BR:** `docs/game-design/FIRST_QUEST_BUSINESS_REQUIREMENTS.md` (Issued Steel, Bren microscript, UI first iteration, acceptance criteria).
+**Copy / first-quest BR:** `docs/game-design/FIRST_QUEST_BUSINESS_REQUIREMENTS.md`  
+**Locations / Talk chrome:** `docs/game-design/LOCATIONS_SCREEN.md`  
+**Index:** `docs/game-design/README.md`
 
 ---
 

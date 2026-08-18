@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
@@ -20,7 +20,9 @@ import { GameTopBar } from './GameTopBar'
 import { GuildPlaceholder } from './GuildPlaceholder'
 import { EquipmentPanel } from './EquipmentPanel'
 import { InventoryPanel } from './InventoryPanel'
+import { Chapter1Prologue } from './Chapter1Prologue'
 import { LocationPanel } from './LocationPanel'
+import { NpcDialogue } from './NpcDialogue'
 import { QuestLogPanel } from './QuestLogPanel'
 import { QuestTracker } from './QuestTracker'
 import { MarketPanel } from './MarketPanel'
@@ -33,6 +35,11 @@ import { LoadingState } from '../ui/LoadingState'
 
 const MARKET_PANEL = 'market'
 
+type GameEntryState = {
+  chapter1Prologue?: boolean
+  characterName?: string
+}
+
 export function GameLayout() {
   const queryClient = useQueryClient()
   const location = useLocation()
@@ -41,7 +48,18 @@ export function GameLayout() {
   const [searchError, setSearchError] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [talkOpen, setTalkOpen] = useState(false)
+  const [talkNpcCode, setTalkNpcCode] = useState<string | undefined>()
   const [noticeOpen, setNoticeOpen] = useState(false)
+  const [leadPulse, setLeadPulse] = useState(0)
+  const entry = (location.state ?? {}) as GameEntryState
+  const showPrologue = entry.chapter1Prologue === true
+
+  useEffect(() => {
+    if (view !== 'world') {
+      setTalkOpen(false)
+      setTalkNpcCode(undefined)
+    }
+  }, [view])
 
   const [searchParams, setSearchParams] = useSearchParams()
   const showMarket = searchParams.get('panel') === MARKET_PANEL
@@ -167,12 +185,36 @@ export function GameLayout() {
     onOpenSparring: () => navigate(showYard ? gameLink('home') : gameLink('sparring')),
     onOpenCrafting: () => navigate(gameLink('crafting')),
     showYard,
-    talkOpen,
-    onTalkOpen: () => setTalkOpen(true),
-    onTalkClose: () => setTalkOpen(false),
     noticeOpen,
     onNoticeOpen: () => setNoticeOpen(true),
     onNoticeClose: () => setNoticeOpen(false),
+  }
+
+  function openLocationsTalk(code?: string) {
+    if (!code) {
+      if (view !== 'world') {
+        navigate(gameLink('world'))
+      }
+      return
+    }
+    setTalkNpcCode(code)
+    setTalkOpen(true)
+  }
+
+  function aimBren() {
+    if (view !== 'world') {
+      navigate(gameLink('world'))
+    }
+    setLeadPulse((value) => value + 1)
+  }
+
+  function closeTalk() {
+    setTalkOpen(false)
+    setTalkNpcCode(undefined)
+  }
+
+  function finishPrologue() {
+    navigate(gameLink('world'), { replace: true })
   }
 
   let mainContent
@@ -249,25 +291,56 @@ export function GameLayout() {
   } else if (view === 'world') {
     mainContent = (
       <div className={`locations-dashboard${noticeOpen ? ' locations-dashboard-board' : ''}`}>
-        <LocationPanel variant="full" {...locationHandlers} />
+        <LocationPanel
+          variant="full"
+          {...locationHandlers}
+          talkOpen={talkOpen}
+          talkNpcCode={talkNpcCode}
+          onTalkOpen={openLocationsTalk}
+          onTalkClose={closeTalk}
+          onAimBren={aimBren}
+          leadPulse={leadPulse}
+        />
         <div id="global-chat" className="locations-chat">
           <ChatPanel />
         </div>
       </div>
     )
   } else if (view === 'quests') {
-    mainContent = <QuestLogPanel />
+    mainContent = <QuestLogPanel onAimBren={aimBren} />
   } else {
     mainContent = (
       <div className={`home-dashboard${noticeOpen ? ' home-dashboard-board' : ''}`}>
-        <LocationPanel variant="hero" {...locationHandlers} />
+        <LocationPanel
+          variant="hero"
+          {...locationHandlers}
+          talkOpen={talkOpen}
+          talkNpcCode={talkNpcCode}
+          onTalkOpen={openLocationsTalk}
+          onTalkClose={closeTalk}
+          onAimBren={aimBren}
+          leadPulse={leadPulse}
+        />
+        {talkOpen ? (
+          <NpcDialogue
+            variant="overlay"
+            open
+            initialNpcCode={talkNpcCode}
+            onClose={closeTalk}
+            onOpenMarket={() => toggleMarket(true)}
+            onOpenTravel={() => {
+              closeTalk()
+              locationHandlers.onOpenTravel()
+            }}
+          />
+        ) : null}
         {showYard || noticeOpen ? null : (
           <div className="home-mid-row">
             <CharacterSummaryPanel variant="overview" mutationsDisabled={occupied} />
             <EquipmentOverviewCard />
             <QuestTracker
               locationCode={locationQuery.data?.code}
-              onOpenTalk={() => setTalkOpen(true)}
+              onAimBren={aimBren}
             />
             <ExpeditionPanel variant="card" />
           </div>
@@ -279,6 +352,12 @@ export function GameLayout() {
           <GuildPlaceholder />
         </div>
       </div>
+    )
+  }
+
+  if (showPrologue) {
+    return (
+      <Chapter1Prologue name={entry.characterName ?? 'Traveler'} onFinished={finishPrologue} />
     )
   }
 

@@ -19,6 +19,7 @@ import {
 } from '../character/avatars'
 import { CHARACTER_NAME_PATTERN, randomCharacterName } from '../character/nameRandomizer'
 import { Button } from '../ui/Button'
+import { gameLink } from '../ui/gameNav'
 import { SLOT_LABELS } from '../ui/equipmentSlots'
 import { ErrorState } from '../ui/ErrorState'
 
@@ -217,14 +218,20 @@ export function CreateCharacterPage() {
 
     setSubmitting(true)
     try {
-      await createCharacter({
+      const created = await createCharacter({
         name: trimmed,
         gender,
         avatarCode: selected.code,
         slotIndex: selectedSlot,
       })
       await refreshMe()
-      navigate('/game', { replace: true })
+      navigate(gameLink('world'), {
+        replace: true,
+        state: {
+          chapter1Prologue: created.chapter1Prologue === true,
+          characterName: created.name,
+        },
+      })
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message)

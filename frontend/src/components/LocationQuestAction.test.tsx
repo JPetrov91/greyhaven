@@ -44,7 +44,7 @@ describe('LocationQuestAction', () => {
               requiredAmount: 1,
               currentAmount: 0,
               completed: false,
-              displayText: 'Speak with Watch-Sergeant Bren',
+              displayText: 'Talk to Watch-Sergeant Bren',
               consumeOnTurnIn: false,
             },
           ],
@@ -55,20 +55,20 @@ describe('LocationQuestAction', () => {
         },
       ],
     })
-    const onOpenTalk = vi.fn()
+    const onAimBren = vi.fn()
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <ToastProvider>
         <QueryClientProvider client={queryClient}>
-          <LocationQuestAction locationCode="CITY_SQUARE" onOpenTalk={onOpenTalk} />
+          <LocationQuestAction locationCode="CITY_SQUARE" onAimBren={onAimBren} />
         </QueryClientProvider>
       </ToastProvider>,
     )
     expect(await screen.findByTestId('location-quest-objective')).toHaveProperty(
       'textContent',
-      'Speak with Watch-Sergeant Bren',
+      'Talk to Watch-Sergeant Bren',
     )
     screen.getByTestId('location-quest-cta').click()
-    expect(onOpenTalk).toHaveBeenCalled()
+    expect(onAimBren).toHaveBeenCalledTimes(1)
   })
 })

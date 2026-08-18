@@ -93,6 +93,7 @@ export type CharacterResponse = {
   createdAt: string
   updatedAt: string
   unlocks?: string[]
+  chapter1Prologue?: boolean
 }
 
 export type CombatAction =

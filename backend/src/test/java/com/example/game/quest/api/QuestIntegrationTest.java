@@ -98,15 +98,26 @@ class QuestIntegrationTest {
 						.content("{}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.actions[?(@.type=='ACCEPT')]").isEmpty())
-				.andExpect(jsonPath("$.actions[?(@.action=='WALK_OLD_TOWN')].type").value("DIALOGUE"));
+				.andExpect(jsonPath("$.actions[?(@.action=='WALK_OLD_TOWN')].type").value("DIALOGUE"))
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.startsWith("Old Town has been eating")))
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.not(
+						org.hamcrest.Matchers.containsString("gates at dawn"))));
 
 		talk(session, "WALK_OLD_TOWN", null)
 				.andExpect(jsonPath("$.text").value("What can you hold?"))
+				.andExpect(jsonPath("$.actions.length()").value(4))
 				.andExpect(jsonPath("$.actions[?(@.type=='CHOOSE_KIT')].action", org.hamcrest.Matchers.hasItems(
 						"SWORD", "AXE", "MACE", "DAGGERS")))
+				.andExpect(jsonPath("$.actions[?(@.type=='CLOSE')]").isEmpty())
 				.andExpect(jsonPath("$.actions[?(@.action=='BOW')]").isEmpty());
 
-		talk(session, "CHOOSE_KIT", "SWORD").andExpect(status().isOk());
+		talk(session, "CHOOSE_KIT", "SWORD")
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("The Square is safe enough")))
+				.andExpect(jsonPath("$.text").value(org.hamcrest.Matchers.containsString("Travel from the Square")))
+				.andExpect(jsonPath("$.actions[?(@.type=='OPEN_TRAVEL')].label").value("I’ll walk"))
+				.andExpect(jsonPath("$.actions[?(@.type=='OPEN_TRAVEL')].action").value("ILL_WALK"))
+				.andExpect(jsonPath("$.actions[?(@.type=='CLOSE')].label").value("Close"));
 		talk(session, "CHOOSE_KIT", "AXE").andExpect(status().isOk());
 		assertThat(itemCount(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(1);
 		assertThat(equippedCount(characterId, ItemCodes.RUSTY_SHIELD)).isEqualTo(1);
@@ -163,6 +174,37 @@ class QuestIntegrationTest {
 		mockMvc.perform(get("/api/v1/quests").session(session))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.quests[?(@.code=='QST_ARM_THE_WATCH')].status").value("AVAILABLE"));
+	}
+
+	@Test
+	void oldTownSearchBeforeBrenKeepsTalkObjectiveAndSingleKit() throws Exception {
+		String email = "quest-prebren-" + System.nanoTime() + "@greyhaven.test";
+		MockHttpSession session = registerWithCharacter(email);
+		UUID characterId = characterIdForEmail(email);
+
+		moveTo(session, LocationCodes.OLD_TOWN);
+		searchAndIgnore(session);
+
+		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("ACTIVE"))
+				.andExpect(jsonPath("$.kitFamily").value(org.hamcrest.Matchers.nullValue()))
+				.andExpect(jsonPath("$.objectives[0].displayText").value("Talk to Watch-Sergeant Bren"))
+				.andExpect(jsonPath("$.objectives[0].completed").value(false))
+				.andExpect(jsonPath("$.objectives[1].completed").value(true))
+				.andExpect(jsonPath("$.objectives[2].completed").value(true));
+
+		moveTo(session, LocationCodes.CITY_SQUARE);
+		talk(session, "WALK_OLD_TOWN", null);
+		talk(session, "CHOOSE_KIT", "SWORD").andExpect(status().isOk());
+		talk(session, "CHOOSE_KIT", "AXE").andExpect(status().isOk());
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_SWORD)).isEqualTo(1);
+		assertThat(itemCount(characterId, ItemCodes.RUSTY_AXE)).isZero();
+
+		mockMvc.perform(get("/api/v1/quests/" + QuestCodes.MILITIA_NOTICE).session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.kitFamily").value("SWORD"))
+				.andExpect(jsonPath("$.status").value("READY_TO_TURN_IN"));
 	}
 
 	@Test

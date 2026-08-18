@@ -35,6 +35,7 @@ public record CharacterView(
 		DerivedCombatStats derivedStats,
 		Instant createdAt,
 		Instant updatedAt,
-		List<String> unlocks
+		List<String> unlocks,
+		boolean chapter1Prologue
 ) {
 }

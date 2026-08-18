@@ -9,12 +9,18 @@ import { IconWell } from '../ui/IconWell'
 import { useToast } from '../ui/ToastRegion'
 import { Link } from 'react-router-dom'
 import { Panel } from '../ui/Panel'
+import { aimsAtBren } from '../quest/issuedSteel'
 
 const TRACK_SLOTS = 3
 
 type Props = {
   locationCode?: string
-  onOpenTalk?: () => void
+  onAimBren?: () => void
+}
+
+export function talkNpcCodeFor(quest: QuestResponse): string | undefined {
+  const code = quest.status === 'READY_TO_TURN_IN' ? quest.turnInNpcCode : quest.startNpcCode
+  return code ?? undefined
 }
 
 export function isContextualTalk(quest: QuestResponse, locationCode?: string): boolean {
@@ -45,9 +51,9 @@ function trackerObjective(quest: QuestResponse) {
   )
 }
 
-function trackerMeta(quest: QuestResponse, canTalk: boolean) {
-  if (canTalk) {
-    return 'Talk'
+function trackerMeta(quest: QuestResponse, canAim: boolean) {
+  if (canAim) {
+    return 'Look'
   }
   if (quest.status === 'READY_TO_TURN_IN') {
     return 'Report'
@@ -60,7 +66,7 @@ function progressKey(quest: QuestResponse): string {
   return `${quest.status}:${completed}`
 }
 
-export function QuestTracker({ locationCode, onOpenTalk }: Props) {
+export function QuestTracker({ onAimBren }: Props) {
   const toast = useToast()
   const previous = useRef<Map<string, string>>(new Map())
   const questsQuery = useQuery({
@@ -104,23 +110,23 @@ export function QuestTracker({ locationCode, onOpenTalk }: Props) {
         <>
           <ul className="quest-tracker-list">
             {tracked.map((quest) => {
-              const canTalk = Boolean(isContextualTalk(quest, locationCode) && onOpenTalk)
+              const canAim = Boolean(aimsAtBren(quest) && onAimBren)
               return (
                 <li key={quest.code} data-testid={`tracked-quest-${quest.code}`}>
                   <GenericRow
-                    as={canTalk ? 'button' : 'div'}
+                    as={canAim ? 'button' : 'div'}
                     className="quest-tracker-entry surface-interactive"
-                    testId={canTalk ? `tracked-talk-${quest.code}` : undefined}
-                    interactive={canTalk}
+                    testId={canAim ? `tracked-aim-${quest.code}` : undefined}
+                    interactive={canAim}
                     icon={
-                      <IconWell active={canTalk || quest.status === 'READY_TO_TURN_IN'}>
+                      <IconWell active={canAim || quest.status === 'READY_TO_TURN_IN'}>
                         <ChromeIcon name="quests" />
                       </IconWell>
                     }
                     primary={quest.name}
                     secondary={trackerObjective(quest)}
-                    metadata={trackerMeta(quest, canTalk)}
-                    onClick={canTalk ? onOpenTalk : undefined}
+                    metadata={trackerMeta(quest, canAim)}
+                    onClick={canAim ? () => onAimBren?.() : undefined}
                   />
                 </li>
               )

@@ -29,6 +29,7 @@ public record CharacterResponse(
 		ProgressionResponse progression,
 		Instant createdAt,
 		Instant updatedAt,
-		List<String> unlocks
+		List<String> unlocks,
+		boolean chapter1Prologue
 ) {
 }

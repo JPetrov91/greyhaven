@@ -10,6 +10,7 @@ import { ErrorState } from '../ui/ErrorState'
 import { LoadingState } from '../ui/LoadingState'
 import { Panel } from '../ui/Panel'
 import { Tabs } from '../ui/Tabs'
+import { ISSUED_STEEL_CODE } from '../quest/issuedSteel'
 
 type Tab = 'AVAILABLE' | 'ACTIVE' | 'COMPLETED'
 
@@ -69,7 +70,11 @@ function objectiveLine(quest: QuestResponse): string | null {
   return `${objective.displayText} ${objective.currentAmount}/${objective.requiredAmount}`
 }
 
-export function QuestLogPanel() {
+type Props = {
+  onAimBren?: () => void
+}
+
+export function QuestLogPanel({ onAimBren }: Props) {
   const queryClient = useQueryClient()
   const [tabOverride, setTabOverride] = useState<Tab | null>(null)
   const questsQuery = useQuery({
@@ -170,7 +175,20 @@ export function QuestLogPanel() {
                       <span data-testid={`quest-complete-text-${quest.code}`}>{quest.completeText}</span>
                     ) : null}
                     {line ? <span data-testid={`quest-objective-${quest.code}`}>{line}</span> : null}
-                    {place ? <span data-testid={`quest-recommended-${quest.code}`}>Recommended: {place}</span> : null}
+                    {place ? (
+                      quest.code === ISSUED_STEEL_CODE && onAimBren ? (
+                        <button
+                          type="button"
+                          className="quest-log-aim"
+                          data-testid={`quest-recommended-${quest.code}`}
+                          onClick={() => onAimBren()}
+                        >
+                          Recommended: {place}
+                        </button>
+                      ) : (
+                        <span data-testid={`quest-recommended-${quest.code}`}>Recommended: {place}</span>
+                      )
+                    ) : null}
                     <span>{rewardPreview(quest)}</span>
                   </>
                 }

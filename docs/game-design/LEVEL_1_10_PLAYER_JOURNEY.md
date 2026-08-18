@@ -22,7 +22,10 @@ Character Creation → Level 1 → … → Level 10 → first major milestone.
 
 **Change control:** if Tasks 05–11 need a different unlock, climax, or path, update this file first. Do not silently invent a second journey in content or economy work.
 
-**Weapon kit / first quest:** `docs/game-design/WEAPON_FAMILIES_AND_STARTER_QUEST.md` supersedes spawn Rusty Sword, Edric-as-first-family-choice, and single-integer weapon damage for the rusty starter set.
+**Locations UI:** `docs/game-design/LOCATIONS_SCREEN.md` (Home hub vs Locations panel vs Talk).  
+**First session (business spec):** `docs/game-design/STARTING_EXPERIENCE_BUSINESS_SPEC.md`.  
+**First session pace:** `docs/game-design/FIRST_FIVE_MINUTES.md`.  
+**Index of design docs:** `docs/game-design/README.md`
 
 ---
 

@@ -12,7 +12,9 @@ type Props = {
   open: boolean
   onClose: () => void
   onOpenMarket?: () => void
+  onOpenTravel?: () => void
   initialNpcCode?: string
+  variant?: 'overlay' | 'dock'
 }
 
 export function questBadgeMark(badge: string): string {
@@ -26,6 +28,13 @@ export function questBadgeMark(badge: string): string {
     return '…'
   }
   return ''
+}
+
+export function talkParagraphs(text: string): string[] {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
 }
 
 export function QuestCompleteSummary({ quest }: { quest: QuestResponse }) {
@@ -48,13 +57,21 @@ export function QuestCompleteSummary({ quest }: { quest: QuestResponse }) {
   )
 }
 
-export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Props) {
+export function NpcDialogue({
+  open,
+  onClose,
+  onOpenMarket,
+  onOpenTravel,
+  initialNpcCode,
+  variant = 'overlay',
+}: Props) {
   const queryClient = useQueryClient()
   const [completion, setCompletion] = useState<QuestResponse | null>(null)
+  const dock = variant === 'dock'
   const npcsQuery = useQuery({
     queryKey: ['npcs'],
     queryFn: fetchNpcs,
-    enabled: open,
+    enabled: open && !dock && !initialNpcCode,
     retry: false,
   })
   const talkMutation = useMutation({
@@ -102,10 +119,11 @@ export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Pro
       setCompletion(null)
       return
     }
+    setCompletion(null)
     if (initialNpcCode) {
       talkMutation.mutate({ code: initialNpcCode })
     }
-    // Talk is opened for a specific NPC from the Locations strip.
+    // Talk is opened for a specific NPC from the Locations strip or tracker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialNpcCode])
 
@@ -115,10 +133,18 @@ export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Pro
 
   const talk = talkMutation.data
   const npcs = npcsQuery.data?.npcs ?? []
+  const showDirectory = !dock && !initialNpcCode
 
   async function handleAction(talkView: NpcTalkResponse, action: NpcTalkResponse['actions'][number]) {
     if (action.type === 'CLOSE') {
       onClose()
+      return
+    }
+    if (action.type === 'OPEN_TRAVEL') {
+      onOpenTravel?.()
+      if (!onOpenTravel) {
+        onClose()
+      }
       return
     }
     if (action.type === 'SHOP') {
@@ -155,8 +181,12 @@ export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Pro
   }
 
   return (
-    <div className="npc-dialogue" data-testid="npc-dialogue">
-      {initialNpcCode ? null : (
+    <div
+      className={dock ? 'npc-dialogue npc-dialogue-dock' : 'npc-dialogue npc-dialogue-overlay'}
+      data-testid="npc-dialogue"
+      data-variant={variant}
+    >
+      {showDirectory ? (
         <>
           <h3>People here</h3>
           {npcs.length === 0 ? <p className="muted">No one to talk to.</p> : null}
@@ -178,36 +208,49 @@ export function NpcDialogue({ open, onClose, onOpenMarket, initialNpcCode }: Pro
             })}
           </ul>
         </>
-      )}
+      ) : null}
       {talk ? (
-        <div data-testid="npc-talk">
+        <div className="npc-talk-body" data-testid="npc-talk">
           {npcPortraitUrl(talk.portraitCode) ? (
-            <img src={npcPortraitUrl(talk.portraitCode)} alt="" width={72} height={72} />
+            <img
+              className={dock ? 'npc-talk-portrait npc-talk-portrait-dock' : 'npc-talk-portrait'}
+              src={npcPortraitUrl(talk.portraitCode)}
+              alt=""
+              width={dock ? 96 : 72}
+              height={dock ? 96 : 72}
+            />
           ) : null}
           <p>
             <strong>{talk.name}</strong> · {talk.title}
           </p>
-          <p data-testid="npc-talk-text">{talk.text}</p>
+          <div data-testid="npc-talk-text">
+            {talkParagraphs(talk.text).map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
           {completion ? <QuestCompleteSummary quest={completion} /> : null}
-          <div className="npc-talk-actions">
+          <div className={dock ? 'npc-talk-actions npc-talk-actions-dock' : 'npc-talk-actions'}>
             {talk.actions.map((action) => (
               <Button
                 key={`${action.type}-${action.action ?? action.questCode ?? action.merchantCode ?? action.label}`}
                 type="button"
+                className={action.hint ? 'npc-talk-reply' : undefined}
                 data-testid={`npc-action-${action.type}${action.action ? `-${action.action}` : ''}`}
                 onClick={() => void handleAction(talk, action)}
               >
-                {action.label}
-                {action.hint ? <span className="muted"> {action.hint}</span> : null}
+                <span>{action.label}</span>
+                {action.hint ? <span className="npc-talk-reply-hint">{action.hint}</span> : null}
               </Button>
             ))}
           </div>
         </div>
       ) : null}
       {talkMutation.error instanceof ApiError ? <p className="form-error">{talkMutation.error.message}</p> : null}
-      <Button type="button" onClick={onClose}>
-        Close
-      </Button>
+      {dock ? null : (
+        <Button type="button" onClick={onClose}>
+          Close
+        </Button>
+      )}
     </div>
   )
 }

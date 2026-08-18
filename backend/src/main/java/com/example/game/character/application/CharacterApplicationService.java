@@ -122,6 +122,7 @@ public class CharacterApplicationService {
 			throw CharacterErrors.invalidAppearance();
 		}
 
+		boolean chapter1Prologue = characterRepository.countByAccountId(accountId) == 0;
 		UUID startingLocationId = startingLocationProvider.startingLocationId();
 
 		int strength = CharacterBalance.STARTING_STRENGTH;
@@ -168,7 +169,7 @@ public class CharacterApplicationService {
 			masteryApplicationService.initializeForCharacter(saved.getId());
 			craftingApplicationService.initializeForCharacter(saved.getId());
 			assignActive(accountId, saved.getId(), now);
-			return toView(saved);
+			return toView(saved, chapter1Prologue);
 		}
 		catch (DataIntegrityViolationException exception) {
 			if (ConstraintViolations.caused(exception, SLOT_CONSTRAINT)) {
@@ -326,6 +327,10 @@ public class CharacterApplicationService {
 	}
 
 	private CharacterView toView(CharacterEntity character) {
+		return toView(character, false);
+	}
+
+	private CharacterView toView(CharacterEntity character, boolean chapter1Prologue) {
 		EquippedBonuses bonuses = equippedBonusProvider.bonusesFor(character.getId());
 		DerivedCombatStats derivedStats = CharacterStatCalculator.calculate(
 				character.getStrength(),
@@ -365,7 +370,8 @@ public class CharacterApplicationService {
 				derivedStats,
 				character.getCreatedAt(),
 				character.getUpdatedAt(),
-				characterUnlockQuery.unlockCodesOf(character.getId()));
+				characterUnlockQuery.unlockCodesOf(character.getId()),
+				chapter1Prologue);
 	}
 
 	private int resolveSlot(UUID accountId, Integer requestedSlot) {

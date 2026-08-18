@@ -1294,6 +1294,35 @@
   padding: 0.55rem 0.55rem 0.45rem;
 }
 
+.npc-strip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.npc-strip-heading {
+  margin: 0;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.npc-strip-close {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: rgba(18, 15, 12, 0.85);
+  color: #e2c57d;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .npc-strip-track {
   display: flex;
   gap: 0.55rem;
@@ -1314,6 +1343,93 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.npc-strip-card-selected {
+  border-color: #c9a227;
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.7);
+}
+
+.npc-strip-card-lead {
+  box-shadow: 0 0 0 2px #c9a227, 0 0 14px rgba(226, 197, 125, 0.45);
+}
+
+.npc-strip-card-dim {
+  filter: brightness(0.38);
+}
+
+.npc-strip-talk {
+  display: block;
+  margin: 0 0.4rem 0.45rem;
+  padding: 0.28rem 0.35rem;
+  border: 1px solid #c9a227;
+  background: linear-gradient(180deg, #5a3f1d, #2a1c0e);
+  color: #e2c57d;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.npc-strip-card-pulse {
+  animation: bren-lead-pulse 1.1s ease-in-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .npc-strip-card-pulse {
+    animation: none;
+  }
+}
+
+@keyframes bren-lead-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px #c9a227, 0 0 14px rgba(226, 197, 125, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 3px #e2c57d, 0 0 22px rgba(226, 197, 125, 0.85);
+  }
+}
+
+.square-coach-line {
+  margin: 0.35rem 0 0;
+  color: #e2c57d;
+  font-size: 0.92rem;
+}
+
+.issued-steel-banner {
+  align-self: flex-start;
+  margin-top: 0.45rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(201, 162, 39, 0.55);
+  background: rgba(42, 32, 18, 0.82);
+  color: #efe6d4;
+  font-family: 'Cinzel', var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.quest-log-aim {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.npc-dialogue-overlay {
+  position: relative;
+  z-index: 4;
+  margin: 0.75rem 1rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid #c9a227;
+  background: #16120d;
 }
 
 .npc-strip-portrait {
@@ -1886,9 +2002,62 @@ html[data-ui-mode='compact'] .character-overview-portrait-wrap {
   background: rgba(12, 10, 8, 0.45);
 }
 
-.location-hero-pill-safe {
-  color: #8fd18c;
-  border-color: rgba(125, 186, 122, 0.45);
+.location-hero-pill-pulse {
+  animation: status-chip-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes status-chip-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(226, 197, 125, 0.55);
+  }
+}
+
+.location-hero-tile-lead {
+  box-shadow: 0 0 0 2px #c9a227, 0 0 14px rgba(226, 197, 125, 0.45);
+}
+
+.location-hero-tile-pulse {
+  animation: bren-lead-pulse 1.1s ease-in-out 1;
+}
+
+.travel-sheet-rule {
+  margin: 0 0 0.75rem;
+  color: #e2c57d;
+  font-size: 0.92rem;
+}
+
+.destination-offer-line {
+  margin: 0.2rem 0 0;
+  color: #cfc6b6;
+  font-size: 0.82rem;
+}
+
+.destination-row-offered {
+  outline: 1px solid rgba(201, 162, 39, 0.65);
+  outline-offset: 4px;
+  padding: 0.2rem 0.25rem;
+}
+
+.destination-row-dim {
+  filter: brightness(0.38);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .location-hero-pill-pulse {
+    animation: none;
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(226, 197, 125, 0.55);
+  }
+
+  .location-hero-tile-pulse {
+    animation: none;
+  }
 }
 
 .location-hero-pill-danger {
@@ -4499,10 +4668,44 @@ html[data-ui-mode='compact'] .game-shell-body-combat {
   gap: 0.5rem;
 }
 
+.npc-talk-actions-dock {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.npc-talk-reply {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.npc-talk-reply-hint {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
 .npc-dialogue {
   margin-top: 1rem;
   padding: 1rem;
   border: 1px solid var(--border, #3a3a3a);
+}
+
+.npc-dialogue-dock {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  border: 0;
+  padding: 0.65rem 0.7rem 0.8rem;
+}
+
+.npc-talk-portrait-dock {
+  display: block;
+  margin-bottom: 0.45rem;
+  object-fit: cover;
 }
 
 @media (max-width: 1200px) {

@@ -3,11 +3,20 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCharacterRoster } from '../api/character'
+import { createCharacter, fetchCharacterRoster } from '../api/character'
 import { CreateCharacterPage } from './CreateCharacterPage'
 
 const refreshMe = vi.fn()
 const logout = vi.fn()
+const navigate = vi.fn()
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => navigate,
+  }
+})
 
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
@@ -216,5 +225,59 @@ describe('CreateCharacterPage', () => {
     fireEvent.click(screen.getByTestId('character-slot-1'))
     expect(screen.getByTestId('character-name')).toBeTruthy()
     expect((screen.getByTestId('create-character-submit') as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('lands a new character on Locations after create and carries the prologue flag', async () => {
+    vi.mocked(createCharacter).mockResolvedValueOnce({
+      id: 'char-new',
+      accountId: 'acc-1',
+      name: 'Thorne',
+      level: 1,
+      experience: 0,
+      strength: 5,
+      agility: 5,
+      endurance: 5,
+      perception: 5,
+      currentHealth: 165,
+      maxHealth: 165,
+      currentStamina: 85,
+      maxStamina: 85,
+      gold: 100,
+      arenaRating: 0,
+      arenaMarks: 0,
+      unspentAttributePoints: 0,
+      currentLocationId: 'loc-1',
+      derivedStats: {
+        physicalDamage: 8,
+        accuracy: 10,
+        dodge: 5,
+        criticalChance: 5,
+        armor: 3,
+      },
+      progression: {
+        level: 1,
+        totalExperience: 0,
+        experienceIntoCurrentLevel: 0,
+        experienceRequiredForNextLevel: 100,
+        experienceRemaining: 100,
+        progressPercent: 0,
+        maxLevel: false,
+      },
+      createdAt: '2026-01-01T00:00:00Z',
+      updatedAt: '2026-01-01T00:00:00Z',
+      chapter1Prologue: true,
+    })
+    renderPage()
+    fireEvent.change(screen.getByTestId('character-name'), { target: { value: 'Thorne' } })
+    fireEvent.submit(screen.getByTestId('create-character-form'))
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith(
+        { pathname: '/game', search: '', hash: 'world' },
+        {
+          replace: true,
+          state: { chapter1Prologue: true, characterName: 'Thorne' },
+        },
+      )
+    })
   })
 })

@@ -1,8 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { fetchCurrentLocation, fetchDestinations, fetchNearbyCharacters, moveToLocation } from '../api/world'
 import { fetchNpcs } from '../api/npcs'
+import { fetchQuests } from '../api/quests'
+import {
+  BREN_NPC_CODE,
+  FIRST_TRAVEL_RULE,
+  OLD_TOWN_OFFER_LINE,
+  issuedSteelLead,
+} from '../quest/issuedSteel'
 import { fetchPublicCharacter, type PublicCharacterResponse } from '../api/pvp'
 import type { DestinationResponse, LocationResponse } from '../api/types'
 import { Button } from '../ui/Button'
@@ -44,8 +51,11 @@ type Props = {
   showYard?: boolean
   variant?: 'full' | 'hero'
   talkOpen?: boolean
-  onTalkOpen?: () => void
+  talkNpcCode?: string
+  onTalkOpen?: (npcCode?: string) => void
   onTalkClose?: () => void
+  onAimBren?: () => void
+  leadPulse?: number
   noticeOpen?: boolean
   onNoticeOpen?: () => void
   onNoticeClose?: () => void
@@ -87,8 +97,11 @@ export function LocationPanel({
   showYard = false,
   variant = 'full',
   talkOpen: talkOpenProp,
+  talkNpcCode: talkNpcCodeProp,
   onTalkOpen,
   onTalkClose,
+  onAimBren,
+  leadPulse = 0,
   noticeOpen = false,
   onNoticeOpen,
   onNoticeClose,
@@ -98,19 +111,28 @@ export function LocationPanel({
   const [movingToId, setMovingToId] = useState<string | null>(null)
   const [inspected, setInspected] = useState<PublicCharacterResponse | null>(null)
   const [internalTalkOpen, setInternalTalkOpen] = useState(false)
-  const [talkNpcCode, setTalkNpcCode] = useState<string | undefined>()
-  const talkOpen = talkOpenProp ?? internalTalkOpen
-  const openTalk = onTalkOpen ?? (() => setInternalTalkOpen(true))
-  const closeTalk = onTalkClose ?? (() => setInternalTalkOpen(false))
+  const [internalTalkNpcCode, setInternalTalkNpcCode] = useState<string | undefined>()
+  const talkOpen = talkOpenProp !== undefined ? talkOpenProp : internalTalkOpen
+  const talkNpcCode = talkOpenProp !== undefined ? talkNpcCodeProp : internalTalkNpcCode
 
   function openTalkWith(code?: string) {
-    setTalkNpcCode(code)
-    openTalk()
+    if (onTalkOpen) {
+      onTalkOpen(code)
+      if (talkOpenProp !== undefined) {
+        return
+      }
+    }
+    setInternalTalkNpcCode(code)
+    setInternalTalkOpen(true)
   }
 
   function closeTalkPanel() {
-    setTalkNpcCode(undefined)
-    closeTalk()
+    if (talkOpenProp !== undefined) {
+      onTalkClose?.()
+      return
+    }
+    setInternalTalkNpcCode(undefined)
+    setInternalTalkOpen(false)
   }
 
   const locationQuery = useQuery({
@@ -137,6 +159,47 @@ export function LocationPanel({
     retry: false,
     enabled: variant !== 'hero',
   })
+
+  const questsQuery = useQuery({
+    queryKey: ['quests'],
+    queryFn: fetchQuests,
+    retry: false,
+  })
+  const [pulseLead, setPulseLead] = useState(false)
+  const idlePulseDone = useRef(false)
+  const lead = issuedSteelLead(
+    questsQuery.data?.quests ?? [],
+    locationQuery.data?.code ?? '',
+    talkOpen,
+    travelOpen,
+  )
+  const verbLead = lead?.verb != null
+
+  useEffect(() => {
+    if (!verbLead) {
+      idlePulseDone.current = false
+      setPulseLead(false)
+      return
+    }
+    if (idlePulseDone.current) {
+      return
+    }
+    const id = window.setTimeout(() => {
+      idlePulseDone.current = true
+      setPulseLead(true)
+      window.setTimeout(() => setPulseLead(false), 1200)
+    }, 8000)
+    return () => window.clearTimeout(id)
+  }, [verbLead, lead?.phase])
+
+  useEffect(() => {
+    if (!leadPulse) {
+      return
+    }
+    setPulseLead(true)
+    const id = window.setTimeout(() => setPulseLead(false), 1200)
+    return () => window.clearTimeout(id)
+  }, [leadPulse])
 
   async function handleMove(destinationLocationId: string) {
     setMoveError(null)
@@ -214,7 +277,7 @@ export function LocationPanel({
           data-workspace="notice-board"
         >
           <LocationBoardScene location={location} />
-          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalk} />
+          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalkWith} />
         </div>
         {yard}
       </>
@@ -242,22 +305,16 @@ export function LocationPanel({
             onOpenSparring={onOpenSparring}
             showYard={showYard}
             onOpenCrafting={onOpenCrafting}
-            onOpenTalk={openTalk}
+            onOpenTalk={openTalkWith}
             onOpenNotice={onNoticeOpen}
             noticeOpen={noticeOpen}
             onMove={(id) => void handleMove(id)}
           />
           <LocationQuestAction
             locationCode={location.code}
-            onOpenTalk={openTalk}
+            onAimBren={onAimBren}
             onSearchEncounter={onSearchEncounter}
             onOpenWorld={onOpenWorld}
-          />
-          <NpcDialogue
-            open={talkOpen}
-            onClose={closeTalkPanel}
-            onOpenMarket={onOpenMarket}
-            initialNpcCode={talkNpcCode}
           />
         </div>
         {yard}
@@ -274,7 +331,7 @@ export function LocationPanel({
       {noticeOpen ? (
         <div className="location-hero location-hero-board" data-workspace="notice-board">
           <LocationBoardScene location={location} />
-          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalk} />
+          <NoticeBoard locationCode={location.code} open onClose={() => onNoticeClose?.()} onOpenTalk={openTalkWith} />
         </div>
       ) : (
         <div className="locations-split">
@@ -298,6 +355,21 @@ export function LocationPanel({
               <p className="location-description" data-testid="location-description">
                 {location.description}
               </p>
+              {lead?.coachLine ? (
+                <p className="square-coach-line" data-testid="square-coach-line">
+                  {lead.coachLine}
+                </p>
+              ) : null}
+              {lead?.banner ? (
+                <button
+                  type="button"
+                  className="issued-steel-banner"
+                  data-testid="issued-steel-banner"
+                  onClick={() => onAimBren?.()}
+                >
+                  {lead.banner}
+                </button>
+              ) : null}
               {location.recommendedLevelMin != null && location.recommendedLevelMax != null ? (
                 <p className="muted" data-testid="location-band">
                   Recommended levels {location.recommendedLevelMin}–{location.recommendedLevelMax}
@@ -305,9 +377,14 @@ export function LocationPanel({
               ) : null}
               <p className="location-hero-pills">
                 <span
-                  className={
-                    safe ? 'location-hero-pill location-hero-pill-safe' : 'location-hero-pill location-hero-pill-danger'
-                  }
+                  className={[
+                    'location-hero-pill',
+                    safe ? 'location-hero-pill-safe' : 'location-hero-pill-danger',
+                    lead?.statusPulse === 'SAFE' && safe ? 'location-hero-pill-pulse' : '',
+                    lead?.statusPulse === 'DANGEROUS' && !safe ? 'location-hero-pill-pulse' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   data-testid="location-safety"
                 >
                   <LocationIcon name={safe ? 'spark' : 'danger'} />
@@ -327,7 +404,9 @@ export function LocationPanel({
                   testId="hero-travel"
                   icon="compass"
                   title="Travel"
-                  subtitle="Change location"
+                  subtitle={lead?.travelSubtitle ?? 'Change location'}
+                  lead={lead?.verb === 'travel'}
+                  pulse={lead?.verb === 'travel' && pulseLead}
                   onClick={() => openTravel()}
                 />
                 {location.actions.includes('SEARCH_ENCOUNTER') ? (
@@ -335,7 +414,9 @@ export function LocationPanel({
                     testId="search-encounter-button"
                     icon="search"
                     title={searchBusy ? 'Searching…' : 'Search'}
-                    subtitle="Hunt nearby"
+                    subtitle={lead?.searchSubtitle ?? 'Hunt nearby'}
+                    lead={lead?.verb === 'search'}
+                    pulse={lead?.verb === 'search' && pulseLead}
                     disabled={searchBusy || !onSearchEncounter}
                     onClick={() => onSearchEncounter?.()}
                   />
@@ -379,37 +460,62 @@ export function LocationPanel({
             {yard}
           </div>
           <aside className="locations-people">
-            <NpcStrip npcs={npcs} onTalk={(code) => openTalkWith(code)} />
-            <HereNowList
-              locationName={location.name}
-              characters={nearby}
-              loading={nearbyQuery.isLoading}
-              truncated={nearbyTruncated}
-              totalCount={nearbyTotal}
-              limit={nearbyLimit}
-              onInspect={(id) => void inspectNearby(id)}
+            <NpcStrip
+              npcs={npcs}
+              selectedCode={talkOpen ? talkNpcCode : undefined}
+              onTalk={(code) => openTalkWith(code)}
+              onCloseTalk={talkOpen ? closeTalkPanel : undefined}
+              leadNpcCode={lead?.brenStarter ? BREN_NPC_CODE : undefined}
+              pulseNpcCode={lead?.verb === 'bren' ? BREN_NPC_CODE : undefined}
+              pulseLead={pulseLead}
             />
-            {inspected ? (
-              <aside data-testid="public-inspect">
-                <h3>{inspected.name}</h3>
-                <p>
-                  Level {inspected.level} · Rating {inspected.arenaRating}
-                </p>
-                <p>
-                  STR {inspected.strength} AGI {inspected.agility} END {inspected.endurance} PER {inspected.perception}
-                </p>
-                <ul>
-                  {inspected.equipment.map((item) => (
-                    <li key={item.slot}>
-                      {item.slot}: {item.displayName}
-                    </li>
-                  ))}
-                </ul>
-                <Button type="button" onClick={() => setInspected(null)}>
-                  Close
-                </Button>
-              </aside>
-            ) : null}
+            {talkOpen ? (
+              <NpcDialogue
+                variant="dock"
+                open
+                onClose={closeTalkPanel}
+                onOpenMarket={onOpenMarket}
+                onOpenTravel={() => {
+                  closeTalkPanel()
+                  openTravel()
+                }}
+                initialNpcCode={talkNpcCode}
+              />
+            ) : (
+              <>
+                <HereNowList
+                  locationName={location.name}
+                  characters={nearby}
+                  loading={nearbyQuery.isLoading}
+                  truncated={nearbyTruncated}
+                  totalCount={nearbyTotal}
+                  limit={nearbyLimit}
+                  onInspect={(id) => void inspectNearby(id)}
+                />
+                {inspected ? (
+                  <aside data-testid="public-inspect">
+                    <h3>{inspected.name}</h3>
+                    <p>
+                      Level {inspected.level} · Rating {inspected.arenaRating}
+                    </p>
+                    <p>
+                      STR {inspected.strength} AGI {inspected.agility} END {inspected.endurance} PER{' '}
+                      {inspected.perception}
+                    </p>
+                    <ul>
+                      {inspected.equipment.map((item) => (
+                        <li key={item.slot}>
+                          {item.slot}: {item.displayName}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button type="button" onClick={() => setInspected(null)}>
+                      Close
+                    </Button>
+                  </aside>
+                ) : null}
+              </>
+            )}
           </aside>
         </div>
       )}
@@ -426,34 +532,52 @@ export function LocationPanel({
               Close
             </Button>
           </div>
+          {lead?.firstTravelSheet ? (
+            <p className="travel-sheet-rule" data-testid="travel-sheet-rule">
+              {FIRST_TRAVEL_RULE}
+            </p>
+          ) : null}
           {destinationsQuery.isLoading ? (
             <LoadingState>Loading destinations…</LoadingState>
           ) : destinations.length === 0 ? (
             <EmptyState>No connected destinations.</EmptyState>
           ) : (
             <ul className="destination-list" data-testid="destination-list">
-              {destinations.map((destination) => (
-                <li key={destination.id}>
-                  <div>
-                    <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
-                    <span className="muted">
-                      {' '}
-                      · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
-                      {destination.recommendedLevelMin != null
-                        ? ` · Lv ${destination.recommendedLevelMin}–${destination.recommendedLevelMax}`
-                        : ''}
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    data-testid={`destination-${destination.code}`}
-                    disabled={movingToId !== null}
-                    onClick={() => void handleMove(destination.id)}
+              {destinations.map((destination) => {
+                const offered = lead?.offeredDestination === destination.code
+                const dimOthers = Boolean(lead?.offeredDestination) && !offered
+                return (
+                  <li
+                    key={destination.id}
+                    className={
+                      offered ? 'destination-row-offered' : dimOthers ? 'destination-row-dim' : undefined
+                    }
+                    data-testid={offered ? `destination-offered-${destination.code}` : undefined}
                   >
-                    {movingToId === destination.id ? 'Traveling…' : 'Travel'}
-                  </Button>
-                </li>
-              ))}
+                    <div>
+                      <strong data-testid={`destination-name-${destination.code}`}>{destination.name}</strong>
+                      <span className="muted">
+                        {' '}
+                        · {destination.safety === 'SAFE' ? 'Safe' : 'Dangerous'}
+                        {destination.recommendedLevelMin != null
+                          ? ` · Lv ${destination.recommendedLevelMin}–${destination.recommendedLevelMax}`
+                          : ''}
+                      </span>
+                      {offered && destination.code === 'OLD_TOWN' ? (
+                        <p className="destination-offer-line">{OLD_TOWN_OFFER_LINE}</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      data-testid={`destination-${destination.code}`}
+                      disabled={movingToId !== null}
+                      onClick={() => void handleMove(destination.id)}
+                    >
+                      {movingToId === destination.id ? 'Traveling…' : offered ? 'Go' : 'Travel'}
+                    </Button>
+                  </li>
+                )
+              })}
             </ul>
           )}
           {moveError ? (
@@ -463,20 +587,6 @@ export function LocationPanel({
           ) : null}
         </div>
       ) : null}
-      {noticeOpen ? null : (
-        <LocationQuestAction
-          locationCode={location.code}
-          onOpenTalk={openTalk}
-          onSearchEncounter={onSearchEncounter}
-          onOpenWorld={onOpenWorld}
-        />
-      )}
-      <NpcDialogue
-        open={talkOpen}
-        onClose={closeTalkPanel}
-        onOpenMarket={onOpenMarket}
-        initialNpcCode={talkNpcCode}
-      />
     </div>
   )
 }
@@ -499,7 +609,7 @@ export type LocationHeroProps = {
   onOpenSparring?: () => void
   showYard?: boolean
   onOpenCrafting?: () => void
-  onOpenTalk?: () => void
+  onOpenTalk?: (npcCode?: string) => void
   onOpenNotice?: () => void
   noticeOpen?: boolean
   onMove: (destinationLocationId: string) => void
@@ -685,7 +795,7 @@ function heroActionTiles({
         icon: 'notice',
         title: 'People',
         subtitle: 'Talk here',
-        onClick: () => onOpenTalk?.(),
+        onClick: () => onOpenTalk?.(location.code === 'CITY_SQUARE' ? BREN_NPC_CODE : undefined),
       })
     }
     if (actions.has('NOTICE_BOARD')) {
@@ -903,9 +1013,22 @@ type TileProps = {
   disabled?: boolean
   comingLater?: boolean
   selected?: boolean
+  lead?: boolean
+  pulse?: boolean
 }
 
-function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLater, selected }: TileProps) {
+function HeroTile({
+  testId,
+  icon,
+  title,
+  subtitle,
+  onClick,
+  disabled,
+  comingLater,
+  selected,
+  lead,
+  pulse,
+}: TileProps) {
   const content: ReactNode = (
     <>
       <span className="location-hero-tile-icon">
@@ -930,10 +1053,19 @@ function HeroTile({ testId, icon, title, subtitle, onClick, disabled, comingLate
     )
   }
 
+  const tileClass = [
+    'location-hero-tile',
+    selected ? 'is-selected' : '',
+    lead ? 'location-hero-tile-lead' : '',
+    pulse ? 'location-hero-tile-pulse' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
     <button
       type="button"
-      className={selected ? 'location-hero-tile is-selected' : 'location-hero-tile'}
+      className={tileClass}
       data-testid={testId}
       aria-current={selected ? 'true' : undefined}
       disabled={disabled}

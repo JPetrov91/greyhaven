@@ -2,8 +2,13 @@
 
 **Status:** Authoritative game-design spec for the **Locations** panel (`#world`).  
 **Date:** 2026-08-17  
-**Visual reference:** `docs/mockups/locations-canonical.png` (generated from this spec; not a pixel-perfect contract).  
-**Related:** `LEVEL_1_10_PLAYER_JOURNEY.md`, `FIRST_QUEST_BUSINESS_REQUIREMENTS.md`, `WEAPON_FAMILIES_AND_STARTER_QUEST.md`, `docs/mockups/main.png` (Home shell grammar).
+**Visual reference:**  
+- Idle: `docs/mockups/locations-canonical.png`  
+- Talk: `docs/mockups/locations-talk.png`  
+- FTUE lead: `locations-bren-lead.png`, `locations-ftue-safe.png`, `locations-ftue-travel.png`, `locations-ftue-oldtown.png`  
+
+Talk mocks that use a different nav, a merged Travel/Search/Notice banner, or a tab switcher instead of the People here strip are **void**.  
+**Related:** `STARTING_EXPERIENCE_BUSINESS_SPEC.md`, `FIRST_FIVE_MINUTES.md` (prologue then this screen; Bren lead), `LEVEL_1_10_PLAYER_JOURNEY.md`, `FIRST_QUEST_BUSINESS_REQUIREMENTS.md`, `WEAPON_FAMILIES_AND_STARTER_QUEST.md`, `README.md`, `docs/mockups/main.png` (Home shell grammar).
 
 This file is the **single** Locations layout. Target: **wide tall place (left) + NPC strip + tall player list (right)**. World Map does **not** appear on Locations.
 
@@ -116,7 +121,7 @@ Top of the **right column**, **short** (one card-row tall). Must not steal Here 
 | Order | Featured first (Square: Bren), then others at this location |
 | One NPC | Show that card; no fake empty slots |
 | Several NPCs | **Horizontal scroll** (snap to cards). Peek of the next card so scroll is obvious |
-| None | Hide the strip; Here now uses the full right column |
+| None | **Do not render People Here at all** (no header, no empty cards, no collapsed stub). Here now uses the **full** right column |
 
 Do not put NPCs and players in one list. Do not put this strip on the painting.
 
@@ -126,6 +131,7 @@ Quest marks: not on Here now, not on the Notice Board. Issued Steel: Bren `…`,
 
 | Location | NPCs in the strip |
 | --- | --- |
+| Old Town | **None** (v1). Hide People Here; Here now full height |
 | City Square | Bren first; others if present |
 | Market | Edric, Mara, Calia, Tomas — scroll |
 | Tavern | Ohlan; others if present |
@@ -156,16 +162,67 @@ Same `ChatPanel` as Home. Thin strip under the **whole** main split (art + peopl
 
 ---
 
-## 5. Overlays and modes (opened from Locations)
+## 5. Talk mode (click an NPC)
+
+Opened from the NPC strip (Locations) or Home **People**. Same conversation chrome; only the **dock** differs.
+
+**Do not** start with a “People here” directory after the player already clicked Bren. Go straight into that NPC’s node.
+
+### 5.1 Where it sits
+
+Talk is **the same Locations frame**, not a new screen.
+
+| Piece | During Talk |
+| --- | --- |
+| Hero, Travel / Search / Notice, activity, chat | Unchanged from idle Locations |
+| **NPC strip (People here)** | **Same strip as idle.** Selected card gets the bronze rim. Horizontal peek/scroll unchanged. Click another card = switch speaker |
+| **Here now** | **Replaced** by the dialogue body (text + replies). Restored on close |
+
+Do not replace the NPC strip with a different tab UI. Do not open a “People here” directory. Do not change nav, chat channels, or activity rail.
+
+**Home:** same dialogue internals in a metal plate over the dashboard.
+
+### 5.2 Anatomy of the dock
+
+```text
+┌─ People here: [Bren selected] [peek…] [×] ─┐
+│  (same cards as idle strip)                 │
+│  spoken text                                │
+│  [ reply 1 ]                                │
+│  [ reply 2 ]                                │
+│  [ reply 3 ]                                │
+└─────────────────────────────────────────────┘
+```
+
+Portrait may enlarge **inside this Here-now slot**, still under the same People here strip — not a second header.
+
+| Piece | Rule |
+| --- | --- |
+| Portrait | Same art as the strip card, larger |
+| Text | Current node (Issued Steel §4). One bubble = one paragraph |
+| Replies | Plate buttons, full width of the dock. Labels from the microscript |
+| Weapon row (Node B) | Four plates. Subtitle **on the button**: Sword/Axe/Mace `Rusty weapon + shield`; Daggers `No shield` |
+| Quest complete | Existing complete block **inside** this dock after turn-in; no second modal |
+| Chat | Still visible under the split. Do not fullscreen-cinematic Talk |
+| Close | `×` on the strip (or Close reply). Restores Here now; selected NPC rim may clear |
+
+No letterbox, no voice, no dialogue history log in v1.
+
+### 5.3 Issued Steel in this chrome
+
+- Node A: I’ll walk Old Town / Why me? / Not now  
+- Node B: four weapon plates, then Bren’s “Old Town. Search…” + Close  
+- Node C: branch copy + Close; complete summary if turn-in just happened  
+
+### 5.4 Other modes
 
 | Mode | How | Notes |
 | --- | --- | --- |
-| Talk | Card in the NPC strip | Same `NpcDialogue` as Home People |
 | Notice board | Place verb Notice on Square | Same board as Home Notice **mode** |
 | Inspect player | Row in Here now | Existing inspect |
 | Sparring / dungeon | Place verbs when at that location | Existing panels; hero may shrink like Home yard mode |
 
-Closing a mode returns to the split layout (or Home if the player opened board from Home).
+Visual: `docs/mockups/locations-talk.png`
 
 ---
 
@@ -204,7 +261,7 @@ Closing a mode returns to the split layout (or Home if the player opened board f
 | Case | UI |
 | --- | --- |
 | Alone | Here now empty copy; NPC strip still shows if NPCs exist |
-| No NPCs | Strip hidden; Here now uses full right column |
+| No NPCs | People Here **omitted**; Here now uses full right column. Never show an empty People Here. |
 | Move in progress | Existing disable / moving state on destinations |
 | Nearby truncated | Footer line, not an infinite scroll of 200 |
 
@@ -224,6 +281,9 @@ Closing a mode returns to the split layout (or Home if the player opened board f
 | LOC-8 | Hero is a **tall wide** left well (~70% width). |
 | LOC-9 | No World Map button on Locations. |
 | LOC-10 | Two or more NPCs: horizontal scroll with a peek of the next card. |
+| LOC-11 | Talk: same Locations frame; if NPCs exist the strip stays; Here now becomes dialogue; Close restores Here now. |
+| LOC-12 | Talk chrome matches idle (nav, hero plates, chat, activity). No second Talk layout. |
+| LOC-13 | Zero NPCs: People Here is omitted; Here now uses the full right column. No empty NPC chrome. |
 
 ---
 
@@ -235,7 +295,8 @@ Live Locations: full action dump + nearby names, **no chat**, Talk buried. Live 
 2. Split nearby vs host; Bren plate on Square.  
 3. Stop rendering Home-style hub plates on Locations; keep destinations + field verbs.  
 4. Home Travel / World Map → `#world`.  
-5. Home keeps Tavern, Market, People, Notice, Guild.
+5. Home keeps Tavern, Market, People, Notice, Guild.  
+6. Talk mode: swap Here now only (`locations-talk.png`).
 
 ---
 
@@ -248,4 +309,5 @@ Live Locations: full action dump + nearby names, **no chat**, Talk buried. Live 
 - Two different Travel UIs  
 - Deleting Home’s hub bar because Locations exists  
 - Cloning that hub bar onto Locations  
+- Talk as a different product chrome (new nav, merged hero banner, NPC **tabs** instead of the People here strip)  
 - NPC gallery on Home

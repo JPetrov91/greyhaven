@@ -7,8 +7,7 @@ import com.example.game.item.domain.ItemCodes;
 public final class IssuedSteelCopy {
 
 	public static final String NODE_A =
-			"Greyhaven still opens the gates at dawn. That is habit, not safety.\n"
-					+ "Old Town has been eating drunks and runners. We are thin. I am not asking for a hero. I am asking for a pair of eyes that come back.\n"
+			"Old Town has been eating drunks and runners. We are thin. I am not asking for a hero. I am asking for a pair of eyes that come back.\n"
 					+ "The north road has gone quiet again — wagons overdue, same as last week. That is tomorrow's problem. Tonight I need the alleys walked.\n"
 					+ "There is rust on the rack. Better rust in your hand than an empty one.";
 
@@ -18,7 +17,11 @@ public final class IssuedSteelCopy {
 	public static final String NODE_B = "What can you hold?";
 
 	public static final String AFTER_GRANT =
-			"Old Town. Search the alleys. If steel finds you, use it — or come home without pride. Alive is a report. Go.";
+			"The Square is safe enough. The watch still pretends it is morning.\n"
+					+ "Old Town is not. You will know it when the noise dies.\n"
+					+ "Steel in your hand does not move your feet. Travel from the Square.\n"
+					+ "When you are in the lanes — Search. That is how the street answers. Do not Search the Square. It has nothing to hide.\n"
+					+ "Alive is a report.";
 
 	public static final String PROGRESS_BEFORE_SEARCH =
 			"The notice still stands. Old Town. Walk it. Then my desk.";

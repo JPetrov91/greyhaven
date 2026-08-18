@@ -43,7 +43,7 @@ describe('QuestTracker', () => {
               requiredAmount: 1,
               currentAmount: 0,
               completed: false,
-              displayText: 'Speak with Watch-Sergeant Bren',
+              displayText: 'Talk to Watch-Sergeant Bren',
               consumeOnTurnIn: false,
             },
           ],
@@ -61,13 +61,13 @@ describe('QuestTracker', () => {
       </MemoryRouter>,
     )
     expect(await screen.findByTestId('tracked-quest-QST_MILITIA_NOTICE')).toBeTruthy()
-    expect(screen.getByText('Speak with Watch-Sergeant Bren')).toBeTruthy()
+    expect(screen.getByText('Talk to Watch-Sergeant Bren')).toBeTruthy()
     expect(screen.getByText('Active')).toBeTruthy()
     expect(screen.getAllByTestId('tracked-quest-empty')).toHaveLength(2)
     expect(screen.queryByText('0/1')).toBeNull()
   })
 
-  it('opens Talk from the tracker on the Square', async () => {
+  it('aims at Bren from the tracker and never opens Talk', async () => {
     vi.mocked(fetchQuests).mockResolvedValue({
       quests: [
         {
@@ -92,7 +92,7 @@ describe('QuestTracker', () => {
               requiredAmount: 1,
               currentAmount: 0,
               completed: false,
-              displayText: 'Speak with Watch-Sergeant Bren',
+              displayText: 'Talk to Watch-Sergeant Bren',
               consumeOnTurnIn: false,
             },
           ],
@@ -103,20 +103,20 @@ describe('QuestTracker', () => {
         },
       ],
     })
-    const onOpenTalk = vi.fn()
+    const onAimBren = vi.fn()
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
-          <QuestTracker locationCode="CITY_SQUARE" onOpenTalk={onOpenTalk} />
+          <QuestTracker locationCode="CITY_SQUARE" onAimBren={onAimBren} />
         </QueryClientProvider>
       </MemoryRouter>,
     )
-    const talk = await screen.findByTestId('tracked-talk-QST_MILITIA_NOTICE')
-    expect(talk.className).toContain('ui-row')
-    expect(talk.tagName).toBe('BUTTON')
-    talk.click()
-    expect(onOpenTalk).toHaveBeenCalled()
+    const aim = await screen.findByTestId('tracked-aim-QST_MILITIA_NOTICE')
+    expect(aim.className).toContain('ui-row')
+    expect(aim.tagName).toBe('BUTTON')
+    aim.click()
+    expect(onAimBren).toHaveBeenCalledTimes(1)
   })
 
   it('asks the player to return to the turn-in NPC', async () => {

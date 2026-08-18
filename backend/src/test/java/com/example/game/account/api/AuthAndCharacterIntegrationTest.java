@@ -188,6 +188,7 @@ class AuthAndCharacterIntegrationTest {
 				.andExpect(jsonPath("$.currentStamina").value(85))
 				.andExpect(jsonPath("$.derivedStats.physicalDamage").value(8))
 				.andExpect(jsonPath("$.derivedStats.armor").value(3))
+				.andExpect(jsonPath("$.chapter1Prologue").value(true))
 				.andReturn();
 		refreshCsrfCookie(createResult);
 
@@ -209,7 +210,8 @@ class AuthAndCharacterIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/character").session(sessionA))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.name").value(sharedName));
+				.andExpect(jsonPath("$.name").value(sharedName))
+				.andExpect(jsonPath("$.chapter1Prologue").value(false));
 
 		String secondName = uniqueName("Another");
 		MvcResult second = mockMvc.perform(withCsrf(post("/api/v1/characters"))
@@ -220,6 +222,7 @@ class AuthAndCharacterIntegrationTest {
 								""".formatted(secondName)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.name").value(secondName))
+				.andExpect(jsonPath("$.chapter1Prologue").value(false))
 				.andReturn();
 		refreshCsrfCookie(second);
 		String secondId = JsonPath.read(second.getResponse().getContentAsString(), "$.id");
@@ -256,7 +259,8 @@ class AuthAndCharacterIntegrationTest {
 		mockMvc.perform(withCsrf(post("/api/v1/characters/" + firstId + "/select")).session(sessionA))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(firstId))
-				.andExpect(jsonPath("$.name").value(sharedName));
+				.andExpect(jsonPath("$.name").value(sharedName))
+				.andExpect(jsonPath("$.chapter1Prologue").value(false));
 
 		mockMvc.perform(get("/api/v1/character").session(sessionA))
 				.andExpect(status().isOk())

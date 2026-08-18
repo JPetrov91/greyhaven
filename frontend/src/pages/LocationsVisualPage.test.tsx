@@ -2,7 +2,6 @@
 
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DEV_UI_COMBAT_PATH } from '../dev/devUi'
 import { LocationsVisualPage } from './LocationsVisualPage'
 
 afterEach(() => {
@@ -20,10 +19,11 @@ describe('LocationsVisualPage', () => {
     expect(screen.getByTestId('nav-world').getAttribute('aria-current')).toBe('page')
     expect(screen.getByTestId('location-panel')).toBeTruthy()
     expect(screen.getByTestId('current-location').textContent).toBe('The Trade District')
-    expect(screen.getByTestId('destination-list')).toBeTruthy()
-    expect(screen.getByTestId('destination-NORTH_ROAD')).toBeTruthy()
-    expect(screen.getByTestId('destination-NORTH_ROAD').querySelector('a')?.getAttribute('href')).toBe(DEV_UI_COMBAT_PATH)
-    expect(screen.getByTestId('location-actions')).toBeTruthy()
+    expect(screen.getByTestId('hero-travel')).toBeTruthy()
+    expect(screen.getByTestId('npc-strip-EDRIC_VARN')).toBeTruthy()
+    expect(screen.getByTestId('npc-strip-MARA_HELDEN')).toBeTruthy()
+    expect(screen.queryByTestId('location-actions')).toBeNull()
+    expect(screen.queryByTestId('destination-list')).toBeNull()
     expect(screen.getByTestId('nearby-Mira Calden')).toBeTruthy()
     expect(screen.getByTestId('activity-panel')).toBeTruthy()
     expect(screen.getByTestId('chat-panel')).toBeTruthy()

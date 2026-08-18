@@ -91,4 +91,38 @@ describe('QuestLogPanel', () => {
     expect(screen.getByText(/Rusty kit — chosen with Bren/)).toBeTruthy()
     expect(screen.queryByText(/0\/1/)).toBeNull()
   })
+
+  it('aims at Bren from a City Square recommendation', async () => {
+    const onAimBren = vi.fn()
+    vi.mocked(fetchQuests).mockResolvedValue({
+      quests: [
+        {
+          ...notice,
+          status: 'ACTIVE',
+          tracked: true,
+          objectives: [
+            {
+              type: 'TALK_TO_NPC',
+              targetCode: 'MILITIA_OFFICER',
+              requiredAmount: 1,
+              currentAmount: 0,
+              completed: false,
+              displayText: 'Talk to Watch-Sergeant Bren',
+              consumeOnTurnIn: false,
+            },
+          ],
+        },
+      ],
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <QuestLogPanel onAimBren={onAimBren} />
+      </QueryClientProvider>,
+    )
+    const recommended = await screen.findByTestId('quest-recommended-QST_MILITIA_NOTICE')
+    expect(recommended.textContent).toContain('City Square')
+    recommended.click()
+    expect(onAimBren).toHaveBeenCalledTimes(1)
+  })
 })

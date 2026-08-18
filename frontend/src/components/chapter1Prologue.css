@@ -1,0 +1,64 @@
+.chapter1-prologue {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2.5rem 1.5rem 3rem;
+  background: #070605;
+  color: #efe6d4;
+}
+
+.chapter1-skip {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  border: 0;
+  background: transparent;
+  color: #c4b089;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.chapter1-body {
+  max-width: 38rem;
+  cursor: pointer;
+}
+
+.chapter1-kicker,
+.chapter1-title {
+  margin: 0 0 0.85rem;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.chapter1-kicker {
+  color: #c9a227;
+  font-size: 0.78rem;
+}
+
+.chapter1-title {
+  font-size: 1.6rem;
+}
+
+.chapter1-body p {
+  margin: 0 0 0.85rem;
+  line-height: 1.55;
+}
+
+.chapter1-continue {
+  min-width: 12rem;
+  padding: 0.65rem 1.2rem;
+  border: 1px solid #c9a227;
+  background: #1c140c;
+  color: #e2c57d;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
